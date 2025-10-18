@@ -1,8 +1,8 @@
 ﻿' ========================================
 ' Module6
 ' タイプ: 標準モジュール
-' 行数: 395
-' エクスポート日時: 2025-10-17 14:37:26
+' 行数: 520
+' エクスポート日時: 2025-10-18 22:41:04
 ' ========================================
 
 Option Explicit
@@ -15,6 +15,7 @@ Option Explicit
 '
 ' 改版履歴：
 ' 2025/04/02 module2から分割作成
+' 2025/10/18 LINE WORKS通知ボタン追加機能を統合
 ' *************************************************************
 
 ' 定数定義（module2_coreと同じ定数を定義）
@@ -84,6 +85,11 @@ Public Function PrepareOutputSheet() As Worksheet
     ' 社員番号列を文字列形式に設定
     ws.Columns("A").NumberFormat = "@"
     
+    ' ★★★ LINE WORKS通知ボタンを追加 ★★★
+    Debug.Print "PrepareOutputSheet: ボタン追加を実行します"
+    Call AddLineWorksNotificationButton(ws)
+    Debug.Print "PrepareOutputSheet: ボタン追加完了"
+    
     Set PrepareOutputSheet = ws
 End Function
 
@@ -101,7 +107,7 @@ Public Sub CalculateAndDisplaySummary(missingEntriesSheet As Worksheet)
     Dim employeeCount As Long
     Dim i As Long
     Dim lastRow As Long
-    Dim nextRow As Long
+    Dim NextRow As Long
     
     totalMissing = missingEntriesSheet.Range("J2").Value
     missingAttendance = missingEntriesSheet.Range("J3").Value
@@ -159,36 +165,36 @@ Public Sub CalculateAndDisplaySummary(missingEntriesSheet As Worksheet)
         Next i
         
         ' 最終行から3行空けて開始
-        nextRow = lastRow + 3
+        NextRow = lastRow + 3
         
         ' 勤怠入力漏れ情報のヘッダー
-        summarySheet.Cells(nextRow, 1).Value = "勤怠入力漏れ概要"
-        summarySheet.Cells(nextRow, 1).Font.Bold = True
-        summarySheet.Cells(nextRow, 1).Interior.Color = RGB(200, 200, 200)
-        summarySheet.Range(summarySheet.Cells(nextRow, 1), summarySheet.Cells(nextRow, 2)).Merge
+        summarySheet.Cells(NextRow, 1).Value = "勤怠入力漏れ概要"
+        summarySheet.Cells(NextRow, 1).Font.Bold = True
+        summarySheet.Cells(NextRow, 1).Interior.Color = RGB(200, 200, 200)
+        summarySheet.Range(summarySheet.Cells(NextRow, 1), summarySheet.Cells(NextRow, 2)).Merge
         
         ' 詳細情報
-        summarySheet.Cells(nextRow + 1, 1).Value = "検出された入力漏れ"
-        summarySheet.Cells(nextRow + 1, 2).Value = totalMissing & "件"
+        summarySheet.Cells(NextRow + 1, 1).Value = "検出された入力漏れ"
+        summarySheet.Cells(NextRow + 1, 2).Value = totalMissing & "件"
         
-        summarySheet.Cells(nextRow + 2, 1).Value = "出勤時刻なし"
-        summarySheet.Cells(nextRow + 2, 2).Value = missingAttendance & "件"
+        summarySheet.Cells(NextRow + 2, 1).Value = "出勤時刻なし"
+        summarySheet.Cells(NextRow + 2, 2).Value = missingAttendance & "件"
         
-        summarySheet.Cells(nextRow + 3, 1).Value = "退勤時刻なし"
-        summarySheet.Cells(nextRow + 3, 2).Value = missingDeparture & "件"
+        summarySheet.Cells(NextRow + 3, 1).Value = "退勤時刻なし"
+        summarySheet.Cells(NextRow + 3, 2).Value = missingDeparture & "件"
         
-        summarySheet.Cells(nextRow + 4, 1).Value = "出退勤時刻なし"
-        summarySheet.Cells(nextRow + 4, 2).Value = missingBoth & "件"
+        summarySheet.Cells(NextRow + 4, 1).Value = "出退勤時刻なし"
+        summarySheet.Cells(NextRow + 4, 2).Value = missingBoth & "件"
         
-        summarySheet.Cells(nextRow + 5, 1).Value = "対象従業員数"
-        summarySheet.Cells(nextRow + 5, 2).Value = employeeCount & "名"
+        summarySheet.Cells(NextRow + 5, 1).Value = "対象従業員数"
+        summarySheet.Cells(NextRow + 5, 2).Value = employeeCount & "名"
         
         ' 書式設定
-        summarySheet.Range(summarySheet.Cells(nextRow + 1, 1), summarySheet.Cells(nextRow + 5, 2)).Borders.LineStyle = xlContinuous
+        summarySheet.Range(summarySheet.Cells(NextRow + 1, 1), summarySheet.Cells(NextRow + 5, 2)).Borders.LineStyle = xlContinuous
     End If
     
     ' 特別休暇リストを表示（勤怠入力漏れ概要の下）
-    Call AddSpecialLeaveList(summarySheet, nextRow)
+    Call AddSpecialLeaveList(summarySheet, NextRow)
     
     Exit Sub
     
@@ -197,7 +203,7 @@ ErrorHandler:
 End Sub
 
 ' 特別休暇リストを表示する - 最適化版
-Public Sub AddSpecialLeaveList(summarySheet As Worksheet, nextRow As Long)
+Public Sub AddSpecialLeaveList(summarySheet As Worksheet, NextRow As Long)
     ' CSVデータシートを取得
     Dim wsCSVData As Worksheet
     On Error Resume Next
@@ -308,7 +314,7 @@ NextSpecialLeave:
     
     ' 特別休暇リストの表示位置（勤怠入力漏れ概要の2行下）
     Dim listRow As Long
-    listRow = nextRow + 8
+    listRow = NextRow + 8
     
     ' ヘッダー行を設定
     With summarySheet
@@ -399,3 +405,122 @@ NextSpecialLeave:
         .Columns("B:I").AutoFit
     End With
 End Sub
+
+
+' *************************************************************
+' 関数名: AddLineWorksNotificationButton
+' 目的: 勤怠入力漏れ一覧シートにLINE WORKS通知ボタンを追加
+' 引数: ws - 対象ワークシート
+' 作成日: 2025-10-18
+' 改版履歴:
+' 2025/10/18 絵文字削除、ボタン位置をL列10行目に変更、LINE WORKSカラー適用
+' 備考: PrepareOutputSheet()から自動的に呼び出される
+' *************************************************************
+Public Sub AddLineWorksNotificationButton(ws As Worksheet)
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "========================================="
+    Debug.Print "ボタン追加開始: " & Now
+    Debug.Print "対象シート: " & ws.Name
+    
+    ' 既存のボタンを削除（重複防止）
+    Dim btn As Object
+    Dim btnCount As Integer
+    btnCount = 0
+    
+    On Error Resume Next
+    For Each btn In ws.Buttons
+        Debug.Print "既存ボタン検出: " & btn.Name
+        If btn.Name = "btnLineWorksNotification" Then
+            btn.Delete
+            btnCount = btnCount + 1
+            Debug.Print "ボタンを削除しました"
+        End If
+    Next btn
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "削除したボタン数: " & btnCount
+    
+    ' L列（12列目）の10行目の位置を取得
+    Dim targetCell As Range
+    Set targetCell = ws.Cells(10, 12) ' L10セル
+    
+    ' ボタンのサイズ
+    Dim buttonWidth As Double
+    Dim buttonHeight As Double
+    buttonWidth = 180  ' 幅180ピクセル
+    buttonHeight = 35  ' 高さ35ピクセル
+    
+    ' LINE WORKS通知ボタンを追加
+    Dim newBtn As Button
+    Set newBtn = ws.Buttons.Add( _
+        targetCell.Left, _
+        targetCell.Top, _
+        buttonWidth, _
+        buttonHeight)
+    
+    Debug.Print "ボタンオブジェクト作成完了"
+    Debug.Print "ボタン位置: Left=" & targetCell.Left & ", Top=" & targetCell.Top
+    
+    ' ボタンのプロパティ設定
+    With newBtn
+        .OnAction = "SendNotificationToLineWorks"
+        .Caption = "LINE WORKS通知"  ' 絵文字なし
+        .Name = "btnLineWorksNotification"
+        .Font.Name = "Meiryo UI"
+        .Font.Size = 11
+        .Font.Bold = True
+        .Font.Color = RGB(0, 0, 0)  ' 白文字
+    End With
+    
+    ' ボタンの背景色をLINE WORKSカラー（緑）に設定
+    ' RGB(0, 195, 137) = LINE WORKSの緑
+    On Error Resume Next
+    newBtn.ShapeRange.Fill.ForeColor.RGB = RGB(0, 195, 137)
+    newBtn.ShapeRange.line.Visible = msoFalse  ' 枠線なし
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "ボタン追加成功"
+    Debug.Print "ボタン名: " & newBtn.Name
+    Debug.Print "ボタン位置: Top=" & newBtn.Top & ", Left=" & newBtn.Left
+    Debug.Print "ボタンサイズ: Width=" & newBtn.Width & ", Height=" & newBtn.Height
+    Debug.Print "========================================="
+    
+    Exit Sub
+    
+ErrorHandler:
+    Debug.Print "ボタン追加エラー: " & Err.Description
+    Debug.Print "エラー番号: " & Err.Number
+    Debug.Print "========================================="
+    
+    ' エラーが発生してもシート作成は継続
+    ' ユーザーにはエラーを表示しない
+End Sub
+
+' *************************************************************
+' テスト: ボタン追加が動作するか確認
+' *************************************************************
+Sub Test_AddButton()
+    ' 勤怠入力漏れ一覧シートを取得
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets("勤怠入力漏れ一覧")
+    On Error GoTo 0
+    
+    If ws Is Nothing Then
+        MsgBox "「勤怠入力漏れ一覧」シートが見つかりません。" & vbCrLf & _
+               "先に勤怠チェックを実行してください。", vbExclamation
+        Exit Sub
+    End If
+    
+    ' ボタン追加関数を実行
+    Call AddLineWorksNotificationButton(ws)
+    
+    ' 確認
+    MsgBox "ボタンを追加しました。" & vbCrLf & _
+           "「勤怠入力漏れ一覧」シートを確認してください。", vbInformation
+    
+    ' シートをアクティブにする
+    ws.Activate
+End Sub
+

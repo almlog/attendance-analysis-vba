@@ -1,8 +1,8 @@
 ﻿' ========================================
 ' Module2
 ' タイプ: 標準モジュール
-' 行数: 137
-' エクスポート日時: 2025-10-17 14:37:26
+' 行数: 136
+' エクスポート日時: 2025-10-18 22:41:04
 ' ========================================
 
 Option Explicit
@@ -21,6 +21,7 @@ Option Explicit
 ' 2025/03/31 月末最終営業日の当日分チェック機能追加
 ' 2025/04/02 モジュール分割によるリファクタリング
 ' 2025/04/02 勤怠申請と入力内容の矛盾検知機能追加（午前有休・午後有休）
+' 2025/10/18 LINE WORKS通知機能案内をメッセージに追加
 ' *************************************************************
 
 ' 定数定義
@@ -93,9 +94,13 @@ Public Sub 勤怠入力漏れチェック()
     ' 概要統計の計算と表示
     CalculateAndDisplaySummary missingEntriesSheet
     
-    ' 成功メッセージ
+    ' 成功メッセージ（LINE WORKS通知機能の案内を追加）
     MsgBox "勤怠入力漏れチェックが完了しました。" & vbCrLf & _
-    "集計結果を表示します。", vbInformation
+           "集計結果を表示します。" & vbCrLf & vbCrLf & _
+           "【LINE WORKS通知について】" & vbCrLf & _
+           "「勤怠入力漏れ一覧」シートのL列にある" & vbCrLf & _
+           "「LINE WORKS通知」ボタンをクリックすると、" & vbCrLf & _
+           "SI1部リーダーチャンネルに通知が送信されます。", vbInformation
     
 CleanExit:
     Application.StatusBar = False
@@ -127,17 +132,11 @@ Public Sub すべてのチェック実行()
     Application.Calculation = xlCalculationAutomatic
     Application.DisplayAlerts = True
     
-    MsgBox "すべてのチェックが完了しました。", vbInformation
+    ' 完了メッセージ（LINE WORKS通知機能の案内を追加）
+    MsgBox "すべてのチェックが完了しました。" & vbCrLf & vbCrLf & _
+           "【LINE WORKS通知について】" & vbCrLf & _
+           "「勤怠入力漏れ一覧」シートのL列にある" & vbCrLf & _
+           "「LINE WORKS通知」ボタンをクリックすると、" & vbCrLf & _
+           "SI1部リーダーチャンネルに通知が送信されます。", vbInformation
 End Sub
-
-' 除外社員番号を取得する関数
-' この関数は他のモジュールで定義されていると仮定
-' Public Function 除外社員番号取得() As Variant
-'     ' 実装は別モジュールにあると仮定
-' End Function
-
-' 以下の関数は他のモジュールで定義されていると仮定
-' Public Sub 休憩時間チェック()
-' Public Sub CSVファイル読み込み()
-' Public Sub CSV読み込みシート作成()
 

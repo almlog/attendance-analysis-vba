@@ -2,7 +2,7 @@
 ' Module5
 ' タイプ: 標準モジュール
 ' 行数: 671
-' エクスポート日時: 2025-10-17 14:37:26
+' エクスポート日時: 2025-10-18 22:41:04
 ' ========================================
 
 Option Explicit
@@ -172,7 +172,7 @@ Public Sub DetectMissingEntries(wsCSVData As Worksheet, outputSheet As Worksheet
         ' 除外社員の場合はスキップ
         If isExcluded Then
             If DEBUG_MODE Then Debug.Print "==> 除外社員のためスキップします: " & employeeID
-            GoTo nextRow
+            GoTo NextRow
         End If
         
         employeeName = CStr(dataArray(i, 氏名Col))
@@ -182,7 +182,7 @@ Public Sub DetectMissingEntries(wsCSVData As Worksheet, outputSheet As Worksheet
             entryDate = CDate(dataArray(i, 日付Col))
         Else
             ' 日付が不正な場合はスキップ
-            GoTo nextRow
+            GoTo NextRow
         End If
         
         ' 曜日区分の取得
@@ -433,7 +433,7 @@ Public Sub DetectMissingEntries(wsCSVData As Worksheet, outputSheet As Worksheet
             End If
         End If
         
-nextRow:
+NextRow:
     Next i
     
     ' 結果が空の場合のメッセージ

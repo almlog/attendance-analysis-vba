@@ -2,7 +2,7 @@
 ' Module1
 ' タイプ: 標準モジュール
 ' 行数: 1981
-' エクスポート日時: 2025-10-17 14:37:26
+' エクスポート日時: 2025-10-18 22:41:04
 ' ========================================
 
 
@@ -1198,7 +1198,7 @@ Private Sub DisplayAnalysisSummary(ByVal breakTimeSuccess As Boolean, ByVal atte
     End If
 End Sub
 ' 特別休暇リストを表示する関数
-Private Sub AddSpecialLeaveList(summarySheet As Worksheet, nextRow As Long)
+Private Sub AddSpecialLeaveList(summarySheet As Worksheet, NextRow As Long)
     ' CSVデータシートを取得
     Dim wsCSVData As Worksheet
     On Error Resume Next
@@ -1271,7 +1271,7 @@ Private Sub AddSpecialLeaveList(summarySheet As Worksheet, nextRow As Long)
     
     ' 特別休暇リストの表示位置（勤怠入力漏れ概要の2行下）
     Dim listRow As Long
-    listRow = nextRow + 8
+    listRow = NextRow + 8
     
     ' ヘッダー行を設定
     With summarySheet
