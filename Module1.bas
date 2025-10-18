@@ -1,8 +1,8 @@
 ﻿' ========================================
 ' Module1
 ' タイプ: 標準モジュール
-' 行数: 1981
-' エクスポート日時: 2025-10-18 22:41:04
+' 行数: 2075
+' エクスポート日時: 2025-10-18 23:37:16
 ' ========================================
 
 
@@ -1443,7 +1443,18 @@ Sub 別名保存()
     End If
     On Error GoTo 0
 End Sub
-' CSV読み込みシートの初期化（ボタン配置用）
+
+' *************************************************************
+' CSV読み込みシートの説明文を更新（完全版）
+' 目的: SI1部専用ツールの情報追加、LINEWORKS通知機能説明追加
+' 作成日: 2025-10-18
+' 更新内容:
+' - SI1部専用ツールであることを明記
+' - LINEWORKS通知機能の説明追加
+' - 連絡先情報の追加
+' - 除外社員番号の入力欄をA51に移動（元のA46から変更）
+' *************************************************************
+
 Sub CSV読み込みシート作成()
     Dim ws As Worksheet
     Dim mainSheet As Worksheet
@@ -1487,9 +1498,10 @@ Sub CSV読み込みシート作成()
     
     ' タイトルを設定
     With mainSheet
-        .Range("A1").Value = "休憩時間チェックツール"
+        .Range("A1").Value = "休憩時間チェックツール（SI1部専用）"
         .Range("A1").Font.Size = 16
         .Range("A1").Font.Bold = True
+        .Range("A1").Font.Color = RGB(0, 102, 204) ' 青色
     End With
     
     ' 説明文を8行目以降に配置
@@ -1502,73 +1514,153 @@ Sub CSV読み込みシート作成()
         .Range("A11").Value = "勤怠の入力漏れについてチェックします。"
         .Range("A12").Value = "申請の分析を行い、社員ごとの有休日数などを集計します。"
         
-        .Range("A14").Value = "勤之助の月別出勤簿ページから集計したい社員のCSV明細ファイルを出力してください。"
+        ' 区切り線
+        .Range("A13").Value = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        .Range("A13").Font.Color = RGB(128, 128, 128)
+        
+        ' ★★★ SI1部専用ツール情報（追加） ★★★
+        .Range("A14").Value = "【SI1部専用ツール】"
         .Range("A14").Font.Bold = True
-        .Range("A15").Value = "個人でも複数人でも対応します。部署が分かれていても問題ありません。"
+        .Range("A14").Font.Size = 12
+        .Range("A14").Font.Color = RGB(255, 0, 0) ' 赤色で強調
         
-        .Range("A16").Value = "CSVファイルを読み込んでCSV明細ファイルを選択してください。"
+        .Range("A15").Value = "このツールはSI1部専用にカスタマイズされています。"
+        .Range("A15").Font.Color = RGB(255, 0, 0)
         
-        .Range("A18").Value = "休憩時間の基準："
-        .Range("A18").Font.Bold = True
-        .Range("A19").Value = "・実働6時間未満: 休憩なしでも可"
-        .Range("A20").Value = "・実働6～8時間: 45分以上の休憩が必要"
-        .Range("A21").Value = "・実働8時間以上: 1時間以上の休憩が必要"
+        ' 区切り線
+        .Range("A16").Value = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        .Range("A16").Font.Color = RGB(128, 128, 128)
         
-        ' 既存のA18～A21の後に追加
-        ' 定時退社の基準（A23～A26）を新しい定義に変更
-        .Range("A23").Value = "定時退社の基準："
-        .Range("A23").Font.Bold = True
-        .Range("A24").Value = "・定時退社：退社時刻が17:45より前、または有休等の休暇取得"
-        .Range("A25").Value = "・定時退社率 = (定時退社日数 ÷ 総勤務日数) × 100"
-        .Range("A26").Value = "・総勤務日：実働1時間以上または有休等の休暇取得日（振替休暇除く）"
+        ' ★★★ LINEWORKS通知機能（追加） ★★★
+        .Range("A17").Value = "【LINEWORKS通知機能】"
+        .Range("A17").Font.Bold = True
+        .Range("A17").Font.Size = 11
+        .Range("A17").Font.Color = RGB(0, 153, 0) ' 緑色
         
-        ' 既存の届出,備考欄の基準の行番号を調整（A23→A28）
-        .Range("A28").Value = "届出,備考欄の基準"
+        .Range("A18").Value = "・勤怠未入力者の情報をLINE WORKS「SI1部リーダーチャンネル」に自動通知"
+        .Range("A19").Value = "・[勤怠入力漏れチェック]ボタンで未入力者リストを取得"
+        .Range("A20").Value = "・未入力者リストが表示された後、[管理者通知]ボタンで通知を送信"
+        .Range("A21").Value = "・緊急度別に自動分類されます："
+        
+        ' 緊急度の視覚的説明（色付きセル）
+        .Range("B22").Value = "【緊急】"
+        .Range("B22").Interior.Color = RGB(255, 200, 200) ' 薄い赤
+        .Range("B22").Font.Color = RGB(192, 0, 0) ' 濃い赤
+        .Range("B22").Font.Bold = True
+        .Range("C22").Value = "5日以上未入力"
+        
+        .Range("B23").Value = "【要注意】"
+        .Range("B23").Interior.Color = RGB(255, 235, 156) ' 薄い黄色
+        .Range("B23").Font.Color = RGB(204, 102, 0) ' オレンジ
+        .Range("B23").Font.Bold = True
+        .Range("C23").Value = "3-4日未入力"
+        
+        .Range("B24").Value = "【確認】"
+        .Range("B24").Interior.Color = RGB(198, 239, 206) ' 薄い緑
+        .Range("B24").Font.Color = RGB(0, 128, 0) ' 濃い緑
+        .Range("B24").Font.Bold = True
+        .Range("C24").Value = "1-2日未入力"
+        
+        ' 枠線追加
+        .Range("B22:C24").Borders.LineStyle = xlContinuous
+        .Range("B22:C24").Borders.Weight = xlThin
+        
+        ' 区切り線
+        .Range("A25").Value = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        .Range("A25").Font.Color = RGB(128, 128, 128)
+        
+        ' ★★★ 機能追加・修正の連絡先（追加） ★★★
+        .Range("A26").Value = "【機能追加・修正のご依頼】"
+        .Range("A26").Font.Bold = True
+        .Range("A26").Font.Size = 11
+        .Range("A26").Font.Color = RGB(0, 102, 204)
+        
+        .Range("A27").Value = "機能追加や不具合修正のご要望は下記までご連絡ください："
+        .Range("A28").Value = "  連絡先: suzuki.shunpei@altx.co.jp"
         .Range("A28").Font.Bold = True
-        .Range("A29").Value = "・年休以外の届けについて備考欄チェックを行なう"
-        .Range("A30").Value = "・特別休暇がある場合は概要シートに一覧を表示させ備考欄チェックを行う"
+        .Range("A28").Font.Size = 11
+        .Range("A28").Font.Color = RGB(0, 102, 204)
         
-        ' 既存の勤怠入力漏れの基準の行番号を調整（A27→A32）
-        .Range("A32").Value = "勤怠入力漏れの基準："
-        .Range("A32").Font.Bold = True
-        .Range("A33").Value = "・前日以前の平日の勤怠入力が行なわれているかチェック"
-        .Range("A34").Value = "・休暇届けが出ている場合は入力チェックを行わない"
-        .Range("A35").Value = "・月末までの5営業日は当日入力の確認を行うかのポップアップを表示"
+        .Range("A29").Value = "※ご連絡の際は、具体的な内容や動作環境をお知らせください"
+        .Range("A29").Font.Size = 9
+        .Range("A29").Font.Color = RGB(128, 128, 128)
         
-        .Range("A37").Value = "申請分析の基準："
-        .Range("A37").Font.Bold = True
-        .Range("A38").Value = "・申請決裁画面から全申請を対象としてCSVエクスポートしたファイルを解析"
-        .Range("A39").Value = "・社員ごとの有休日数、時間有休時間、午前/午後有休回数を集計"
-        .Range("A40").Value = "・5日以上の休暇取得状況を確認"
+        ' 区切り線
+        .Range("A30").Value = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        .Range("A30").Font.Color = RGB(128, 128, 128)
         
-        ' 除外社員設定項目の追加 - ここから
-        .Range("A42").Value = "除外社員の設定："
-        .Range("A42").Font.Bold = True
-        .Range("A43").Value = "・退職済み、移動済みなど分析から除外したい社員の社員番号を以下のグレーのセルに入力してください。"
-        .Range("A44").Value = "・複数の社員を除外する場合は社員番号をカンマ区切りで入力してください。例: 1234567,2345678"
+        ' 既存の説明（元のA14～A22の内容をA31以降に移動）
+        .Range("A31").Value = "勤之助の月別出勤簿ページから集計したい社員のCSV明細ファイルを出力してください。"
+        .Range("A31").Font.Bold = True
+        .Range("A32").Value = "個人でも複数人でも対応します。部署が分かれていても問題ありません。"
         
-        .Range("A45").Value = "除外社員番号："  ' IDから番号へ変更
-        .Range("A46").Value = ""  ' 入力欄
-        .Range("A46").BorderAround ColorIndex:=1  ' 枠線を追加
-        .Range("A46").Interior.Color = RGB(217, 217, 217)
-        .Range("A46").NumberFormat = "@"  ' ← この行を追加
-        ' 除外社員設定項目の追加 - ここまで
+        .Range("A33").Value = "CSVファイルを読み込んでCSV明細ファイルを選択してください。"
         
-        .Range("A48").Value = "ロジック："
-        .Range("A48").Font.Bold = True
-        .Range("A49").Value = "・休憩時間：実働時間に応じて必要な休憩時間を計算し、取得している休憩時間と比較"
-        .Range("A50").Value = "・残業時間：平日の場合は8時間（480分）を超えた時間、休日出勤は全時間を残業としてカウント"
-        .Range("A51").Value = "・部門別集計：部門ごとの残業時間、平均残業時間、休日出勤数を集計"
-        .Range("A52").Value = "・定時退社：遅刻・早退・欠勤・休日出勤を除き、17:45前退社または休暇取得"
-        .Range("A53").Value = "・違反検出：必要な休憩時間を取得していない場合は「違反」として表示"
-        .Range("A54").Value = "・違反検出：必要な勤怠入力をしていない場合は「出退勤時刻なし」として表示"
+        .Range("A35").Value = "休憩時間の基準："
+        .Range("A35").Font.Bold = True
+        .Range("A36").Value = "・実働6時間未満: 休憩なしでも可"
+        .Range("A37").Value = "・実働6～8時間: 45分以上の休憩が必要"
+        .Range("A38").Value = "・実働8時間以上: 1時間以上の休憩が必要"
         
-        ' 既存のCopyright（A56）はそのまま
-        .Range("A56").Value = "Copyright (c) 2025 SI1 shunpei.suzuki"
-        .Range("A56").Font.Italic = True
-        .Range("A56").Font.Size = 8
+        ' 定時退社の基準（元のA23～A26をA40～A43に移動）
+        .Range("A40").Value = "定時退社の基準："
+        .Range("A40").Font.Bold = True
+        .Range("A41").Value = "・定時退社：退社時刻が17:45より前、または有休等の休暇取得"
+        .Range("A42").Value = "・定時退社率 = (定時退社日数 ÷ 総勤務日数) × 100"
+        .Range("A43").Value = "・総勤務日：実働1時間以上または有休等の休暇取得日（振替休暇除く）"
+        
+        ' 届出,備考欄の基準（元のA28～A30をA45～A47に移動）
+        .Range("A45").Value = "届出,備考欄の基準"
+        .Range("A45").Font.Bold = True
+        .Range("A46").Value = "・年休以外の届けについて備考欄チェックを行なう"
+        .Range("A47").Value = "・特別休暇がある場合は概要シートに一覧を表示させ備考欄チェックを行う"
+        
+        ' 勤怠入力漏れの基準（元のA32～A35をA49～A52に移動）
+        .Range("A49").Value = "勤怠入力漏れの基準："
+        .Range("A49").Font.Bold = True
+        .Range("A50").Value = "・前日以前の平日の勤怠入力が行なわれているかチェック"
+        .Range("A51").Value = "・休暇届けが出ている場合は入力チェックを行わない"
+        .Range("A52").Value = "・月末までの5営業日は当日入力の確認を行うかのポップアップを表示"
+        
+        ' 申請分析の基準（元のA37～A40をA54～A57に移動）
+        .Range("A54").Value = "申請分析の基準："
+        .Range("A54").Font.Bold = True
+        .Range("A55").Value = "・申請決裁画面から全申請を対象としてCSVエクスポートしたファイルを解析"
+        .Range("A56").Value = "・社員ごとの有休日数、時間有休時間、午前/午後有休回数を集計"
+        .Range("A57").Value = "・5日以上の休暇取得状況を確認"
+        
+        ' 除外社員設定項目（元のA42～A46をA59～A63に移動）★★★重要：A51に変更★★★
+        .Range("A59").Value = "除外社員の設定："
+        .Range("A59").Font.Bold = True
+        .Range("A60").Value = "・退職済み、移動済みなど分析から除外したい社員の社員番号を以下のグレーのセルに入力してください。"
+        .Range("A61").Value = "・複数の社員を除外する場合は社員番号をカンマ区切りで入力してください。例: 1234567,2345678"
+        
+        .Range("A62").Value = "除外社員番号："
+        .Range("A63").Value = "" ' ★★★ 入力欄をA51に変更 ★★★
+        .Range("A63").BorderAround ColorIndex:=1
+        .Range("A63").Interior.Color = RGB(217, 217, 217)
+        .Range("A63").NumberFormat = "@" ' 文字列形式
+        
+        ' ロジック説明（元のA48～A51をA65～A68に移動）
+        .Range("A65").Value = "ロジック："
+        .Range("A65").Font.Bold = True
+        .Range("A66").Value = "・休憩時間：実働時間に応じて必要な休憩時間を計算し、取得している休憩時間と比較"
+        .Range("A67").Value = "・残業時間：平日の場合は8時間（480分）を超えた時間、休日出勤は全時間を残業としてカウント"
+        .Range("A68").Value = "・部門別集計：部門ごとの残業時間、平均残業時間、休日出勤数を集計"
+        .Range("A69").Value = "・遅刻・早退：正確にカウント"
+        .Range("A70").Value = "・有休申請：半休・全休を正確に判定"
+        .Range("A71").Value = "・定時退社：遅刻・早退・欠勤・休日出勤を除き、17:45前退社または休暇取得"
+        .Range("A72").Value = "・違反検出：必要な休憩時間を取得していない場合は「違反」として表示"
+        .Range("A73").Value = "・違反検出：必要な勤怠入力をしていない場合は「出退勤時刻なし」として表示"
+        
+        ' Copyright（元のA56をA75に移動）
+        .Range("A75").Value = "Copyright (c) 2025 SI1 shunpei.suzuki"
+        .Range("A75").Font.Italic = True
+        .Range("A75").Font.Size = 8
+        .Range("A75").Font.Color = RGB(128, 128, 128)
         
     End With
+    
     ' 列幅を調整
     mainSheet.Columns("A").ColumnWidth = 100
     
@@ -1605,7 +1697,8 @@ Sub CSV読み込みシート作成()
     
     MsgBox "CSV読み込みシートの初期化が完了しました。", vbInformation
 End Sub
-' 除外社員番号取得関数
+
+' ★★★ 除外社員番号取得関数を修正（A46 → A63に変更）★★★
 Function 除外社員番号取得() As Variant
     Dim mainSheet As Worksheet
     Dim excludeNumbersStr As String
@@ -1622,8 +1715,8 @@ Function 除外社員番号取得() As Variant
         Exit Function
     End If
     
-    ' 除外社員番号欄の値を取得（A41 → A46に変更）
-    excludeNumbersStr = Trim(mainSheet.Range("A46").Value)  ' ← ここをA41からA46に変更
+    ' ★★★ 除外社員番号欄の値を取得（A46 → A63に変更）★★★
+    excludeNumbersStr = Trim(mainSheet.Range("A63").Value)
     
     ' デバッグ出力
     Debug.Print "除外社員番号文字列: [" & excludeNumbersStr & "]"
@@ -1646,6 +1739,7 @@ Function 除外社員番号取得() As Variant
     
     除外社員番号取得 = excludeNumbers
 End Function
+
 ' 初期化シートを表示するプロシージャ（開発者モード用）
 Sub 初期化シート表示()
     Dim initSheet As Worksheet
