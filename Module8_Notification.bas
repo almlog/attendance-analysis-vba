@@ -1,8 +1,8 @@
 ﻿' ========================================
 ' Module8_Notification
 ' タイプ: 標準モジュール
-' 行数: 551
-' エクスポート日時: 2025-10-18 23:37:17
+' 行数: 857
+' エクスポート日時: 2025-10-20 09:55:14
 ' ========================================
 
 Option Explicit
@@ -167,12 +167,14 @@ End Function
 
 
 ' *************************************************************
-' 関数名: GenerateMessageFromSheet
+' 関数名: GenerateMessageFromSheet (修正版)
 ' 目的: 「勤怠入力漏れ一覧」シートのデータを読み取ってメッセージ生成
 ' 戻り値: フォーマット済みメッセージ（文字列）
 ' 備考:
 '   - 社員ごとにグループ化
-'   - 緊急度別に分類（??5日以上、??3-4日、??1-2日）
+'   - 緊急度別に分類（ASCII文字のみで表現）
+' 修正日: 2025-10-19
+' 修正内容: 絵文字を削除し、ASCII文字のみで緊急度を表現
 ' *************************************************************
 Public Function GenerateMessageFromSheet() As String
     On Error GoTo ErrorHandler
@@ -309,7 +311,188 @@ NextRow:
         
         empText = empText & vbLf
         
-        ' 緊急度判定（絵文字なし）
+        ' 緊急度判定（ASCII文字のみ）
+        If maxDays >= 5 Then
+            urgentList = urgentList & "[緊急] " & empText
+        ElseIf maxDays >= 3 Then
+            warningList = warningList & "[要注意] " & empText
+        Else
+            normalList = normalList & "[確認] " & empText
+        End If
+    Next key
+    
+    ' 緊急度順に追加（修正版: ASCII文字のみ）
+    If urgentList <> "" Then
+        message = message & "=============================" & vbLf
+        message = message & "【緊急】5日以上未入力" & vbLf
+        message = message & "=============================" & vbLf
+        message = message & urgentList
+    End If
+    
+    If warningList <> "" Then
+        message = message & "=============================" & vbLf
+        message = message & "【要注意】3-4日未入力" & vbLf
+        message = message & "=============================" & vbLf
+        message = message & warningList
+    End If
+    
+    If normalList <> "" Then
+        message = message & "=============================" & vbLf
+        message = message & "【確認】1-2日未入力" & vbLf
+        message = message & "=============================" & vbLf
+        message = message & normalList
+    End If
+    
+    message = message & "=============================" & vbLf
+    message = message & "※各リーダーより該当者へ声掛けをお願いします" & vbLf
+    message = message & "※申請決裁が未承認の場合も勤怠入力漏れと判定されます。" & vbLf
+    message = message & "　承認漏れが無いかも確認してください。"
+    
+    Debug.Print "生成したメッセージ長: " & Len(message) & "文字"
+    Debug.Print "========================================="
+    
+    GenerateMessageFromSheet = message
+    Exit Function
+    
+ErrorHandler:
+    Debug.Print "メッセージ生成エラー: " & Err.Description
+    Debug.Print "========================================="
+    MsgBox "メッセージ生成エラー: " & vbCrLf & vbCrLf & Err.Description, _
+           vbCritical, "エラー"
+    GenerateMessageFromSheet = ""
+End Function
+
+' *************************************************************
+' 関数名: GenerateAttendanceMissingPart
+' 目的: 勤怠入力漏れ部分のメッセージ生成
+' 戻り値: フォーマット済みメッセージ（文字列、データなしの場合は空文字）
+' *************************************************************
+Private Function GenerateAttendanceMissingPart() As String
+    On Error GoTo ErrorHandler
+    
+    ' 「勤怠入力漏れ一覧」シートを取得
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets("勤怠入力漏れ一覧")
+    On Error GoTo ErrorHandler
+    
+    If ws Is Nothing Then
+        Debug.Print "[INFO] 勤怠入力漏れ一覧シートが見つかりません"
+        GenerateAttendanceMissingPart = ""
+        Exit Function
+    End If
+    
+    ' データ行数確認（ヘッダー除く）
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    
+    If lastRow <= 1 Then
+        Debug.Print "[INFO] 勤怠入力漏れデータなし"
+        GenerateAttendanceMissingPart = ""
+        Exit Function
+    End If
+    
+    ' データを読み取って社員ごとにグループ化
+    Dim empDict As Object
+    Set empDict = CreateObject("Scripting.Dictionary")
+    
+    Dim i As Long
+    Dim empID As String, empName As String, targetDate As Date, daysAgo As Long
+    Dim comment As String
+    Dim totalMissingCount As Long
+    totalMissingCount = 0
+    
+    For i = 2 To lastRow ' 2行目からデータ開始（1行目はヘッダー）
+        empID = Trim(ws.Cells(i, 1).Value)    ' A列: 社員番号
+        empName = Trim(ws.Cells(i, 2).Value)  ' B列: 氏名
+        
+        ' C列が日付型かチェック
+        On Error Resume Next
+        targetDate = ws.Cells(i, 3).Value     ' C列: 日付
+        If Err.Number <> 0 Then
+            Err.Clear
+            On Error GoTo ErrorHandler
+            GoTo NextRow ' 日付が不正な場合はスキップ
+        End If
+        On Error GoTo ErrorHandler
+        
+        comment = Trim(ws.Cells(i, 7).Value)  ' G列: コメント
+        
+        ' 未入力判定（コメントに「入力されていません」が含まれる）
+        If InStr(comment, "入力されていません") > 0 Then
+            daysAgo = DateDiff("d", targetDate, Date)
+            totalMissingCount = totalMissingCount + 1
+            
+            ' 社員ごとに集約
+            If Not empDict.Exists(empID) Then
+                ' 構造: Array(氏名, Collection(日付配列), 最大日数)
+                Dim newColl As Collection
+                Set newColl = New Collection
+                empDict.Add empID, Array(empName, newColl, 0)
+            End If
+            
+            ' 未入力日を追加
+            Dim empData As Variant
+            empData = empDict(empID)
+            empData(1).Add Array(targetDate, daysAgo)
+            
+            ' 最大日数を更新
+            If daysAgo > empData(2) Then
+                empData(2) = daysAgo
+                empDict(empID) = empData
+            End If
+        End If
+        
+NextRow:
+    Next i
+    
+    ' データが0件の場合
+    If empDict.Count = 0 Then
+        GenerateAttendanceMissingPart = ""
+        Exit Function
+    End If
+    
+    Debug.Print "[INFO] 勤怠入力漏れ: " & empDict.Count & "名, " & totalMissingCount & "件"
+    
+    ' メッセージ生成
+    Dim message As String
+    message = "未入力者: " & empDict.Count & "名 / 未入力件数: " & totalMissingCount & "件" & vbLf & vbLf
+    
+    ' 緊急度別に分類
+    Dim urgentList As String, warningList As String, normalList As String
+    urgentList = ""
+    warningList = ""
+    normalList = ""
+    
+    Dim key As Variant
+    For Each key In empDict.Keys
+        empData = empDict(key)
+        Dim maxDays As Long
+        maxDays = empData(2)
+        
+        Dim empText As String
+        empText = empData(0) & " さん" & vbLf
+        
+        ' 未入力日のリスト（最大5件まで表示）
+        Dim dateItem As Variant
+        Dim dateCount As Integer
+        dateCount = 0
+        For Each dateItem In empData(1)
+            If dateCount < 5 Then
+                empText = empText & "  ・" & Format(dateItem(0), "mm/dd") & _
+                          "（" & dateItem(1) & "日前）" & vbLf
+                dateCount = dateCount + 1
+            End If
+        Next dateItem
+        
+        ' 6件以上ある場合は省略表示
+        If empData(1).Count > 5 Then
+            empText = empText & "  ...他" & (empData(1).Count - 5) & "件" & vbLf
+        End If
+        
+        empText = empText & vbLf
+        
+        ' 緊急度判定
         If maxDays >= 5 Then
             urgentList = urgentList & "[緊急] " & empText
         ElseIf maxDays >= 3 Then
@@ -332,23 +515,146 @@ NextRow:
         message = message & "■ 確認（1-2日）" & vbLf & normalList
     End If
     
-    message = message & "━━━━━━━━━━━━━━━" & vbLf
-    message = message & "※各リーダーより該当者へ声掛けをお願いします" & vbLf
-    message = message & "※申請決裁が未承認の場合も勤怠入力漏れと判定されます。" & vbLf
-    message = message & "　承認漏れが無いかも確認してください。"
-    
-    Debug.Print "生成したメッセージ長: " & Len(message) & "文字"
-    Debug.Print "========================================="
-    
-    GenerateMessageFromSheet = message
+    GenerateAttendanceMissingPart = message
     Exit Function
     
 ErrorHandler:
-    Debug.Print "? メッセージ生成エラー: " & Err.Description
-    Debug.Print "========================================="
-    MsgBox "メッセージ生成エラー: " & vbCrLf & vbCrLf & Err.Description, _
-           vbCritical, "エラー"
-    GenerateMessageFromSheet = ""
+    Debug.Print "[ERROR] 勤怠入力漏れ部分生成エラー: " & Err.Description
+    GenerateAttendanceMissingPart = ""
+End Function
+
+
+' *************************************************************
+' 関数名: GenerateBreakTimeViolationPart
+' 目的: 休憩時間違反部分のメッセージ生成
+' 戻り値: フォーマット済みメッセージ（文字列、データなしの場合は空文字）
+' *************************************************************
+Private Function GenerateBreakTimeViolationPart() As String
+    On Error GoTo ErrorHandler
+    
+    ' 「休憩時間チェック_違反者」シートを取得
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets("休憩時間チェック_違反者")
+    On Error GoTo ErrorHandler
+    
+    If ws Is Nothing Then
+        Debug.Print "[INFO] 休憩時間チェック_違反者シートが見つかりません"
+        GenerateBreakTimeViolationPart = ""
+        Exit Function
+    End If
+    
+    ' データ行数確認（ヘッダー除く）
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    
+    If lastRow <= 1 Then
+        Debug.Print "[INFO] 休憩時間違反データなし"
+        GenerateBreakTimeViolationPart = ""
+        Exit Function
+    End If
+    
+    ' 2行目に「休憩時間違反はありません。」メッセージがある場合もスキップ
+    If InStr(ws.Cells(2, 1).Value, "休憩時間違反はありません") > 0 Then
+        Debug.Print "[INFO] 休憩時間違反なし（メッセージ確認）"
+        GenerateBreakTimeViolationPart = ""
+        Exit Function
+    End If
+    
+    ' データを社員ごとにグループ化
+    Dim empDict As Object
+    Set empDict = CreateObject("Scripting.Dictionary")
+    
+    Dim i As Long
+    Dim empID As String, empName As String, targetDate As Date
+    Dim workTime As String, breakTime As String, shortage As String
+    Dim totalViolationCount As Long
+    totalViolationCount = 0
+    
+    For i = 2 To lastRow ' 2行目からデータ開始（1行目はヘッダー）
+        empID = Trim(ws.Cells(i, 1).Value)      ' A列: 社員番号
+        empName = Trim(ws.Cells(i, 2).Value)    ' B列: 氏名
+        
+        ' C列が日付型かチェック
+        On Error Resume Next
+        targetDate = ws.Cells(i, 4).Value       ' D列: 日付
+        If Err.Number <> 0 Then
+            Err.Clear
+            On Error GoTo ErrorHandler
+            GoTo NextViolation ' 日付が不正な場合はスキップ
+        End If
+        On Error GoTo ErrorHandler
+        
+        workTime = Trim(ws.Cells(i, 5).Value)   ' E列: 実働時間
+        breakTime = Trim(ws.Cells(i, 6).Value)  ' F列: 休憩時間
+        shortage = Trim(ws.Cells(i, 8).Value)   ' H列: 休憩不足時間
+        
+        totalViolationCount = totalViolationCount + 1
+        
+        ' 社員ごとに集約
+        If Not empDict.Exists(empID) Then
+            ' 構造: Array(氏名, Collection(違反詳細配列))
+            Dim newColl As Collection
+            Set newColl = New Collection
+            empDict.Add empID, Array(empName, newColl)
+        End If
+        
+        ' 違反詳細を追加
+        Dim empData As Variant
+        empData = empDict(empID)
+        empData(1).Add Array(targetDate, workTime, breakTime, shortage)
+        empDict(empID) = empData
+        
+NextViolation:
+    Next i
+    
+    ' データが0件の場合
+    If empDict.Count = 0 Then
+        GenerateBreakTimeViolationPart = ""
+        Exit Function
+    End If
+    
+    Debug.Print "[INFO] 休憩時間違反: " & empDict.Count & "名, " & totalViolationCount & "件"
+    
+    ' メッセージ生成
+    Dim message As String
+    message = "違反者: " & empDict.Count & "名 / 違反件数: " & totalViolationCount & "件" & vbLf & vbLf
+    
+    Dim key As Variant
+    For Each key In empDict.Keys
+        empData = empDict(key)
+        
+        Dim empText As String
+        empText = empData(0) & " さん" & vbLf
+        
+        ' 違反詳細のリスト（最大5件まで表示）
+        Dim violationItem As Variant
+        Dim violationCount As Integer
+        violationCount = 0
+        For Each violationItem In empData(1)
+            If violationCount < 5 Then
+                empText = empText & "  ・" & Format(violationItem(0), "mm/dd") & _
+                          ": 実働" & violationItem(1) & " / 休憩" & violationItem(2) & _
+                          " → 不足" & violationItem(3) & vbLf
+                violationCount = violationCount + 1
+            End If
+        Next violationItem
+        
+        ' 6件以上ある場合は省略表示
+        If empData(1).Count > 5 Then
+            empText = empText & "  ...他" & (empData(1).Count - 5) & "件" & vbLf
+        End If
+        
+        empText = empText & vbLf
+        message = message & empText
+    Next key
+    
+    GenerateBreakTimeViolationPart = message
+    Exit Function
+    
+ErrorHandler:
+    Debug.Print "[ERROR] 休憩時間違反部分生成エラー: " & Err.Description
+    GenerateBreakTimeViolationPart = ""
 End Function
 
 

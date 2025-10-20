@@ -2,17 +2,17 @@
 VBAコード抽出サマリー
 ============================================================
 
-元ファイル: 勤之助明細チェック_v3.xlsm
-抽出日時: 2025-10-18 23:37:17
-出力先: C:\Users\shunpei_suzuki\VBA\勤之助明細チェック_v3_VBA_20251018_233716
+元ファイル: 勤之助明細チェック_v3テスト.xlsm
+抽出日時: 2025-10-20 09:55:14
+出力先: C:\Users\shunpei_suzuki\VBA\勤之助明細チェック_v3テスト_VBA_20251020_095513
 
 エクスポートファイル数: 10
-スキップファイル数: 10
+スキップファイル数: 12
 
 ------------------------------------------------------------
 ファイル一覧:
 ------------------------------------------------------------
-  Module1.bas (90,569 bytes)
+  Module1.bas (91,162 bytes)
   Module1_Setup.bas (14,032 bytes)
   Module2.bas (6,504 bytes)
   Module3.bas (22,643 bytes)
@@ -21,4 +21,4 @@ VBAコード抽出サマリー
   Module6.bas (22,509 bytes)
   Module7.bas (2,343 bytes)
   Module8.bas (19,845 bytes)
-  Module8_Notification.bas (22,291 bytes)
+  Module8_Notification.bas (34,113 bytes)
