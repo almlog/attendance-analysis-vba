@@ -1,0 +1,211 @@
+﻿' ========================================
+' Module9
+' タイプ: 標準モジュール
+' 行数: 205
+' エクスポート日時: 2025-10-20 11:00:27
+' ========================================
+
+Option Explicit
+
+' *************************************************************
+' 診断ツール: 設定値の確認
+' 使用方法: VBエディタでF5実行
+' *************************************************************
+
+Sub Diagnose_Settings()
+    On Error Resume Next
+    
+    Dim result As String
+    result = "【設定診断結果】" & vbCrLf & vbCrLf
+    
+    ' 設定シートの存在確認
+    Dim configSheet As Worksheet
+    Set configSheet = ThisWorkbook.Sheets("設定")
+    
+    If configSheet Is Nothing Then
+        result = result & "[ERROR] 設定シートが見つかりません" & vbCrLf
+        MsgBox result, vbCritical, "診断結果"
+        Exit Sub
+    Else
+        result = result & "[OK] 設定シートが存在します" & vbCrLf & vbCrLf
+    End If
+    
+    ' A列の項目名を確認
+    result = result & "【設定項目】" & vbCrLf
+    result = result & "A1: " & configSheet.Range("A1").Value & vbCrLf
+    result = result & "A2: " & configSheet.Range("A2").Value & vbCrLf
+    result = result & "A3: " & configSheet.Range("A3").Value & vbCrLf
+    result = result & "A4: " & configSheet.Range("A4").Value & vbCrLf
+    result = result & "A5: " & configSheet.Range("A5").Value & vbCrLf & vbCrLf
+    
+    ' B列の値を確認
+    result = result & "【設定値】" & vbCrLf
+    
+    ' Webhook URL
+    Dim webhookUrl As String
+    webhookUrl = Trim(configSheet.Range("B1").Value)
+    If webhookUrl = "" Then
+        result = result & "[ERROR] Webhook URL: 未設定" & vbCrLf
+    Else
+        result = result & "[OK] Webhook URL: " & Left(webhookUrl, 50) & "..." & vbCrLf
+    End If
+    
+    ' Bot Name
+    Dim botName As String
+    botName = Trim(configSheet.Range("B2").Value)
+    If botName = "" Then
+        result = result & "[WARN] Bot Name: 未設定" & vbCrLf
+    Else
+        result = result & "[OK] Bot Name: " & botName & vbCrLf
+    End If
+    
+    ' Version
+    Dim version As String
+    version = Trim(configSheet.Range("B3").Value)
+    result = result & "[INFO] Version: " & version & vbCrLf
+    
+    ' Last Update
+    Dim lastUpdate As String
+    lastUpdate = Trim(configSheet.Range("B4").Value)
+    result = result & "[INFO] Last Update: " & lastUpdate & vbCrLf
+    
+    ' Channel ID
+    Dim channelID As String
+    channelID = Trim(configSheet.Range("B5").Value)
+    If channelID = "" Then
+        result = result & "[ERROR] Channel ID: 未設定" & vbCrLf
+    Else
+        result = result & "[OK] Channel ID: " & channelID & vbCrLf
+    End If
+    
+    result = result & vbCrLf & "【診断結果サマリー】" & vbCrLf
+    
+    If webhookUrl = "" Or channelID = "" Then
+        result = result & "[CRITICAL] Webhook URLまたはChannel IDが未設定です" & vbCrLf
+        result = result & "これらの設定がないと通知を送信できません。" & vbCrLf & vbCrLf
+        result = result & "【設定方法】" & vbCrLf
+        result = result & "1. VBエディタでプロジェクトエクスプローラーを開く" & vbCrLf
+        result = result & "2. [設定]シートを右クリック > プロパティ" & vbCrLf
+        result = result & "3. Visible を [0 - xlSheetVisible] に変更" & vbCrLf
+        result = result & "4. Excelに戻り、設定シートを開く" & vbCrLf
+        result = result & "5. B1セルにWebhook URL、B5セルにChannel IDを入力" & vbCrLf
+        result = result & "6. 保存後、Visibleを [2 - xlSheetVeryHidden] に戻す"
+    Else
+        result = result & "[SUCCESS] すべての必須設定が完了しています"
+    End If
+    
+    ' 結果を表示
+    MsgBox result, vbInformation, "設定診断結果"
+    
+    ' イミディエイトウィンドウにも出力
+    Debug.Print vbCrLf & "========================================="
+    Debug.Print result
+    Debug.Print "=========================================" & vbCrLf
+End Sub
+
+
+' *************************************************************
+' 診断ツール: GetChannelID関数のテスト
+' *************************************************************
+Sub Test_GetChannelID()
+    On Error Resume Next
+    
+    Dim channelID As String
+    channelID = GetChannelID()
+    
+    If Err.Number <> 0 Then
+        MsgBox "[ERROR] GetChannelID関数でエラー発生" & vbCrLf & vbCrLf & _
+               "エラー番号: " & Err.Number & vbCrLf & _
+               "エラー内容: " & Err.Description, _
+               vbCritical, "関数テスト"
+        Exit Sub
+    End If
+    
+    If channelID = "" Then
+        MsgBox "[ERROR] Channel IDが取得できませんでした" & vbCrLf & vbCrLf & _
+               "設定シートのB5セルを確認してください", _
+               vbExclamation, "関数テスト"
+    Else
+        MsgBox "[SUCCESS] Channel IDを取得しました" & vbCrLf & vbCrLf & _
+               "Channel ID: " & channelID, _
+               vbInformation, "関数テスト"
+    End If
+End Sub
+
+
+' *************************************************************
+' 診断ツール: GetWebhookURL関数のテスト
+' *************************************************************
+Sub Test_GetWebhookURL()
+    On Error Resume Next
+    
+    Dim webhookUrl As String
+    webhookUrl = GetWebhookURL()
+    
+    If Err.Number <> 0 Then
+        MsgBox "[ERROR] GetWebhookURL関数でエラー発生" & vbCrLf & vbCrLf & _
+               "エラー番号: " & Err.Number & vbCrLf & _
+               "エラー内容: " & Err.Description, _
+               vbCritical, "関数テスト"
+        Exit Sub
+    End If
+    
+    If webhookUrl = "" Then
+        MsgBox "[ERROR] Webhook URLが取得できませんでした" & vbCrLf & vbCrLf & _
+               "設定シートのB1セルを確認してください", _
+               vbExclamation, "関数テスト"
+    Else
+        MsgBox "[SUCCESS] Webhook URLを取得しました" & vbCrLf & vbCrLf & _
+               "URL: " & Left(webhookUrl, 50) & "...", _
+               vbInformation, "関数テスト"
+    End If
+End Sub
+
+
+' *************************************************************
+' 診断ツール: 設定シートを一時的に表示
+' *************************************************************
+Sub Show_ConfigSheet()
+    On Error Resume Next
+    
+    Dim configSheet As Worksheet
+    Set configSheet = ThisWorkbook.Sheets("設定")
+    
+    If configSheet Is Nothing Then
+        MsgBox "[ERROR] 設定シートが見つかりません", vbCritical
+        Exit Sub
+    End If
+    
+    ' シートを表示
+    configSheet.Visible = xlSheetVisible
+    configSheet.Activate
+    
+    MsgBox "設定シートを表示しました。" & vbCrLf & vbCrLf & _
+           "【確認事項】" & vbCrLf & _
+           "B1セル: Webhook URL" & vbCrLf & _
+           "B5セル: Channel ID" & vbCrLf & vbCrLf & _
+           "確認後、Hide_ConfigSheet を実行して非表示に戻してください", _
+           vbInformation, "設定シート表示"
+End Sub
+
+
+' *************************************************************
+' 診断ツール: 設定シートを非表示に戻す
+' *************************************************************
+Sub Hide_ConfigSheet()
+    On Error Resume Next
+    
+    Dim configSheet As Worksheet
+    Set configSheet = ThisWorkbook.Sheets("設定")
+    
+    If configSheet Is Nothing Then
+        MsgBox "[ERROR] 設定シートが見つかりません", vbCritical
+        Exit Sub
+    End If
+    
+    ' シートを非表示
+    configSheet.Visible = xlSheetVeryHidden
+    
+    MsgBox "設定シートを非表示にしました", vbInformation, "設定シート非表示"
+End Sub
+

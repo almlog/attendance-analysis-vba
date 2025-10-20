@@ -1,8 +1,8 @@
 ﻿' ========================================
 ' Module8_Notification
 ' タイプ: 標準モジュール
-' 行数: 857
-' エクスポート日時: 2025-10-20 09:55:14
+' 行数: 623
+' エクスポート日時: 2025-10-20 11:00:27
 ' ========================================
 
 Option Explicit
@@ -13,7 +13,8 @@ Option Explicit
 ' 作成日：2025-10-18
 ' 改版履歴：
 ' 2025/10/18 初版作成 - Webhook通知機能追加
-' 2025/10/18 通知履歴機能を削除（LINE WORKS上で確認可能なため不要）
+' 2025/10/20 絵文字完全排除版 - ASCII文字のみ使用
+' 2025/10/20 ADODB.Stream削除版 - シンプルな文字列送信
 ' *************************************************************
 
 ' *************************************************************
@@ -23,9 +24,8 @@ Option Explicit
 '   - webhookURL: Webhook URL
 '   - messageText: 送信するメッセージ本文
 ' 戻り値:
-'   - True: 送信成功（HTTP 200）
+'   - True: 送信成功(HTTP 200)
 '   - False: 送信失敗
-' 備考: LINE WORKS Webhook v2形式（channelId + body.text）
 ' *************************************************************
 Public Function SendToLineWorks(webhookUrl As String, messageText As String) As Boolean
     On Error GoTo ErrorHandler
@@ -44,11 +44,24 @@ Public Function SendToLineWorks(webhookUrl As String, messageText As String) As 
         Exit Function
     End If
     
-    ' Channel ID取得
+    ' Channel ID取得(GetChannelIDがModule1に存在しない場合のフォールバック)
     Dim channelID As String
-    channelID = GetChannelID() ' Module1_Setup.bas の関数
+    On Error Resume Next
+    channelID = GetChannelID()
+    If Err.Number <> 0 Then
+        ' GetChannelID関数がない場合は設定シートから直接取得
+        Err.Clear
+        On Error GoTo ErrorHandler
+        Dim configSheet As Worksheet
+        Set configSheet = ThisWorkbook.Sheets("設定")
+        channelID = Trim(configSheet.Cells(2, 2).Value)
+    End If
+    On Error GoTo ErrorHandler
     
     If channelID = "" Then
+        MsgBox "Channel IDが設定されていません。" & vbCrLf & _
+               "[設定]シートのB2セルにChannel IDを入力してください。", _
+               vbExclamation, "設定エラー"
         SendToLineWorks = False
         Exit Function
     End If
@@ -65,98 +78,46 @@ Public Function SendToLineWorks(webhookUrl As String, messageText As String) As 
     escapedText = messageText
     escapedText = Replace(escapedText, "\", "\\")      ' バックスラッシュ
     escapedText = Replace(escapedText, """", "\""")    ' ダブルクォート
-    escapedText = Replace(escapedText, vbLf, "\n")     ' 改行（LF）
-    escapedText = Replace(escapedText, vbCr, "")       ' 改行（CR）を削除
+    escapedText = Replace(escapedText, vbLf, "\n")     ' 改行(LF)
+    escapedText = Replace(escapedText, vbCr, "")       ' 改行(CR)を削除
     escapedText = Replace(escapedText, vbTab, " ")     ' タブを空白に
     
-    ' JSON構築（LINE WORKS Webhook v2: channelId + body.text形式）
+    ' JSON構築
     Dim jsonBody As String
     jsonBody = "{""channelId"":""" & channelID & """,""body"":{""text"":""" & escapedText & """}}"
     
-    Debug.Print "JSON: " & jsonBody
-    Debug.Print "JSON長: " & Len(jsonBody) & "文字"
+    Debug.Print "JSON長: " & Len(jsonBody) & "バイト"
     
-    ' HTTP通信オブジェクト作成
-    Dim httpRequest As Object
+    ' HTTP送信（文字列を直接送信）
+    Dim http As Object
+    Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     
-    On Error Resume Next
-    Set httpRequest = CreateObject("MSXML2.XMLHTTP.6.0")
-    If httpRequest Is Nothing Then
-        Set httpRequest = CreateObject("MSXML2.XMLHTTP.3.0")
-    End If
-    If httpRequest Is Nothing Then
-        Set httpRequest = CreateObject("MSXML2.XMLHTTP")
-    End If
-    If httpRequest Is Nothing Then
-        Set httpRequest = CreateObject("Microsoft.XMLHTTP")
-    End If
-    On Error GoTo ErrorHandler
-    
-    If httpRequest Is Nothing Then
-        MsgBox "HTTP通信オブジェクトを作成できませんでした。", vbCritical, "エラー"
-        SendToLineWorks = False
-        Exit Function
-    End If
-    
-    Debug.Print "使用するHTTPオブジェクト: " & TypeName(httpRequest)
-    
-    ' HTTP POST送信
-    httpRequest.Open "POST", webhookUrl, False
-    httpRequest.setRequestHeader "Content-Type", "application/json; charset=UTF-8"
-    
-    ' タイムアウト設定
-    On Error Resume Next
-    httpRequest.setTimeouts 30000, 30000, 30000, 30000
-    On Error GoTo ErrorHandler
-    
-    httpRequest.send jsonBody
+    http.Open "POST", webhookUrl, False
+    http.setRequestHeader "Content-Type", "application/json; charset=UTF-8"
+    http.send jsonBody
     
     ' レスポンス確認
-    Debug.Print "HTTP Status: " & httpRequest.Status
-    Debug.Print "レスポンス: " & httpRequest.responseText
+    Debug.Print "HTTP Status: " & http.Status
+    Debug.Print "Response: " & http.responseText
+    Debug.Print "========================================="
     
-    If httpRequest.Status = 200 Then
-        Debug.Print "? 送信成功"
-        Debug.Print "========================================="
+    If http.Status = 200 Then
+        Debug.Print "送信成功"
         SendToLineWorks = True
     Else
-        Debug.Print "? 送信失敗"
-        Debug.Print "========================================="
-        
-        ' エラー詳細をユーザーに表示
-        Dim errorMsg As String
-        Select Case httpRequest.Status
-            Case 400
-                errorMsg = "パラメータエラー（HTTP 400）" & vbCrLf & _
-                          "レスポンス: " & httpRequest.responseText & vbCrLf & vbCrLf & _
-                          "Channel IDとWebhook URLを確認してください。"
-            Case 401
-                errorMsg = "認証エラー（HTTP 401）" & vbCrLf & _
-                          "Webhook URLが無効です。再発行してください。"
-            Case 404
-                errorMsg = "URLが見つかりません（HTTP 404）" & vbCrLf & _
-                          "Webhook URLまたはChannel IDを確認してください。"
-            Case 429
-                errorMsg = "レート制限超過（HTTP 429）" & vbCrLf & _
-                          "5分待ってから再試行してください。"
-            Case 500, 502, 503
-                errorMsg = "サーバーエラー（HTTP " & httpRequest.Status & "）" & vbCrLf & _
-                          "時間を置いて再試行してください。"
-            Case Else
-                errorMsg = "エラー（HTTP " & httpRequest.Status & "）" & vbCrLf & _
-                          httpRequest.responseText
-        End Select
-        
-        MsgBox "通知送信に失敗しました。" & vbCrLf & vbCrLf & errorMsg, _
+        Debug.Print "送信失敗: HTTP " & http.Status
+        MsgBox "LINE WORKS送信エラー" & vbCrLf & vbCrLf & _
+               "HTTP Status: " & http.Status & vbCrLf & _
+               "Response: " & http.responseText, _
                vbCritical, "送信エラー"
         SendToLineWorks = False
     End If
     
-    Set httpRequest = Nothing
+    Set http = Nothing
     Exit Function
     
 ErrorHandler:
-    Debug.Print "? 例外エラー: " & Err.Description
+    Debug.Print "例外エラー: " & Err.Description
     Debug.Print "エラー番号: " & Err.Number
     Debug.Print "========================================="
     MsgBox "通知送信中にエラーが発生しました: " & vbCrLf & vbCrLf & _
@@ -167,208 +128,91 @@ End Function
 
 
 ' *************************************************************
-' 関数名: GenerateMessageFromSheet (修正版)
-' 目的: 「勤怠入力漏れ一覧」シートのデータを読み取ってメッセージ生成
-' 戻り値: フォーマット済みメッセージ（文字列）
-' 備考:
-'   - 社員ごとにグループ化
-'   - 緊急度別に分類（ASCII文字のみで表現）
-' 修正日: 2025-10-19
-' 修正内容: 絵文字を削除し、ASCII文字のみで緊急度を表現
+' 関数名: GenerateMessageFromSheet
+' 目的: 統合メッセージ生成(勤怠入力漏れ + 休憩時間違反)
+' 戻り値: フォーマット済みメッセージ(ASCII文字のみ)
 ' *************************************************************
 Public Function GenerateMessageFromSheet() As String
     On Error GoTo ErrorHandler
     
     Debug.Print "========================================="
-    Debug.Print "メッセージ生成開始: " & Now
+    Debug.Print "統合メッセージ生成開始: " & Now
     
-    ' 「勤怠入力漏れ一覧」シートを取得
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("勤怠入力漏れ一覧")
-    On Error GoTo ErrorHandler
+    ' 各セクションのメッセージを生成
+    Dim attendancePart As String
+    Dim breakTimePart As String
+    Dim finalMessage As String
     
-    If ws Is Nothing Then
-        MsgBox "「勤怠入力漏れ一覧」シートが見つかりません。" & vbCrLf & _
-               "先に勤怠チェックを実行してください。", _
-               vbExclamation, "シートエラー"
+    ' 1. 勤怠入力漏れ部分を生成
+    attendancePart = GenerateAttendanceMissingPart()
+    
+    ' 2. 休憩時間違反部分を生成
+    breakTimePart = GenerateBreakTimeViolationPart()
+    
+    ' 3. 両方とも空の場合
+    If attendancePart = "" And breakTimePart = "" Then
+        MsgBox "通知するデータがありません。" & vbCrLf & vbCrLf & _
+               "・勤怠入力漏れ: なし" & vbCrLf & _
+               "・休憩時間違反: なし", _
+               vbInformation, "データなし"
         GenerateMessageFromSheet = ""
         Exit Function
     End If
     
-    ' データ行数確認（ヘッダー除く）
-    Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    ' 4. ヘッダー作成
+    finalMessage = "【SI1部 勤怠アラート】" & vbLf
+    finalMessage = finalMessage & Format(Now, "yyyy年mm月dd日 hh:nn") & vbLf
+    finalMessage = finalMessage & "=============================" & vbLf & vbLf
     
-    Debug.Print "データ行数: " & (lastRow - 1) & "行"
-    
-    If lastRow <= 1 Then
-        MsgBox "未入力データがありません。", vbInformation, "データなし"
-        GenerateMessageFromSheet = ""
-        Exit Function
+    ' 5. 勤怠入力漏れセクション追加
+    If attendancePart <> "" Then
+        finalMessage = finalMessage & "【勤怠入力漏れ】" & vbLf
+        finalMessage = finalMessage & attendancePart & vbLf
     End If
     
-    ' データを読み取って社員ごとにグループ化
-    Dim empDict As Object
-    Set empDict = CreateObject("Scripting.Dictionary")
-    
-    Dim i As Long
-    Dim empID As String, empName As String, targetDate As Date, daysAgo As Long
-    Dim comment As String
-    Dim totalMissingCount As Long
-    totalMissingCount = 0
-    
-    For i = 2 To lastRow ' 2行目からデータ開始（1行目はヘッダー）
-        empID = Trim(ws.Cells(i, 1).Value)    ' A列: 社員番号
-        empName = Trim(ws.Cells(i, 2).Value)  ' B列: 氏名
-        
-        ' C列が日付型かチェック
-        On Error Resume Next
-        targetDate = ws.Cells(i, 3).Value     ' C列: 日付
-        If Err.Number <> 0 Then
-            Err.Clear
-            On Error GoTo ErrorHandler
-            GoTo NextRow ' 日付が不正な場合はスキップ
+    ' 6. 休憩時間違反セクション追加
+    If breakTimePart <> "" Then
+        If attendancePart <> "" Then
+            finalMessage = finalMessage & vbLf ' セクション間の空行
         End If
-        On Error GoTo ErrorHandler
-        
-        comment = Trim(ws.Cells(i, 7).Value)  ' G列: コメント
-        
-        ' 未入力判定（コメントに「入力されていません」が含まれる）
-        If InStr(comment, "入力されていません") > 0 Then
-            daysAgo = DateDiff("d", targetDate, Date)
-            totalMissingCount = totalMissingCount + 1
-            
-            ' 社員ごとに集約
-            If Not empDict.Exists(empID) Then
-                ' 構造: Array(氏名, Collection(日付配列), 最大日数)
-                Dim newColl As Collection
-                Set newColl = New Collection
-                empDict.Add empID, Array(empName, newColl, 0)
-            End If
-            
-            ' 未入力日を追加
-            Dim empData As Variant
-            empData = empDict(empID)
-            empData(1).Add Array(targetDate, daysAgo)
-            
-            ' 最大日数を更新
-            If daysAgo > empData(2) Then
-                empData(2) = daysAgo
-                empDict(empID) = empData
-            End If
-        End If
-        
-NextRow:
-    Next i
-    
-    Debug.Print "抽出した社員数: " & empDict.Count & "名"
-    Debug.Print "未入力件数: " & totalMissingCount & "件"
-    
-    ' データが0件の場合
-    If empDict.Count = 0 Then
-        MsgBox "未入力データがありません。", vbInformation, "データなし"
-        GenerateMessageFromSheet = ""
-        Exit Function
+        finalMessage = finalMessage & "【休憩時間違反】" & vbLf
+        finalMessage = finalMessage & breakTimePart & vbLf
     End If
     
-    ' メッセージ生成
-    Dim message As String
-    message = "【勤怠未入力アラート】" & Format(Date, "yyyy/mm/dd") & vbLf & vbLf
-    message = message & "未入力者: " & empDict.Count & "名 / 未入力件数: " & totalMissingCount & "件" & vbLf & vbLf
+    ' 7. フッター追加
+    finalMessage = finalMessage & vbLf
+    finalMessage = finalMessage & "=============================" & vbLf
+    finalMessage = finalMessage & "※各リーダーより該当者へ" & vbLf
+    finalMessage = finalMessage & "  対応をお願いします" & vbLf
+    finalMessage = finalMessage & "※申請決裁が未承認の場合も" & vbLf
+    finalMessage = finalMessage & "  勤怠入力漏れと判定されます。" & vbLf
+    finalMessage = finalMessage & "  承認漏れが無いかも確認してください。"
     
-    ' 緊急度別に分類
-    Dim urgentList As String, warningList As String, normalList As String
-    urgentList = ""
-    warningList = ""
-    normalList = ""
-    
-    Dim key As Variant
-    For Each key In empDict.Keys
-        empData = empDict(key)
-        Dim maxDays As Long
-        maxDays = empData(2)
-        
-        Dim empText As String
-        empText = empData(0) & " さん" & vbLf
-        
-        ' 未入力日のリスト（最大5件まで表示）
-        Dim dateItem As Variant
-        Dim dateCount As Integer
-        dateCount = 0
-        For Each dateItem In empData(1)
-            If dateCount < 5 Then
-                empText = empText & "  ・" & Format(dateItem(0), "mm/dd") & _
-                          "（" & dateItem(1) & "日前）" & vbLf
-                dateCount = dateCount + 1
-            End If
-        Next dateItem
-        
-        ' 6件以上ある場合は省略表示
-        If empData(1).Count > 5 Then
-            empText = empText & "  ...他" & (empData(1).Count - 5) & "件" & vbLf
-        End If
-        
-        empText = empText & vbLf
-        
-        ' 緊急度判定（ASCII文字のみ）
-        If maxDays >= 5 Then
-            urgentList = urgentList & "[緊急] " & empText
-        ElseIf maxDays >= 3 Then
-            warningList = warningList & "[要注意] " & empText
-        Else
-            normalList = normalList & "[確認] " & empText
-        End If
-    Next key
-    
-    ' 緊急度順に追加（修正版: ASCII文字のみ）
-    If urgentList <> "" Then
-        message = message & "=============================" & vbLf
-        message = message & "【緊急】5日以上未入力" & vbLf
-        message = message & "=============================" & vbLf
-        message = message & urgentList
-    End If
-    
-    If warningList <> "" Then
-        message = message & "=============================" & vbLf
-        message = message & "【要注意】3-4日未入力" & vbLf
-        message = message & "=============================" & vbLf
-        message = message & warningList
-    End If
-    
-    If normalList <> "" Then
-        message = message & "=============================" & vbLf
-        message = message & "【確認】1-2日未入力" & vbLf
-        message = message & "=============================" & vbLf
-        message = message & normalList
-    End If
-    
-    message = message & "=============================" & vbLf
-    message = message & "※各リーダーより該当者へ声掛けをお願いします" & vbLf
-    message = message & "※申請決裁が未承認の場合も勤怠入力漏れと判定されます。" & vbLf
-    message = message & "　承認漏れが無いかも確認してください。"
-    
-    Debug.Print "生成したメッセージ長: " & Len(message) & "文字"
+    Debug.Print "統合メッセージ生成完了"
+    Debug.Print "メッセージ長: " & Len(finalMessage) & "文字"
     Debug.Print "========================================="
     
-    GenerateMessageFromSheet = message
+    GenerateMessageFromSheet = finalMessage
     Exit Function
     
 ErrorHandler:
-    Debug.Print "メッセージ生成エラー: " & Err.Description
+    Debug.Print "統合メッセージ生成エラー: " & Err.Description
     Debug.Print "========================================="
     MsgBox "メッセージ生成エラー: " & vbCrLf & vbCrLf & Err.Description, _
            vbCritical, "エラー"
     GenerateMessageFromSheet = ""
 End Function
 
+
 ' *************************************************************
 ' 関数名: GenerateAttendanceMissingPart
 ' 目的: 勤怠入力漏れ部分のメッセージ生成
-' 戻り値: フォーマット済みメッセージ（文字列、データなしの場合は空文字）
+' 戻り値: フォーマット済みメッセージ(ASCII文字のみ)
 ' *************************************************************
 Private Function GenerateAttendanceMissingPart() As String
     On Error GoTo ErrorHandler
+    
+    Debug.Print "[INFO] 勤怠入力漏れ部分の生成開始"
     
     ' 「勤怠入力漏れ一覧」シートを取得
     Dim ws As Worksheet
@@ -382,7 +226,7 @@ Private Function GenerateAttendanceMissingPart() As String
         Exit Function
     End If
     
-    ' データ行数確認（ヘッダー除く）
+    ' データ行数確認(ヘッダー除く)
     Dim lastRow As Long
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
     
@@ -392,128 +236,94 @@ Private Function GenerateAttendanceMissingPart() As String
         Exit Function
     End If
     
-    ' データを読み取って社員ごとにグループ化
+    ' Dictionary作成(社員ごとに未入力日をグループ化)
     Dim empDict As Object
     Set empDict = CreateObject("Scripting.Dictionary")
     
     Dim i As Long
-    Dim empID As String, empName As String, targetDate As Date, daysAgo As Long
-    Dim comment As String
+    Dim empID As String, empName As String, targetDate As Date
     Dim totalMissingCount As Long
     totalMissingCount = 0
     
-    For i = 2 To lastRow ' 2行目からデータ開始（1行目はヘッダー）
-        empID = Trim(ws.Cells(i, 1).Value)    ' A列: 社員番号
-        empName = Trim(ws.Cells(i, 2).Value)  ' B列: 氏名
+    For i = 2 To lastRow
+        empID = Trim(ws.Cells(i, 1).Value)
+        empName = Trim(ws.Cells(i, 2).Value)
         
-        ' C列が日付型かチェック
         On Error Resume Next
-        targetDate = ws.Cells(i, 3).Value     ' C列: 日付
+        targetDate = CDate(ws.Cells(i, 3).Value)
         If Err.Number <> 0 Then
-            Err.Clear
-            On Error GoTo ErrorHandler
-            GoTo NextRow ' 日付が不正な場合はスキップ
+            Debug.Print "[WARNING] 行" & i & "の日付が不正"
+            GoTo NextMissing
         End If
         On Error GoTo ErrorHandler
         
-        comment = Trim(ws.Cells(i, 7).Value)  ' G列: コメント
+        totalMissingCount = totalMissingCount + 1
         
-        ' 未入力判定（コメントに「入力されていません」が含まれる）
-        If InStr(comment, "入力されていません") > 0 Then
-            daysAgo = DateDiff("d", targetDate, Date)
-            totalMissingCount = totalMissingCount + 1
-            
-            ' 社員ごとに集約
-            If Not empDict.Exists(empID) Then
-                ' 構造: Array(氏名, Collection(日付配列), 最大日数)
-                Dim newColl As Collection
-                Set newColl = New Collection
-                empDict.Add empID, Array(empName, newColl, 0)
-            End If
-            
-            ' 未入力日を追加
-            Dim empData As Variant
-            empData = empDict(empID)
-            empData(1).Add Array(targetDate, daysAgo)
-            
-            ' 最大日数を更新
-            If daysAgo > empData(2) Then
-                empData(2) = daysAgo
-                empDict(empID) = empData
-            End If
+        ' 社員ごとに未入力日を集約
+        If Not empDict.Exists(empID) Then
+            Dim newColl As Collection
+            Set newColl = New Collection
+            empDict.Add empID, Array(empName, newColl)
         End If
         
-NextRow:
+        Dim empData As Variant
+        empData = empDict(empID)
+        empData(1).Add targetDate
+        empDict(empID) = empData
+        
+NextMissing:
     Next i
     
-    ' データが0件の場合
     If empDict.Count = 0 Then
+        Debug.Print "[INFO] 勤怠入力漏れデータなし(解析後)"
         GenerateAttendanceMissingPart = ""
         Exit Function
     End If
     
     Debug.Print "[INFO] 勤怠入力漏れ: " & empDict.Count & "名, " & totalMissingCount & "件"
     
-    ' メッセージ生成
+    ' メッセージ生成(緊急度判定付き)
     Dim message As String
-    message = "未入力者: " & empDict.Count & "名 / 未入力件数: " & totalMissingCount & "件" & vbLf & vbLf
-    
-    ' 緊急度別に分類
-    Dim urgentList As String, warningList As String, normalList As String
-    urgentList = ""
-    warningList = ""
-    normalList = ""
+    message = "未入力者: " & empDict.Count & "名 / 未入力日数: " & totalMissingCount & "日" & vbLf & vbLf
     
     Dim key As Variant
     For Each key In empDict.Keys
         empData = empDict(key)
-        Dim maxDays As Long
-        maxDays = empData(2)
+        
+        Dim missingCount As Integer
+        missingCount = empData(1).Count
+        
+        ' 緊急度判定(絵文字なし)
+        Dim urgencyMark As String
+        If missingCount >= 5 Then
+            urgencyMark = "[!!緊急!!]"
+        ElseIf missingCount >= 3 Then
+            urgencyMark = "[!要注意!]"
+        Else
+            urgencyMark = "[確認]"
+        End If
         
         Dim empText As String
-        empText = empData(0) & " さん" & vbLf
+        empText = urgencyMark & " " & empData(0) & " さん (" & missingCount & "日)" & vbLf
         
-        ' 未入力日のリスト（最大5件まで表示）
+        ' 日付リスト(最大5件まで)
         Dim dateItem As Variant
         Dim dateCount As Integer
         dateCount = 0
         For Each dateItem In empData(1)
             If dateCount < 5 Then
-                empText = empText & "  ・" & Format(dateItem(0), "mm/dd") & _
-                          "（" & dateItem(1) & "日前）" & vbLf
+                empText = empText & "  - " & Format(dateItem, "mm/dd (aaa)") & vbLf
                 dateCount = dateCount + 1
             End If
         Next dateItem
         
-        ' 6件以上ある場合は省略表示
-        If empData(1).Count > 5 Then
-            empText = empText & "  ...他" & (empData(1).Count - 5) & "件" & vbLf
+        If missingCount > 5 Then
+            empText = empText & "  ...他" & (missingCount - 5) & "日" & vbLf
         End If
         
         empText = empText & vbLf
-        
-        ' 緊急度判定
-        If maxDays >= 5 Then
-            urgentList = urgentList & "[緊急] " & empText
-        ElseIf maxDays >= 3 Then
-            warningList = warningList & "[要注意] " & empText
-        Else
-            normalList = normalList & "[確認] " & empText
-        End If
+        message = message & empText
     Next key
-    
-    ' 緊急度順に追加
-    If urgentList <> "" Then
-        message = message & "■ 緊急対応（5日以上）" & vbLf & urgentList
-    End If
-    
-    If warningList <> "" Then
-        message = message & "■ 要注意（3-4日）" & vbLf & warningList
-    End If
-    
-    If normalList <> "" Then
-        message = message & "■ 確認（1-2日）" & vbLf & normalList
-    End If
     
     GenerateAttendanceMissingPart = message
     Exit Function
@@ -527,24 +337,26 @@ End Function
 ' *************************************************************
 ' 関数名: GenerateBreakTimeViolationPart
 ' 目的: 休憩時間違反部分のメッセージ生成
-' 戻り値: フォーマット済みメッセージ（文字列、データなしの場合は空文字）
+' 戻り値: フォーマット済みメッセージ(ASCII文字のみ)
 ' *************************************************************
 Private Function GenerateBreakTimeViolationPart() As String
     On Error GoTo ErrorHandler
     
-    ' 「休憩時間チェック_違反者」シートを取得
+    Debug.Print "[INFO] 休憩時間違反部分の生成開始"
+    
+    ' 「休憩時間違反一覧」シートを取得
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("休憩時間チェック_違反者")
+    Set ws = ThisWorkbook.Sheets("休憩時間違反一覧")
     On Error GoTo ErrorHandler
     
     If ws Is Nothing Then
-        Debug.Print "[INFO] 休憩時間チェック_違反者シートが見つかりません"
+        Debug.Print "[INFO] 休憩時間違反一覧シートが見つかりません"
         GenerateBreakTimeViolationPart = ""
         Exit Function
     End If
     
-    ' データ行数確認（ヘッダー除く）
+    ' データ行数確認(ヘッダー除く)
     Dim lastRow As Long
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
     
@@ -554,14 +366,7 @@ Private Function GenerateBreakTimeViolationPart() As String
         Exit Function
     End If
     
-    ' 2行目に「休憩時間違反はありません。」メッセージがある場合もスキップ
-    If InStr(ws.Cells(2, 1).Value, "休憩時間違反はありません") > 0 Then
-        Debug.Print "[INFO] 休憩時間違反なし（メッセージ確認）"
-        GenerateBreakTimeViolationPart = ""
-        Exit Function
-    End If
-    
-    ' データを社員ごとにグループ化
+    ' Dictionary作成(社員ごとに違反日をグループ化)
     Dim empDict As Object
     Set empDict = CreateObject("Scripting.Dictionary")
     
@@ -571,17 +376,15 @@ Private Function GenerateBreakTimeViolationPart() As String
     Dim totalViolationCount As Long
     totalViolationCount = 0
     
-    For i = 2 To lastRow ' 2行目からデータ開始（1行目はヘッダー）
-        empID = Trim(ws.Cells(i, 1).Value)      ' A列: 社員番号
-        empName = Trim(ws.Cells(i, 2).Value)    ' B列: 氏名
+    For i = 2 To lastRow
+        empID = Trim(ws.Cells(i, 1).Value)
+        empName = Trim(ws.Cells(i, 2).Value)
         
-        ' C列が日付型かチェック
         On Error Resume Next
-        targetDate = ws.Cells(i, 4).Value       ' D列: 日付
+        targetDate = CDate(ws.Cells(i, 3).Value)
         If Err.Number <> 0 Then
-            Err.Clear
-            On Error GoTo ErrorHandler
-            GoTo NextViolation ' 日付が不正な場合はスキップ
+            Debug.Print "[WARNING] 行" & i & "の日付が不正"
+            GoTo NextViolation
         End If
         On Error GoTo ErrorHandler
         
@@ -593,13 +396,11 @@ Private Function GenerateBreakTimeViolationPart() As String
         
         ' 社員ごとに集約
         If Not empDict.Exists(empID) Then
-            ' 構造: Array(氏名, Collection(違反詳細配列))
             Dim newColl As Collection
             Set newColl = New Collection
             empDict.Add empID, Array(empName, newColl)
         End If
         
-        ' 違反詳細を追加
         Dim empData As Variant
         empData = empDict(empID)
         empData(1).Add Array(targetDate, workTime, breakTime, shortage)
@@ -608,15 +409,15 @@ Private Function GenerateBreakTimeViolationPart() As String
 NextViolation:
     Next i
     
-    ' データが0件の場合
     If empDict.Count = 0 Then
+        Debug.Print "[INFO] 休憩時間違反データなし(解析後)"
         GenerateBreakTimeViolationPart = ""
         Exit Function
     End If
     
     Debug.Print "[INFO] 休憩時間違反: " & empDict.Count & "名, " & totalViolationCount & "件"
     
-    ' メッセージ生成
+    ' メッセージ生成(絵文字なし)
     Dim message As String
     message = "違反者: " & empDict.Count & "名 / 違反件数: " & totalViolationCount & "件" & vbLf & vbLf
     
@@ -625,22 +426,21 @@ NextViolation:
         empData = empDict(key)
         
         Dim empText As String
-        empText = empData(0) & " さん" & vbLf
+        empText = "[違反] " & empData(0) & " さん" & vbLf
         
-        ' 違反詳細のリスト（最大5件まで表示）
+        ' 違反詳細のリスト(最大5件まで)
         Dim violationItem As Variant
         Dim violationCount As Integer
         violationCount = 0
         For Each violationItem In empData(1)
             If violationCount < 5 Then
-                empText = empText & "  ・" & Format(violationItem(0), "mm/dd") & _
+                empText = empText & "  - " & Format(violationItem(0), "mm/dd") & _
                           ": 実働" & violationItem(1) & " / 休憩" & violationItem(2) & _
-                          " → 不足" & violationItem(3) & vbLf
+                          " -> 不足" & violationItem(3) & vbLf
                 violationCount = violationCount + 1
             End If
         Next violationItem
         
-        ' 6件以上ある場合は省略表示
         If empData(1).Count > 5 Then
             empText = empText & "  ...他" & (empData(1).Count - 5) & "件" & vbLf
         End If
@@ -662,7 +462,6 @@ End Function
 ' 関数名: SendNotificationToLineWorks
 ' 目的: メイン処理 - メッセージ生成→送信
 ' 使用方法: ボタンから呼び出される公開関数
-' 備考: これが「?? LINE WORKS通知」ボタンに紐付けられる関数
 ' *************************************************************
 Public Sub SendNotificationToLineWorks()
     On Error GoTo ErrorHandler
@@ -684,19 +483,29 @@ Public Sub SendNotificationToLineWorks()
         Application.ScreenUpdating = True
         Application.StatusBar = False
         MsgBox "設定シートが見つかりません。" & vbCrLf & vbCrLf & _
-               "初期セットアップを実行してください:" & vbCrLf & _
-               "Module1_Setup の InitialSetup を実行", _
+               "初期セットアップを実行してください。", _
                vbExclamation, "設定エラー"
         Exit Sub
     End If
     
-    ' 1. Webhook URL取得
+    ' 1. Webhook URL取得(GetWebhookURLがModule1に存在しない場合のフォールバック)
     Dim webhookUrl As String
-    webhookUrl = GetWebhookURL() ' Module1_Setup.bas の関数
+    On Error Resume Next
+    webhookUrl = GetWebhookURL()
+    If Err.Number <> 0 Then
+        ' GetWebhookURL関数がない場合は設定シートから直接取得
+        Err.Clear
+        On Error GoTo ErrorHandler
+        webhookUrl = Trim(configSheet.Cells(1, 2).Value)
+    End If
+    On Error GoTo ErrorHandler
     
     If webhookUrl = "" Then
         Application.ScreenUpdating = True
         Application.StatusBar = False
+        MsgBox "Webhook URLが設定されていません。" & vbCrLf & _
+               "[設定]シートのB1セルにWebhook URLを入力してください。", _
+               vbExclamation, "設定エラー"
         Exit Sub
     End If
     
@@ -711,7 +520,7 @@ Public Sub SendNotificationToLineWorks()
         Exit Sub
     End If
     
-    ' 3. 確認ダイアログ（プレビュー付き）
+    ' 3. 確認ダイアログ(プレビュー付き)
     Dim previewMsg As String
     previewMsg = Left(message, 300)
     If Len(message) > 300 Then
@@ -721,9 +530,9 @@ Public Sub SendNotificationToLineWorks()
     Dim response As VbMsgBoxResult
     response = MsgBox("SI1部リーダーチャンネルに通知を送信しますか？" & vbCrLf & vbCrLf & _
                       "【プレビュー】" & vbCrLf & _
-                      "━━━━━━━━━━━━━━━" & vbCrLf & _
+                      "=========================================" & vbCrLf & _
                       previewMsg & vbCrLf & _
-                      "━━━━━━━━━━━━━━━", _
+                      "=========================================", _
                       vbQuestion + vbYesNo, "送信確認")
     
     If response <> vbYes Then
@@ -738,40 +547,11 @@ Public Sub SendNotificationToLineWorks()
     Dim result As Boolean
     result = SendToLineWorks(webhookUrl, message)
     
-    ' 5. 対象者数・未入力件数を集計（表示用）
-    Dim targetCount As Long, totalCount As Long
-    targetCount = 0
-    totalCount = 0
-    
-    ' メッセージから抽出
-    Dim lines As Variant
-    lines = Split(message, vbLf)
-    Dim line As Variant
-    For Each line In lines
-        If InStr(line, "未入力者:") > 0 Then
-            ' 例: "未入力者: 3名 / 未入力件数: 5件"
-            Dim parts As Variant
-            parts = Split(line, " ")
-            Dim j As Integer
-            For j = 0 To UBound(parts)
-                If InStr(parts(j), "名") > 0 Then
-                    targetCount = Val(Replace(parts(j), "名", ""))
-                ElseIf InStr(parts(j), "件") > 0 Then
-                    totalCount = Val(Replace(parts(j), "件", ""))
-                End If
-            Next j
-            Exit For
-        End If
-    Next line
-    
-    ' 6. 完了メッセージ
+    ' 5. 完了メッセージ
     If result Then
         Application.ScreenUpdating = True
         Application.StatusBar = False
-        MsgBox "LINE WORKSへの通知を送信しました。" & vbCrLf & vbCrLf & _
-               "対象者: " & targetCount & "名" & vbCrLf & _
-               "未入力件数: " & totalCount & "件", _
-               vbInformation, "送信完了"
+        MsgBox "LINE WORKSへの通知を送信しました。", vbInformation, "送信完了"
     Else
         Application.ScreenUpdating = True
         Application.StatusBar = False
@@ -787,77 +567,63 @@ Public Sub SendNotificationToLineWorks()
 ErrorHandler:
     Application.ScreenUpdating = True
     Application.StatusBar = False
-    Debug.Print "? メイン処理エラー: " & Err.Description
+    Debug.Print "[ERROR] メイン処理エラー: " & Err.Description
     MsgBox "通知処理でエラーが発生しました: " & vbCrLf & vbCrLf & _
            Err.Description, vbCritical, "エラー"
 End Sub
 
 
 ' *************************************************************
-' テスト用プロシージャ
+' テスト用プロシージャ(絵文字なし)
 ' *************************************************************
 
-' テスト1: Webhook送信テスト
-Sub Test_SendToLineWorks()
+Sub Test_SendToLineWorks_NoEmoji()
     Dim url As String
+    On Error Resume Next
     url = GetWebhookURL()
+    If Err.Number <> 0 Then
+        Err.Clear
+        On Error GoTo 0
+        Dim configSheet As Worksheet
+        Set configSheet = ThisWorkbook.Sheets("設定")
+        url = Trim(configSheet.Cells(1, 2).Value)
+    End If
+    On Error GoTo 0
     
-    If url = "" Then Exit Sub
+    If url = "" Then
+        MsgBox "Webhook URLが設定されていません", vbExclamation
+        Exit Sub
+    End If
+    
+    Dim testMessage As String
+    testMessage = "【テスト】絵文字なしメッセージ" & vbLf & _
+                  "-----------------------------" & vbLf & _
+                  "[!!緊急!!] 緊急レベル" & vbLf & _
+                  "[!要注意!] 注意レベル" & vbLf & _
+                  "[確認] 確認レベル" & vbLf & _
+                  "[違反] 違反表示" & vbLf & _
+                  "-----------------------------" & vbLf & _
+                  "送信日時: " & Now
     
     Dim result As Boolean
-    result = SendToLineWorks(url, "【テスト】システムテストメッセージ" & vbLf & "送信日時: " & Now)
+    result = SendToLineWorks(url, testMessage)
     
     If result Then
-        MsgBox "? Webhook送信テスト合格" & vbCrLf & _
-               "LINE WORKSチャンネルでメッセージを確認してください。", _
-               vbInformation, "テスト結果"
+        MsgBox "テスト送信成功！LINE WORKSで確認してください。", vbInformation
     End If
 End Sub
 
-' テスト2: メッセージ生成テスト
 Sub Test_GenerateMessage()
     Dim message As String
     message = GenerateMessageFromSheet()
     
     If message <> "" Then
-        MsgBox "? メッセージ生成テスト合格" & vbCrLf & vbCrLf & _
-               "【生成されたメッセージ】" & vbCrLf & _
-               "━━━━━━━━━━━━━━━" & vbCrLf & _
-               Left(message, 500) & vbCrLf & _
-               "━━━━━━━━━━━━━━━" & vbCrLf & vbCrLf & _
-               "※イミディエイトウィンドウ（Ctrl+G）で全文を確認できます", _
-               vbInformation, "テスト結果"
-        Debug.Print vbCrLf & "【生成メッセージ全文】"
-        Debug.Print message
-    End If
-End Sub
-
-' テスト3: メイン処理を直接実行
-Sub Test_SendNotificationToLineWorks()
-    ' メイン処理を実行
-    Call SendNotificationToLineWorks
-End Sub
-
-' テスト4: イミディエイトウィンドウにメッセージ全文を出力
-Sub Test_ShowFullMessage()
-    Dim message As String
-    message = GenerateMessageFromSheet()
-    
-    If message <> "" Then
         Debug.Print "========================================="
-        Debug.Print "生成されたメッセージ全文:"
-        Debug.Print "========================================="
+        Debug.Print "生成メッセージ:"
         Debug.Print message
         Debug.Print "========================================="
-        Debug.Print "文字数: " & Len(message)
-        Debug.Print "========================================="
-        
-        MsgBox "? メッセージ生成成功" & vbCrLf & vbCrLf & _
-               "イミディエイトウィンドウ（Ctrl+G）で全文を確認できます。" & vbCrLf & vbCrLf & _
-               "文字数: " & Len(message) & "文字", _
-               vbInformation, "テスト結果"
-    Else
-        MsgBox "? メッセージ生成失敗", vbCritical, "テスト結果"
+        MsgBox "メッセージ生成成功" & vbCrLf & _
+               "イミディエイトウィンドウで確認してください", vbInformation
     End If
 End Sub
 
