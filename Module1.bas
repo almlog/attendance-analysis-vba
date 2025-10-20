@@ -2,7 +2,7 @@
 ' Module1
 ' タイプ: 標準モジュール
 ' 行数: 2020
-' エクスポート日時: 2025-10-20 11:00:26
+' エクスポート日時: 2025-10-20 14:30:48
 ' ========================================
 
 
@@ -1840,7 +1840,7 @@ Sub 部門別残業集計()
     Set allEmployees = CreateObject("Scripting.Dictionary")
     
     ' 各部門の集計を出力
-    For Each dept In dict.Keys
+    For Each dept In dict.keys
         Dim totalOvertime As Double
         Dim occurrenceCount As Long
         Dim holidayWorkCount As Long
@@ -1857,7 +1857,7 @@ Sub 部門別残業集計()
         totalHolidayWorkAll = totalHolidayWorkAll + holidayWorkCount
         
         ' 全社員リストに追加
-        For Each emp In dict(dept)("Employees").Keys
+        For Each emp In dict(dept)("Employees").keys
             If Not allEmployees.Exists(emp) Then
                 allEmployees.Add emp, dict(dept)("Employees")(emp)
             End If

@@ -2,7 +2,7 @@
 ' Module9
 ' タイプ: 標準モジュール
 ' 行数: 205
-' エクスポート日時: 2025-10-20 11:00:27
+' エクスポート日時: 2025-10-20 14:30:49
 ' ========================================
 
 Option Explicit
@@ -70,17 +70,17 @@ Sub Diagnose_Settings()
     result = result & "[INFO] Last Update: " & lastUpdate & vbCrLf
     
     ' Channel ID
-    Dim channelID As String
-    channelID = Trim(configSheet.Range("B5").Value)
-    If channelID = "" Then
+    Dim channelId As String
+    channelId = Trim(configSheet.Range("B5").Value)
+    If channelId = "" Then
         result = result & "[ERROR] Channel ID: 未設定" & vbCrLf
     Else
-        result = result & "[OK] Channel ID: " & channelID & vbCrLf
+        result = result & "[OK] Channel ID: " & channelId & vbCrLf
     End If
     
     result = result & vbCrLf & "【診断結果サマリー】" & vbCrLf
     
-    If webhookUrl = "" Or channelID = "" Then
+    If webhookUrl = "" Or channelId = "" Then
         result = result & "[CRITICAL] Webhook URLまたはChannel IDが未設定です" & vbCrLf
         result = result & "これらの設定がないと通知を送信できません。" & vbCrLf & vbCrLf
         result = result & "【設定方法】" & vbCrLf
@@ -110,8 +110,8 @@ End Sub
 Sub Test_GetChannelID()
     On Error Resume Next
     
-    Dim channelID As String
-    channelID = GetChannelID()
+    Dim channelId As String
+    channelId = GetChannelID()
     
     If Err.Number <> 0 Then
         MsgBox "[ERROR] GetChannelID関数でエラー発生" & vbCrLf & vbCrLf & _
@@ -121,13 +121,13 @@ Sub Test_GetChannelID()
         Exit Sub
     End If
     
-    If channelID = "" Then
+    If channelId = "" Then
         MsgBox "[ERROR] Channel IDが取得できませんでした" & vbCrLf & vbCrLf & _
                "設定シートのB5セルを確認してください", _
                vbExclamation, "関数テスト"
     Else
         MsgBox "[SUCCESS] Channel IDを取得しました" & vbCrLf & vbCrLf & _
-               "Channel ID: " & channelID, _
+               "Channel ID: " & channelId, _
                vbInformation, "関数テスト"
     End If
 End Sub

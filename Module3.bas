@@ -2,7 +2,7 @@
 ' Module3
 ' タイプ: 標準モジュール
 ' 行数: 535
-' エクスポート日時: 2025-10-20 11:00:26
+' エクスポート日時: 2025-10-20 14:30:49
 ' ========================================
 
 ' *************************************************************
@@ -215,7 +215,7 @@ NextRecord:
     End With
 
     ' データ書き込み
-    empNames = empDict.Keys
+    empNames = empDict.keys
     For i = 0 To UBound(empNames)
         outWs.Cells(i + 2, 1).Value = empNames(i)
         dataCol = 2
@@ -403,7 +403,7 @@ Private Sub 取り消し申請処理(empDict As Object, cancelRecords As Collect
                     ' 取り消し対象のキーを生成
                     Dim keysToRemove As New Collection
                     Dim keyToDelete As Variant ' ループ変数を変更
-                    For Each keyToDelete In empDict(empName).Keys
+                    For Each keyToDelete In empDict(empName).keys
                         If InStr(keyToDelete, "有休_" & appDate) > 0 And InStr(keyToDelete, appType) > 0 Then
                             keysToRemove.Add keyToDelete
                         End If
@@ -438,7 +438,7 @@ End Sub
 Private Sub 休暇日数計算(empDict As Object, Optional debugLog As Boolean = False)
     Dim emp As Variant
 
-    For Each emp In empDict.Keys
+    For Each emp In empDict.keys
         Dim holidayCount As Double
         Dim morningHalfDays As Long
         Dim afternoonHalfDays As Long
@@ -459,7 +459,7 @@ Private Sub 休暇日数計算(empDict As Object, Optional debugLog As Boolean =
         Set processedDates = CreateObject("Scripting.Dictionary")
 
         Dim key As Variant
-        For Each key In empDict(emp).Keys
+        For Each key In empDict(emp).keys
             Dim keyStr As String
             keyStr = CStr(key)
 
