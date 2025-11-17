@@ -1,541 +1,536 @@
-ï»¿' ========================================
-' Module3
-' ã‚¿ã‚¤ãƒ—: æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-' è¡Œæ•°: 535
-' ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚: 2025-10-20 14:30:49
-' ========================================
+Attribute VB_Name = "Module3"
+' *************************************************************
+' ƒ‚ƒWƒ…[ƒ‹F‹Î‘Ó\¿•ªÍ
+' –Ú“IF‹Î‘Ó\¿CSVƒtƒ@ƒCƒ‹‚ğ•ªÍ‚µA\¿”‚ğƒJƒEƒ“ƒg‚·‚é
+' Copyright (c) 2025 SI1 shunpei.suzuki
+' ì¬“úF2025”N3Œ15“ú
+'
+' ‰ü”Å—š—ğF
+' 2025/03/15 \¿•ªÍƒ‚ƒWƒ…[ƒ‹‚ğ’Ç‰Á_v1.7.5
+' 2025/03/19 —L‹x\¿”‚ÌƒJƒEƒ“ƒg•s‹ï‡‚ğC³
+' 2025/03/21 œŠOĞˆõ‹@”\EĞˆõ”ƒJƒEƒ“ƒgC³EƒpƒtƒH[ƒ}ƒ“ƒXÅ“K‰»_v2.0
+' *************************************************************
 
-' *************************************************************
-' ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ï¼šå‹¤æ€ ç”³è«‹åˆ†æ
-' ç›®çš„ï¼šå‹¤æ€ ç”³è«‹CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’åˆ†æã—ã€ç”³è«‹æ•°ã‚’ã‚«ã‚¦ãƒ³ãƒˆã™ã‚‹
-' Copyright (c) 2025 SI1 shunpei.suzuki
-' ä½œæˆæ—¥ï¼š2025å¹´3æœˆ15æ—¥
-'
-' æ”¹ç‰ˆå±¥æ­´ï¼š
-' 2025/03/15 ç”³è«‹åˆ†æãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‚’è¿½åŠ _v1.7.5
-' 2025/03/19 æœ‰ä¼‘ç”³è«‹æ•°ã®ã‚«ã‚¦ãƒ³ãƒˆä¸å…·åˆã‚’ä¿®æ­£
-' 2025/03/21 é™¤å¤–ç¤¾å“¡æ©Ÿèƒ½ãƒ»ç¤¾å“¡æ•°ã‚«ã‚¦ãƒ³ãƒˆä¿®æ­£ãƒ»ãƒ‘ãƒ•ã‚©ãƒ¼ãƒãƒ³ã‚¹æœ€é©åŒ–_v2.0
-' *************************************************************
-
-Sub ç”³è«‹è©³ç´°åˆ†æå®Ÿè¡Œ()
-    Dim filePath As Variant
-    Dim fs As Object, ts As Object
-    Dim line As String, headers As Variant, data As Variant
-    Dim empDict As Object ' ç¤¾å“¡ã”ã¨ã®ç”³è«‹æƒ…å ±ã‚’æ ¼ç´ã™ã‚‹Dictionary
-    Dim ws As Worksheet, outWs As Worksheet
-    Dim i As Long, j As Long, rowNum As Long, colNum As Long
-    Dim appDoc As String, empNum As String, empName As String, appCont As String, appState As String
-    Dim allAppTypes As Object ' ç”³è«‹ç¨®é¡ã‚’æ ¼ç´ã™ã‚‹Dictionary
-    Dim empNames As Variant
-    Dim cancelRecords As New Collection ' å–ã‚Šæ¶ˆã—ç”³è«‹ã‚’ä¿å­˜ã™ã‚‹ã‚³ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³
-
-    ' ãƒ‡ãƒãƒƒã‚°ãƒ­ã‚°å‡ºåŠ›ãƒ•ãƒ©ã‚°
-    Dim debugLog As Boolean
-    debugLog = True
-
-    ' é™¤å¤–ç¤¾å“¡ç•ªå·ã‚’å–å¾—
-    Dim excludeIDs As Variant
-    excludeIDs = é™¤å¤–ç¤¾å“¡ç•ªå·å–å¾—()
-    
-    ' é™¤å¤–ç¤¾å“¡ã®ãƒãƒƒãƒ”ãƒ³ã‚°è¾æ›¸ã‚’ä½œæˆï¼ˆé«˜é€Ÿæ¤œç´¢ç”¨ï¼‰
-    Dim excludedEmpDict As Object
-    Set excludedEmpDict = CreateObject("Scripting.Dictionary")
-    
-    For j = LBound(excludeIDs) To UBound(excludeIDs)
-        If excludeIDs(j) <> "" Then
-            excludedEmpDict.Add excludeIDs(j), True
-        End If
-    Next j
-
-    ' ãƒ‡ã‚£ã‚¯ã‚·ãƒ§ãƒŠãƒªã‚’åˆæœŸåŒ–
-    Set allAppTypes = CreateObject("Scripting.Dictionary")
-    Set empDict = CreateObject("Scripting.Dictionary")
-
-    ' å®šæ•°å®šç¾©
-    Const ForReading = 1
-    Const TristateUseDefault = -2
-
-    ' ãƒ•ã‚¡ã‚¤ãƒ«é¸æŠãƒ€ã‚¤ã‚¢ãƒ­ã‚°
-    filePath = Application.GetOpenFilename("CSV ãƒ•ã‚¡ã‚¤ãƒ«,*.csv")
-    If filePath = False Then Exit Sub
-
-    ' ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿
-    Set fs = CreateObject("Scripting.FileSystemObject")
-    Set ts = fs.OpenTextFile(filePath, ForReading, False, TristateUseDefault)
-
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œèª­ã¿è¾¼ã¿
-    line = ts.ReadLine
-    headers = Split(line, ",")
-
-    ' ãƒ‡ãƒ¼ã‚¿è¡Œèª­ã¿è¾¼ã¿
-    Do While Not ts.AtEndOfStream
-        line = ts.ReadLine
-        data = Split(line, ",")
-
-        ' å¿…è¦ãªãƒ‡ãƒ¼ã‚¿ã®å–å¾—
-        appDoc = ""
-        empNum = ""
-        empName = ""
-        appCont = ""
-        appState = ""
-
-        For i = 0 To UBound(headers)
-            If i <= UBound(data) Then ' ãƒ‡ãƒ¼ã‚¿é…åˆ—ã®ç¯„å›²ãƒã‚§ãƒƒã‚¯
-                Select Case Trim(headers(i))
-                    Case "ç”³è«‹æ›¸é¡": appDoc = Trim(data(i))
-                    Case "ç¤¾å“¡ç•ªå·": empNum = Trim(data(i))
-                    Case "ç”³è«‹è€…": empName = Trim(data(i))
-                    Case "ç”³è«‹å†…å®¹": appCont = Trim(data(i))
-                    Case "çŠ¶æ…‹": appState = Trim(data(i))
-                End Select
-            End If
-        Next i
-
-        ' é™¤å¤–ç¤¾å“¡ç•ªå·ã®ãƒã‚§ãƒƒã‚¯ - é«˜é€ŸåŒ–
-        Dim isExcluded As Boolean
-        isExcluded = (empNum <> "" And excludedEmpDict.Exists(empNum))
-        
-        ' é™¤å¤–ç¤¾å“¡ã®å ´åˆã¯ã‚¹ã‚­ãƒƒãƒ—
-        If isExcluded Then
-            GoTo NextRecord
-        End If
-
-        ' å–æ¶ˆç”³è«‹ã‹ã©ã†ã‹ã‚’ãƒã‚§ãƒƒã‚¯
-        Dim isCancelled As Boolean
-        isCancelled = False
-
-        If appState <> "" Then
-            ' çŠ¶æ…‹åˆ—ã«ã€Œå–æ¶ˆã€ã¨ã„ã†æ–‡å­—åˆ—ãŒå«ã¾ã‚Œã¦ã„ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
-            If InStr(1, appState, "å–æ¶ˆ", vbTextCompare) > 0 Then
-                isCancelled = True
-
-                ' å–ã‚Šæ¶ˆã—æƒ…å ±ã‚’ä¿å­˜
-                Dim cancelInfo As Object
-                Set cancelInfo = CreateObject("Scripting.Dictionary")
-                cancelInfo.Add "ç¤¾å“¡å", empName
-                cancelInfo.Add "ç”³è«‹ç¨®é¡", appDoc
-                cancelInfo.Add "ç”³è«‹å†…å®¹", appCont
-
-                ' ã‚³ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ã«è¿½åŠ 
-                cancelRecords.Add cancelInfo
-
-                If debugLog Then
-                    Debug.Print "å–æ¶ˆç”³è«‹ã‚’æ¤œå‡º: " & empName & ", " & appDoc & ", " & appCont & ", çŠ¶æ…‹: " & appState
-                End If
-            End If
-        End If
-
-        ' ãƒ‡ãƒ¼ã‚¿ãŒæœ‰åŠ¹ã‹ã¤å–æ¶ˆã§ãªã„å ´åˆã®ã¿å‡¦ç†
-        If empName <> "" And appDoc <> "" And Not IsNumeric(empName) And Not isCancelled Then
-            ' ç¤¾å“¡è¾æ›¸ã«è¿½åŠ ï¼ˆã¾ã å­˜åœ¨ã—ãªã„å ´åˆï¼‰
-            If Not empDict.Exists(empName) Then
-                empDict.Add empName, CreateObject("Scripting.Dictionary")
-            End If
-
-            ' ç”³è«‹æ›¸é¡ã‚’ç”³è«‹ç¨®é¡ã¨ã—ã¦ã‚«ã‚¦ãƒ³ãƒˆ
-            If Not empDict(empName).Exists(appDoc) Then
-                empDict(empName).Add appDoc, 1
-            Else
-                empDict(empName)(appDoc) = empDict(empName)(appDoc) + 1
-            End If
-
-            ' ç”³è«‹å†…å®¹ã‹ã‚‰ä¼‘æš‡ã‚¿ã‚¤ãƒ—ã‚’æŠ½å‡ºã—ã¦å‡¦ç†
-            If appCont <> "" Then
-                Call è§£æç”³è«‹å†…å®¹(empDict(empName), empName, appDoc, appCont, debugLog)
-            End If
-        End If
-NextRecord:
-    Loop
-    ts.Close
-
-    ' å–ã‚Šæ¶ˆã—ç”³è«‹ã«å¯¾ã™ã‚‹èª¿æ•´ã‚’è¡Œã†
-    Call å–ã‚Šæ¶ˆã—ç”³è«‹å‡¦ç†(empDict, cancelRecords, debugLog)
-
-    ' ä¼‘æš‡æ—¥æ•°ã®è¨ˆç®—
-    Call ä¼‘æš‡æ—¥æ•°è¨ˆç®—(empDict, debugLog)
-
-    ' æŒ‡å®šã•ã‚ŒãŸé †åºã«ç”³è«‹ç¨®é¡ã‚’ä¸¦ã¹ã‚‹
-    Dim orderedAppTypes As Variant
-    orderedAppTypes = Array("æœ‰ä¼‘ç”³è«‹", "æ¬ å‹¤ç”³è«‹", "é›»è»Šé…å»¶ç”³è«‹", "ä¼‘æ†©æ™‚é–“ä¿®æ­£ç”³è«‹", "æŒ¯å‡ºï¼æŒ¯ä¼‘ç”³è«‹", "æ®‹æ¥­ç”³è«‹", "ä¼‘å‡ºç”³è«‹", "ç‰¹ä¼‘ç”³è«‹", "é…åˆ»ãƒ»æ—©é€€ç”³è«‹", "å­ã®çœ‹è­·ä¼‘æš‡ç”³è«‹")
-
-    ' ã‚¹ã‚¯ãƒªãƒ¼ãƒ³æ›´æ–°ãªã©ã‚’åœæ­¢
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-    Application.EnableEvents = False
-
-    ' çµæœã‚·ãƒ¼ãƒˆä½œæˆ
-    Application.DisplayAlerts = False
-    On Error Resume Next
-    ThisWorkbook.Sheets("ç”³è«‹è©³ç´°åˆ†æä¸€è¦§").Delete
-    On Error GoTo 0
-    Application.DisplayAlerts = True
-
-    Set outWs = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-    outWs.Name = "ç”³è«‹è©³ç´°åˆ†æä¸€è¦§"
-
-    ' è¾æ›¸ãŒç©ºã‹ãƒã‚§ãƒƒã‚¯
-    If empDict.Count = 0 Then
-        outWs.Cells(1, 1).Value = "æœ‰åŠ¹ãªãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚"
-        MsgBox "æœ‰åŠ¹ãªãƒ‡ãƒ¼ã‚¿ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚", vbInformation
-        GoTo Finalize
-    End If
-
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸ãè¾¼ã¿
-    Dim colIndex As Long
-    colIndex = 2
-
-    outWs.Cells(1, 1).Value = "ç¤¾å“¡å"
-
-    For i = 0 To UBound(orderedAppTypes)
-        outWs.Cells(1, colIndex).Value = orderedAppTypes(i)
-        colIndex = colIndex + 1
-    Next i
-
-    outWs.Cells(1, colIndex).Value = "åˆå‰æœ‰ä¼‘å›æ•°"
-    colIndex = colIndex + 1
-
-    outWs.Cells(1, colIndex).Value = "åˆå¾Œæœ‰ä¼‘å›æ•°"
-    colIndex = colIndex + 1
-
-    outWs.Cells(1, colIndex).Value = "æœ‰ä¼‘æ—¥æ•°"
-    colIndex = colIndex + 1
-
-    outWs.Cells(1, colIndex).Value = "æ™‚é–“æœ‰ä¼‘æ™‚é–“"
-    colIndex = colIndex + 1
-
-    outWs.Cells(1, colIndex).Value = "5æ—¥ä»¥ä¸Šã®ä¼‘æš‡å–å¾—"
-
-    Dim totalColumns As Long
-    totalColumns = colIndex
-
-    With outWs.Range(outWs.Cells(1, 1), outWs.Cells(1, totalColumns))
-        .Font.Bold = True
-        .HorizontalAlignment = xlCenter
-        .Interior.Color = RGB(200, 200, 200)
-    End With
-
-    ' ãƒ‡ãƒ¼ã‚¿æ›¸ãè¾¼ã¿
-    empNames = empDict.keys
-    For i = 0 To UBound(empNames)
-        outWs.Cells(i + 2, 1).Value = empNames(i)
-        dataCol = 2
-        For j = 0 To UBound(orderedAppTypes)
-            If empDict(empNames(i)).Exists(orderedAppTypes(j)) Then
-                outWs.Cells(i + 2, dataCol).Value = empDict(empNames(i))(orderedAppTypes(j))
-            Else
-                outWs.Cells(i + 2, dataCol).Value = 0
-            End If
-            dataCol = dataCol + 1
-        Next j
-
-        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("åˆå‰æœ‰ä¼‘å›æ•°"), empDict(empNames(i))("åˆå‰æœ‰ä¼‘å›æ•°"), 0)
-        dataCol = dataCol + 1
-
-        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("åˆå¾Œæœ‰ä¼‘å›æ•°"), empDict(empNames(i))("åˆå¾Œæœ‰ä¼‘å›æ•°"), 0)
-        dataCol = dataCol + 1
-
-        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("æœ‰ä¼‘æ—¥æ•°"), empDict(empNames(i))("æœ‰ä¼‘æ—¥æ•°"), 0)
-        dataCol = dataCol + 1
-
-        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("æ™‚é–“æœ‰ä¼‘æ™‚é–“"), empDict(empNames(i))("æ™‚é–“æœ‰ä¼‘æ™‚é–“"), 0)
-        dataCol = dataCol + 1
-
-        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("5æ—¥ä»¥ä¸Šã®ä¼‘æš‡å–å¾—"), empDict(empNames(i))("5æ—¥ä»¥ä¸Šã®ä¼‘æš‡å–å¾—"), "Ã—")
-    Next i
-
-    ' è¡¨å…¨ä½“ã«ç½«ç·šã‚’è¿½åŠ 
-    outWs.Range(outWs.Cells(1, 1), outWs.Cells(UBound(empNames) + 2, totalColumns)).Borders.LineStyle = xlContinuous
-
-    ' æ›¸å¼è¨­å®š
-    With outWs.Range(outWs.Cells(2, 2), outWs.Cells(UBound(empNames) + 2, totalColumns - 1))
-        .HorizontalAlignment = xlRight
-    End With
-    With outWs.Range(outWs.Cells(2, 1), outWs.Cells(UBound(empNames) + 2, 1))
-        .HorizontalAlignment = xlLeft
-        .Font.Bold = True
-    End With
-
-    ' åˆ—å¹…ã®è‡ªå‹•èª¿æ•´
-    outWs.Columns.AutoFit
-
-Finalize:
-    ' ã‚¹ã‚¯ãƒªãƒ¼ãƒ³æ›´æ–°ãªã©ã‚’å†é–‹
-    Application.ScreenUpdating = True
-    Application.Calculation = xlCalculationAutomatic
-    Application.EnableEvents = True
-
-    ' ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸è¡¨ç¤º
-    MsgBox "ç”³è«‹è©³ç´°åˆ†æãŒå®Œäº†ã—ã¾ã—ãŸã€‚", vbInformation
-End Sub
-
-' ç”³è«‹å†…å®¹ã‚’è§£æã—ã¦ä¼‘æš‡ã‚¿ã‚¤ãƒ—ã”ã¨ã«ã‚«ã‚¦ãƒ³ãƒˆã™ã‚‹é–¢æ•°
-Private Sub è§£æç”³è«‹å†…å®¹(empDic As Object, empName As String, appDoc As String, appCont As String, Optional debugLog As Boolean = False)
-    If appCont = "" Then Exit Sub
-
-    Dim multiContents As Variant
-    multiContents = Split(appCont, ";")
-
-    Dim oneContent As Variant
-    For Each oneContent In multiContents
-        oneContent = Trim(oneContent)
-
-        If oneContent <> "" Then
-            Dim contentParts As Variant
-            contentParts = Split(oneContent, " ")
-
-            If UBound(contentParts) >= 1 Then
-                Dim appDate As String
-                Dim appType As String
-                Dim appTimeStr As String
-
-                appDate = contentParts(0)
-
-                appType = ""
-                For i = 1 To UBound(contentParts)
-                    If i > 1 Then appType = appType & " "
-                    appType = appType & contentParts(i)
-                Next i
-                appType = Trim(appType)
-
-                If debugLog Then
-                    Debug.Print "è§£æ: " & empName & ", ç”³è«‹: " & appDoc & ", å†…å®¹: " & oneContent & ", ç¨®åˆ¥: " & appType
-                End If
-
-                If appType <> "" Then
-                    ' åˆå‰æœ‰ä¼‘ã€åˆå¾Œæœ‰ä¼‘ã®ã‚«ã‚¦ãƒ³ãƒˆ
-                    If appType = "åˆå‰æœ‰ä¼‘" Then
-                        If Not empDic.Exists("åˆå‰æœ‰ä¼‘å›æ•°") Then
-                            empDic.Add "åˆå‰æœ‰ä¼‘å›æ•°", 1
-                        Else
-                            empDic("åˆå‰æœ‰ä¼‘å›æ•°") = empDic("åˆå‰æœ‰ä¼‘å›æ•°") + 1
-                        End If
-                        ' ä¼‘æš‡æ—¥æ•°ã‚’è¨ˆç®—ã™ã‚‹ãŸã‚ã«æ—¥ä»˜æƒ…å ±ã‚’ä¿å­˜
-                        If Not empDic.Exists("æœ‰ä¼‘_" & appDate & "_åˆå‰") Then
-                            empDic.Add "æœ‰ä¼‘_" & appDate & "_åˆå‰", 1
-                        End If
-                    ElseIf appType = "åˆå¾Œæœ‰ä¼‘" Then
-                        If Not empDic.Exists("åˆå¾Œæœ‰ä¼‘å›æ•°") Then
-                            empDic.Add "åˆå¾Œæœ‰ä¼‘å›æ•°", 1
-                        Else
-                            empDic("åˆå¾Œæœ‰ä¼‘å›æ•°") = empDic("åˆå¾Œæœ‰ä¼‘å›æ•°") + 1
-                        End If
-                        ' ä¼‘æš‡æ—¥æ•°ã‚’è¨ˆç®—ã™ã‚‹ãŸã‚ã«æ—¥ä»˜æƒ…å ±ã‚’ä¿å­˜
-                        If Not empDic.Exists("æœ‰ä¼‘_" & appDate & "_åˆå¾Œ") Then
-                            empDic.Add "æœ‰ä¼‘_" & appDate & "_åˆå¾Œ", 1
-                        End If
-                    ElseIf InStr(appType, "æœ‰ä¼‘æ™‚é–“") > 0 Then
-                        ' æ™‚é–“æœ‰ä¼‘ã®å‡¦ç†
-                        appTimeStr = ""
-                        Dim timeParts As Variant
-                        timeParts = Split(appType, " ")
-                        If UBound(timeParts) >= 1 Then
-                            Dim timeValue As Variant
-                            timeValue = Split(timeParts(UBound(timeParts)), ":")
-                            If UBound(timeValue) = 1 And IsNumeric(timeValue(0)) And IsNumeric(timeValue(1)) Then
-                                Dim hours As Double
-                                hours = CDbl(timeValue(0)) + CDbl(timeValue(1)) / 60
-                                If Not empDic.Exists("æ™‚é–“æœ‰ä¼‘æ™‚é–“") Then
-                                    empDic.Add "æ™‚é–“æœ‰ä¼‘æ™‚é–“", hours
-                                Else
-                                    empDic("æ™‚é–“æœ‰ä¼‘æ™‚é–“") = empDic("æ™‚é–“æœ‰ä¼‘æ™‚é–“") + hours
-                                End If
-                                ' ä¼‘æš‡æ—¥æ•°ã‚’è¨ˆç®—ã™ã‚‹ãŸã‚ã«æ—¥ä»˜æƒ…å ±ã‚’ä¿å­˜ (æ™‚é–“æœ‰ä¼‘ã¯æ—¥æ•°ã«æ›ç®—ã—ãªã„)
-                                If Not empDic.Exists("æœ‰ä¼‘_" & appDate & "_æ™‚é–“") Then
-                                    empDic.Add "æœ‰ä¼‘_" & appDate & "_æ™‚é–“", hours
-                                End If
-                            End If
-                        End If
-                    ElseIf appType = "æœ‰ä¼‘" Then
-                        ' é€šå¸¸ã®æœ‰ä¼‘ç”³è«‹
-                        If Not empDic.Exists("æœ‰ä¼‘_" & appDate) Then
-                            empDic.Add "æœ‰ä¼‘_" & appDate, 1
-                        End If
-                    End If
-                End If
-            End If
-        End If
-    Next oneContent
-End Sub
-
-' å–ã‚Šæ¶ˆã—ç”³è«‹ã«å¯¾å¿œã™ã‚‹å‡¦ç†ã‚’è¡Œã†é–¢æ•°
-Private Sub å–ã‚Šæ¶ˆã—ç”³è«‹å‡¦ç†(empDict As Object, cancelRecords As Collection, Optional debugLog As Boolean = False)
-    If cancelRecords.Count = 0 Then Exit Sub
-
-    If debugLog Then
-        Debug.Print "å–ã‚Šæ¶ˆã—ç”³è«‹å‡¦ç†ã‚’é–‹å§‹ã—ã¾ã™..."
-        Debug.Print "å–ã‚Šæ¶ˆã—ç”³è«‹æ•°: " & cancelRecords.Count
-    End If
-
-    Dim cancelInfo As Object, emp As Variant
-    Dim empName As String, appDoc As String, appCont As String
-    Dim contentParts As Variant, appDate As String, appType As String
-    Dim uniqueKey As String
-
-    For Each cancelInfo In cancelRecords
-        empName = cancelInfo("ç¤¾å“¡å")
-        appDoc = cancelInfo("ç”³è«‹ç¨®é¡")
-        appCont = cancelInfo("ç”³è«‹å†…å®¹")
-
-        If debugLog Then
-            Debug.Print "å–ã‚Šæ¶ˆã—å¯¾è±¡: " & empName & ", " & appDoc & ", " & appCont
-        End If
-
-        If empDict.Exists(empName) Then
-            Dim multiContents As Variant
-            multiContents = Split(appCont, ";")
-
-            Dim oneContent As Variant
-            For Each oneContent In multiContents
-                oneContent = Trim(oneContent)
-
-                contentParts = Split(oneContent, " ")
-
-                If UBound(contentParts) >= 1 Then
-                    appDate = contentParts(0)
-
-                    appType = ""
-                    For i = 1 To UBound(contentParts)
-                        If i > 1 Then appType = appType & " "
-                        appType = appType & contentParts(i)
-                    Next i
-                    appType = Trim(appType)
-
-                    ' å–ã‚Šæ¶ˆã—å¯¾è±¡ã®ã‚­ãƒ¼ã‚’ç”Ÿæˆ
-                    Dim keysToRemove As New Collection
-                    Dim keyToDelete As Variant ' ãƒ«ãƒ¼ãƒ—å¤‰æ•°ã‚’å¤‰æ›´
-                    For Each keyToDelete In empDict(empName).keys
-                        If InStr(keyToDelete, "æœ‰ä¼‘_" & appDate) > 0 And InStr(keyToDelete, appType) > 0 Then
-                            keysToRemove.Add keyToDelete
-                        End If
-                    Next keyToDelete ' Next ã‚¹ãƒ†ãƒ¼ãƒˆãƒ¡ãƒ³ãƒˆã§ãƒ«ãƒ¼ãƒ—å¤‰æ•°ã‚’æ˜ç¤º
-
-                    ' è¦‹ã¤ã‹ã£ãŸã‚­ãƒ¼ã‚’å‰Šé™¤
-                    Dim itemToRemove As Variant ' ãƒ«ãƒ¼ãƒ—å¤‰æ•°ã‚’å¤‰æ›´
-                    For Each itemToRemove In keysToRemove
-                        If debugLog Then
-                            Debug.Print "å–ã‚Šæ¶ˆã—å‡¦ç†: ã‚­ãƒ¼ '" & itemToRemove & "' ã‚’å‰Šé™¤"
-                        End If
-                    Next itemToRemove ' Next ã‚¹ãƒ†ãƒ¼ãƒˆãƒ¡ãƒ³ãƒˆã§ãƒ«ãƒ¼ãƒ—å¤‰æ•°ã‚’æ˜ç¤º
-
-                    ' ç”³è«‹æ›¸é¡ã®ã‚«ã‚¦ãƒ³ãƒˆã‚‚æ¸›ã‚‰ã™ (å®Œå…¨ä¸€è‡´ã§æ¸›ã‚‰ã™)
-                    If empDict(empName).Exists(appDoc) Then
-                        If empDict(empName)(appDoc) > 0 Then
-                            empDict(empName)(appDoc) = empDict(empName)(appDoc) - 1
-                            If empDict(empName)(appDoc) = 0 Then
-                            End If
-                        End If
-                    End If
-                End If
-            Next oneContent
-        End If
-    Next cancelInfo ' Next ã‚¹ãƒ†ãƒ¼ãƒˆãƒ¡ãƒ³ãƒˆã§ãƒ«ãƒ¼ãƒ—å¤‰æ•°ã‚’æ˜ç¤º
-
-    If debugLog Then
-        Debug.Print "å–ã‚Šæ¶ˆã—ç”³è«‹å‡¦ç†ã‚’å®Œäº†ã—ã¾ã—ãŸ"
-    End If
-End Sub
-' ä¼‘æš‡æ—¥æ•°ã‚’è¨ˆç®—ã™ã‚‹é–¢æ•°
-Private Sub ä¼‘æš‡æ—¥æ•°è¨ˆç®—(empDict As Object, Optional debugLog As Boolean = False)
-    Dim emp As Variant
-
-    For Each emp In empDict.keys
-        Dim holidayCount As Double
-        Dim morningHalfDays As Long
-        Dim afternoonHalfDays As Long
-        Dim hourlyLeaveTotal As Double
-
-        holidayCount = 0
-        morningHalfDays = 0
-        afternoonHalfDays = 0
-        hourlyLeaveTotal = 0
-
-        If debugLog Then
-            Debug.Print "===================="
-            Debug.Print "ç¤¾å“¡å: " & emp
-            Debug.Print "===================="
-        End If
-
-        Dim processedDates As Object
-        Set processedDates = CreateObject("Scripting.Dictionary")
-
-        Dim key As Variant
-        For Each key In empDict(emp).keys
-            Dim keyStr As String
-            keyStr = CStr(key)
-
-            If InStr(keyStr, "æœ‰ä¼‘_") = 1 Then
-                Dim parts As Variant
-                parts = Split(keyStr, "_")
-
-                If UBound(parts) >= 1 Then
-                    Dim dateStr As String
-                    Dim typeStr As String
-
-                    dateStr = parts(1)
-                    If UBound(parts) >= 2 Then
-                        typeStr = parts(2)
-                    Else
-                        typeStr = ""
-                    End If
-
-                    If Not processedDates.Exists(dateStr) Then
-                        If typeStr = "" Then
-                            holidayCount = holidayCount + 1
-                            processedDates.Add dateStr, 1
-                            If debugLog Then Debug.Print "æœ‰ä¼‘ï¼ˆçµ‚æ—¥ï¼‰è¿½åŠ : " & dateStr
-                        ElseIf typeStr = "åˆå‰" Then
-                            morningHalfDays = morningHalfDays + 1
-                            processedDates.Add dateStr, 1
-                            holidayCount = holidayCount + 0.5
-                            If debugLog Then Debug.Print "åˆå‰æœ‰ä¼‘è¿½åŠ : " & dateStr
-                        ElseIf typeStr = "åˆå¾Œ" Then
-                            afternoonHalfDays = afternoonHalfDays + 1
-                            processedDates.Add dateStr, 1
-                            holidayCount = holidayCount + 0.5
-                            If debugLog Then Debug.Print "åˆå¾Œæœ‰ä¼‘è¿½åŠ : " & dateStr
-                        End If
-                    End If
-                End If
-            ElseIf InStr(keyStr, "æ™‚é–“æœ‰ä¼‘æ™‚é–“") > 0 Then
-                hourlyLeaveTotal = hourlyLeaveTotal + empDict(emp)(keyStr)
-                If debugLog Then Debug.Print "æ™‚é–“æœ‰ä¼‘åˆè¨ˆï¼ˆåŠ ç®—ï¼‰: " & empDict(emp)(keyStr)
-            End If
-        Next key
-
-        ' é›†è¨ˆçµæœã‚’ä¿å­˜
-        If Not empDict(emp).Exists("æœ‰ä¼‘æ—¥æ•°") Then
-            empDict(emp).Add "æœ‰ä¼‘æ—¥æ•°", holidayCount
-        Else
-            empDict(emp)("æœ‰ä¼‘æ—¥æ•°") = holidayCount
-        End If
-
-        If Not empDict(emp).Exists("åˆå‰æœ‰ä¼‘å›æ•°") Then
-            empDict(emp).Add "åˆå‰æœ‰ä¼‘å›æ•°", morningHalfDays
-        Else
-            empDict(emp)("åˆå‰æœ‰ä¼‘å›æ•°") = morningHalfDays
-        End If
-
-        If Not empDict(emp).Exists("åˆå¾Œæœ‰ä¼‘å›æ•°") Then
-            empDict(emp).Add "åˆå¾Œæœ‰ä¼‘å›æ•°", afternoonHalfDays
-        Else
-            empDict(emp)("åˆå¾Œæœ‰ä¼‘å›æ•°") = afternoonHalfDays
-        End If
-
-        If Not empDict(emp).Exists("æ™‚é–“æœ‰ä¼‘æ™‚é–“") Then
-            empDict(emp).Add "æ™‚é–“æœ‰ä¼‘æ™‚é–“", hourlyLeaveTotal
-        Else
-            empDict(emp)("æ™‚é–“æœ‰ä¼‘æ™‚é–“") = hourlyLeaveTotal
-        End If
-
-        If Not empDict(emp).Exists("5æ—¥ä»¥ä¸Šã®ä¼‘æš‡å–å¾—") Then
-            empDict(emp).Add "5æ—¥ä»¥ä¸Šã®ä¼‘æš‡å–å¾—", IIf(holidayCount >= 5, "ã€‡", "Ã—")
-        Else
-            empDict(emp)("5æ—¥ä»¥ä¸Šã®ä¼‘æš‡å–å¾—") = IIf(holidayCount >= 5, "ã€‡", "Ã—")
-        End If
-    Next emp
-End Sub
-
-
-
-
-
+Sub \¿Ú×•ªÍÀs()
+    Dim filePath As Variant
+    Dim fs As Object, ts As Object
+    Dim line As String, headers As Variant, data As Variant
+    Dim empDict As Object ' Ğˆõ‚²‚Æ‚Ì\¿î•ñ‚ğŠi”[‚·‚éDictionary
+    Dim ws As Worksheet, outWs As Worksheet
+    Dim i As Long, j As Long, rowNum As Long, colNum As Long
+    Dim appDoc As String, empNum As String, empName As String, appCont As String, appState As String
+    Dim allAppTypes As Object ' \¿í—Ş‚ğŠi”[‚·‚éDictionary
+    Dim empNames As Variant
+    Dim cancelRecords As New Collection ' æ‚èÁ‚µ\¿‚ğ•Û‘¶‚·‚éƒRƒŒƒNƒVƒ‡ƒ“
+
+    ' ƒfƒoƒbƒOƒƒOo—Íƒtƒ‰ƒO
+    Dim debugLog As Boolean
+    debugLog = True
+
+    ' œŠOĞˆõ”Ô†‚ğæ“¾
+    Dim excludeIDs As Variant
+    excludeIDs = œŠOĞˆõ”Ô†æ“¾()
+    
+    ' œŠOĞˆõ‚Ìƒ}ƒbƒsƒ“ƒO«‘‚ğì¬i‚‘¬ŒŸõ—pj
+    Dim excludedEmpDict As Object
+    Set excludedEmpDict = CreateObject("Scripting.Dictionary")
+    
+    For j = LBound(excludeIDs) To UBound(excludeIDs)
+        If excludeIDs(j) <> "" Then
+            excludedEmpDict.Add excludeIDs(j), True
+        End If
+    Next j
+
+    ' ƒfƒBƒNƒVƒ‡ƒiƒŠ‚ğ‰Šú‰»
+    Set allAppTypes = CreateObject("Scripting.Dictionary")
+    Set empDict = CreateObject("Scripting.Dictionary")
+
+    ' ’è”’è‹`
+    Const ForReading = 1
+    Const TristateUseDefault = -2
+
+    ' ƒtƒ@ƒCƒ‹‘I‘ğƒ_ƒCƒAƒƒO
+    filePath = Application.GetOpenFilename("CSV ƒtƒ@ƒCƒ‹,*.csv")
+    If filePath = False Then Exit Sub
+
+    ' ƒtƒ@ƒCƒ‹“Ç‚İ‚İ
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Set ts = fs.OpenTextFile(filePath, ForReading, False, TristateUseDefault)
+
+    ' ƒwƒbƒ_[s“Ç‚İ‚İ
+    line = ts.ReadLine
+    headers = Split(line, ",")
+
+    ' ƒf[ƒ^s“Ç‚İ‚İ
+    Do While Not ts.AtEndOfStream
+        line = ts.ReadLine
+        data = Split(line, ",")
+
+        ' •K—v‚Èƒf[ƒ^‚Ìæ“¾
+        appDoc = ""
+        empNum = ""
+        empName = ""
+        appCont = ""
+        appState = ""
+
+        For i = 0 To UBound(headers)
+            If i <= UBound(data) Then ' ƒf[ƒ^”z—ñ‚Ì”ÍˆÍƒ`ƒFƒbƒN
+                Select Case Trim(headers(i))
+                    Case "\¿‘—Ş": appDoc = Trim(data(i))
+                    Case "Ğˆõ”Ô†": empNum = Trim(data(i))
+                    Case "\¿Ò": empName = Trim(data(i))
+                    Case "\¿“à—e": appCont = Trim(data(i))
+                    Case "ó‘Ô": appState = Trim(data(i))
+                End Select
+            End If
+        Next i
+
+        ' œŠOĞˆõ”Ô†‚Ìƒ`ƒFƒbƒN - ‚‘¬‰»
+        Dim isExcluded As Boolean
+        isExcluded = (empNum <> "" And excludedEmpDict.Exists(empNum))
+        
+        ' œŠOĞˆõ‚Ìê‡‚ÍƒXƒLƒbƒv
+        If isExcluded Then
+            GoTo NextRecord
+        End If
+
+        ' æÁ\¿‚©‚Ç‚¤‚©‚ğƒ`ƒFƒbƒN
+        Dim isCancelled As Boolean
+        isCancelled = False
+
+        If appState <> "" Then
+            ' ó‘Ô—ñ‚ÉuæÁv‚Æ‚¢‚¤•¶š—ñ‚ªŠÜ‚Ü‚ê‚Ä‚¢‚é‚©ƒ`ƒFƒbƒN
+            If InStr(1, appState, "æÁ", vbTextCompare) > 0 Then
+                isCancelled = True
+
+                ' æ‚èÁ‚µî•ñ‚ğ•Û‘¶
+                Dim cancelInfo As Object
+                Set cancelInfo = CreateObject("Scripting.Dictionary")
+                cancelInfo.Add "Ğˆõ–¼", empName
+                cancelInfo.Add "\¿í—Ş", appDoc
+                cancelInfo.Add "\¿“à—e", appCont
+
+                ' ƒRƒŒƒNƒVƒ‡ƒ“‚É’Ç‰Á
+                cancelRecords.Add cancelInfo
+
+                If debugLog Then
+                    Debug.Print "æÁ\¿‚ğŒŸo: " & empName & ", " & appDoc & ", " & appCont & ", ó‘Ô: " & appState
+                End If
+            End If
+        End If
+
+        ' ƒf[ƒ^‚ª—LŒø‚©‚ÂæÁ‚Å‚È‚¢ê‡‚Ì‚İˆ—
+        If empName <> "" And appDoc <> "" And Not IsNumeric(empName) And Not isCancelled Then
+            ' Ğˆõ«‘‚É’Ç‰Ái‚Ü‚¾‘¶İ‚µ‚È‚¢ê‡j
+            If Not empDict.Exists(empName) Then
+                empDict.Add empName, CreateObject("Scripting.Dictionary")
+            End If
+
+            ' \¿‘—Ş‚ğ\¿í—Ş‚Æ‚µ‚ÄƒJƒEƒ“ƒg
+            If Not empDict(empName).Exists(appDoc) Then
+                empDict(empName).Add appDoc, 1
+            Else
+                empDict(empName)(appDoc) = empDict(empName)(appDoc) + 1
+            End If
+
+            ' \¿“à—e‚©‚ç‹x‰Éƒ^ƒCƒv‚ğ’Šo‚µ‚Äˆ—
+            If appCont <> "" Then
+                Call ‰ğÍ\¿“à—e(empDict(empName), empName, appDoc, appCont, debugLog)
+            End If
+        End If
+NextRecord:
+    Loop
+    ts.Close
+
+    ' æ‚èÁ‚µ\¿‚É‘Î‚·‚é’²®‚ğs‚¤
+    Call æ‚èÁ‚µ\¿ˆ—(empDict, cancelRecords, debugLog)
+
+    ' ‹x‰É“ú”‚ÌŒvZ
+    Call ‹x‰É“ú”ŒvZ(empDict, debugLog)
+
+    ' w’è‚³‚ê‚½‡˜‚É\¿í—Ş‚ğ•À‚×‚é
+    Dim orderedAppTypes As Variant
+    orderedAppTypes = Array("—L‹x\¿", "Œ‡‹Î\¿", "“dÔ’x‰„\¿", "‹xŒeŠÔC³\¿", "Uo^U‹x\¿", "c‹Æ\¿", "‹xo\¿", "“Á‹x\¿", "’xE‘‘Ş\¿", "q‚ÌŠÅŒì‹x‰É\¿")
+
+    ' ƒXƒNƒŠ[ƒ“XV‚È‚Ç‚ğ’â~
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+
+    ' Œ‹‰ÊƒV[ƒgì¬
+    Application.DisplayAlerts = False
+    On Error Resume Next
+    ThisWorkbook.Sheets("\¿Ú×•ªÍˆê——").Delete
+    On Error GoTo 0
+    Application.DisplayAlerts = True
+
+    Set outWs = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
+    outWs.Name = "\¿Ú×•ªÍˆê——"
+
+    ' «‘‚ª‹ó‚©ƒ`ƒFƒbƒN
+    If empDict.count = 0 Then
+        outWs.Cells(1, 1).Value = "—LŒø‚Èƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñ‚Å‚µ‚½B"
+        MsgBox "—LŒø‚Èƒf[ƒ^‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B", vbInformation
+        GoTo Finalize
+    End If
+
+    ' ƒwƒbƒ_[s‚Ì‘‚«‚İ
+    Dim colIndex As Long
+    colIndex = 2
+
+    outWs.Cells(1, 1).Value = "Ğˆõ–¼"
+
+    For i = 0 To UBound(orderedAppTypes)
+        outWs.Cells(1, colIndex).Value = orderedAppTypes(i)
+        colIndex = colIndex + 1
+    Next i
+
+    outWs.Cells(1, colIndex).Value = "Œß‘O—L‹x‰ñ”"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "ŒßŒã—L‹x‰ñ”"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "—L‹x“ú”"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "ŠÔ—L‹xŠÔ"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "5“úˆÈã‚Ì‹x‰Éæ“¾"
+
+    Dim totalColumns As Long
+    totalColumns = colIndex
+
+    With outWs.Range(outWs.Cells(1, 1), outWs.Cells(1, totalColumns))
+        .Font.Bold = True
+        .HorizontalAlignment = xlCenter
+        .Interior.Color = RGB(200, 200, 200)
+    End With
+
+    ' ƒf[ƒ^‘‚«‚İ
+    empNames = empDict.keys
+    For i = 0 To UBound(empNames)
+        outWs.Cells(i + 2, 1).Value = empNames(i)
+        dataCol = 2
+        For j = 0 To UBound(orderedAppTypes)
+            If empDict(empNames(i)).Exists(orderedAppTypes(j)) Then
+                outWs.Cells(i + 2, dataCol).Value = empDict(empNames(i))(orderedAppTypes(j))
+            Else
+                outWs.Cells(i + 2, dataCol).Value = 0
+            End If
+            dataCol = dataCol + 1
+        Next j
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("Œß‘O—L‹x‰ñ”"), empDict(empNames(i))("Œß‘O—L‹x‰ñ”"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("ŒßŒã—L‹x‰ñ”"), empDict(empNames(i))("ŒßŒã—L‹x‰ñ”"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("—L‹x“ú”"), empDict(empNames(i))("—L‹x“ú”"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("ŠÔ—L‹xŠÔ"), empDict(empNames(i))("ŠÔ—L‹xŠÔ"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("5“úˆÈã‚Ì‹x‰Éæ“¾"), empDict(empNames(i))("5“úˆÈã‚Ì‹x‰Éæ“¾"), "~")
+    Next i
+
+    ' •\‘S‘Ì‚ÉŒrü‚ğ’Ç‰Á
+    outWs.Range(outWs.Cells(1, 1), outWs.Cells(UBound(empNames) + 2, totalColumns)).Borders.LineStyle = xlContinuous
+
+    ' ‘®İ’è
+    With outWs.Range(outWs.Cells(2, 2), outWs.Cells(UBound(empNames) + 2, totalColumns - 1))
+        .HorizontalAlignment = xlRight
+    End With
+    With outWs.Range(outWs.Cells(2, 1), outWs.Cells(UBound(empNames) + 2, 1))
+        .HorizontalAlignment = xlLeft
+        .Font.Bold = True
+    End With
+
+    ' —ñ•‚Ì©“®’²®
+    outWs.Columns.AutoFit
+
+Finalize:
+    ' ƒXƒNƒŠ[ƒ“XV‚È‚Ç‚ğÄŠJ
+    Application.ScreenUpdating = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
+
+    ' ƒƒbƒZ[ƒW•\¦
+    MsgBox "\¿Ú×•ªÍ‚ªŠ®—¹‚µ‚Ü‚µ‚½B", vbInformation
+End Sub
+
+' \¿“à—e‚ğ‰ğÍ‚µ‚Ä‹x‰Éƒ^ƒCƒv‚²‚Æ‚ÉƒJƒEƒ“ƒg‚·‚éŠÖ”
+Private Sub ‰ğÍ\¿“à—e(empDic As Object, empName As String, appDoc As String, appCont As String, Optional debugLog As Boolean = False)
+    If appCont = "" Then Exit Sub
+
+    Dim multiContents As Variant
+    multiContents = Split(appCont, ";")
+
+    Dim oneContent As Variant
+    For Each oneContent In multiContents
+        oneContent = Trim(oneContent)
+
+        If oneContent <> "" Then
+            Dim contentParts As Variant
+            contentParts = Split(oneContent, " ")
+
+            If UBound(contentParts) >= 1 Then
+                Dim appDate As String
+                Dim appType As String
+                Dim appTimeStr As String
+
+                appDate = contentParts(0)
+
+                appType = ""
+                For i = 1 To UBound(contentParts)
+                    If i > 1 Then appType = appType & " "
+                    appType = appType & contentParts(i)
+                Next i
+                appType = Trim(appType)
+
+                If debugLog Then
+                    Debug.Print "‰ğÍ: " & empName & ", \¿: " & appDoc & ", “à—e: " & oneContent & ", í•Ê: " & appType
+                End If
+
+                If appType <> "" Then
+                    ' Œß‘O—L‹xAŒßŒã—L‹x‚ÌƒJƒEƒ“ƒg
+                    If appType = "Œß‘O—L‹x" Then
+                        If Not empDic.Exists("Œß‘O—L‹x‰ñ”") Then
+                            empDic.Add "Œß‘O—L‹x‰ñ”", 1
+                        Else
+                            empDic("Œß‘O—L‹x‰ñ”") = empDic("Œß‘O—L‹x‰ñ”") + 1
+                        End If
+                        ' ‹x‰É“ú”‚ğŒvZ‚·‚é‚½‚ß‚É“ú•tî•ñ‚ğ•Û‘¶
+                        If Not empDic.Exists("—L‹x_" & appDate & "_Œß‘O") Then
+                            empDic.Add "—L‹x_" & appDate & "_Œß‘O", 1
+                        End If
+                    ElseIf appType = "ŒßŒã—L‹x" Then
+                        If Not empDic.Exists("ŒßŒã—L‹x‰ñ”") Then
+                            empDic.Add "ŒßŒã—L‹x‰ñ”", 1
+                        Else
+                            empDic("ŒßŒã—L‹x‰ñ”") = empDic("ŒßŒã—L‹x‰ñ”") + 1
+                        End If
+                        ' ‹x‰É“ú”‚ğŒvZ‚·‚é‚½‚ß‚É“ú•tî•ñ‚ğ•Û‘¶
+                        If Not empDic.Exists("—L‹x_" & appDate & "_ŒßŒã") Then
+                            empDic.Add "—L‹x_" & appDate & "_ŒßŒã", 1
+                        End If
+                    ElseIf InStr(appType, "—L‹xŠÔ") > 0 Then
+                        ' ŠÔ—L‹x‚Ìˆ—
+                        appTimeStr = ""
+                        Dim timeParts As Variant
+                        timeParts = Split(appType, " ")
+                        If UBound(timeParts) >= 1 Then
+                            Dim timeValue As Variant
+                            timeValue = Split(timeParts(UBound(timeParts)), ":")
+                            If UBound(timeValue) = 1 And IsNumeric(timeValue(0)) And IsNumeric(timeValue(1)) Then
+                                Dim hours As Double
+                                hours = CDbl(timeValue(0)) + CDbl(timeValue(1)) / 60
+                                If Not empDic.Exists("ŠÔ—L‹xŠÔ") Then
+                                    empDic.Add "ŠÔ—L‹xŠÔ", hours
+                                Else
+                                    empDic("ŠÔ—L‹xŠÔ") = empDic("ŠÔ—L‹xŠÔ") + hours
+                                End If
+                                ' ‹x‰É“ú”‚ğŒvZ‚·‚é‚½‚ß‚É“ú•tî•ñ‚ğ•Û‘¶ (ŠÔ—L‹x‚Í“ú”‚ÉŠ·Z‚µ‚È‚¢)
+                                If Not empDic.Exists("—L‹x_" & appDate & "_ŠÔ") Then
+                                    empDic.Add "—L‹x_" & appDate & "_ŠÔ", hours
+                                End If
+                            End If
+                        End If
+                    ElseIf appType = "—L‹x" Then
+                        ' ’Êí‚Ì—L‹x\¿
+                        If Not empDic.Exists("—L‹x_" & appDate) Then
+                            empDic.Add "—L‹x_" & appDate, 1
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    Next oneContent
+End Sub
+
+' æ‚èÁ‚µ\¿‚É‘Î‰‚·‚éˆ—‚ğs‚¤ŠÖ”
+Private Sub æ‚èÁ‚µ\¿ˆ—(empDict As Object, cancelRecords As Collection, Optional debugLog As Boolean = False)
+    If cancelRecords.count = 0 Then Exit Sub
+
+    If debugLog Then
+        Debug.Print "æ‚èÁ‚µ\¿ˆ—‚ğŠJn‚µ‚Ü‚·..."
+        Debug.Print "æ‚èÁ‚µ\¿”: " & cancelRecords.count
+    End If
+
+    Dim cancelInfo As Object, emp As Variant
+    Dim empName As String, appDoc As String, appCont As String
+    Dim contentParts As Variant, appDate As String, appType As String
+    Dim uniqueKey As String
+
+    For Each cancelInfo In cancelRecords
+        empName = cancelInfo("Ğˆõ–¼")
+        appDoc = cancelInfo("\¿í—Ş")
+        appCont = cancelInfo("\¿“à—e")
+
+        If debugLog Then
+            Debug.Print "æ‚èÁ‚µ‘ÎÛ: " & empName & ", " & appDoc & ", " & appCont
+        End If
+
+        If empDict.Exists(empName) Then
+            Dim multiContents As Variant
+            multiContents = Split(appCont, ";")
+
+            Dim oneContent As Variant
+            For Each oneContent In multiContents
+                oneContent = Trim(oneContent)
+
+                contentParts = Split(oneContent, " ")
+
+                If UBound(contentParts) >= 1 Then
+                    appDate = contentParts(0)
+
+                    appType = ""
+                    For i = 1 To UBound(contentParts)
+                        If i > 1 Then appType = appType & " "
+                        appType = appType & contentParts(i)
+                    Next i
+                    appType = Trim(appType)
+
+                    ' æ‚èÁ‚µ‘ÎÛ‚ÌƒL[‚ğ¶¬
+                    Dim keysToRemove As New Collection
+                    Dim keyToDelete As Variant ' ƒ‹[ƒv•Ï”‚ğ•ÏX
+                    For Each keyToDelete In empDict(empName).keys
+                        If InStr(keyToDelete, "—L‹x_" & appDate) > 0 And InStr(keyToDelete, appType) > 0 Then
+                            keysToRemove.Add keyToDelete
+                        End If
+                    Next keyToDelete ' Next ƒXƒe[ƒgƒƒ“ƒg‚Åƒ‹[ƒv•Ï”‚ğ–¾¦
+
+                    ' Œ©‚Â‚©‚Á‚½ƒL[‚ğíœ
+                    Dim itemToRemove As Variant ' ƒ‹[ƒv•Ï”‚ğ•ÏX
+                    For Each itemToRemove In keysToRemove
+                        If debugLog Then
+                            Debug.Print "æ‚èÁ‚µˆ—: ƒL[ '" & itemToRemove & "' ‚ğíœ"
+                        End If
+                    Next itemToRemove ' Next ƒXƒe[ƒgƒƒ“ƒg‚Åƒ‹[ƒv•Ï”‚ğ–¾¦
+
+                    ' \¿‘—Ş‚ÌƒJƒEƒ“ƒg‚àŒ¸‚ç‚· (Š®‘Sˆê’v‚ÅŒ¸‚ç‚·)
+                    If empDict(empName).Exists(appDoc) Then
+                        If empDict(empName)(appDoc) > 0 Then
+                            empDict(empName)(appDoc) = empDict(empName)(appDoc) - 1
+                            If empDict(empName)(appDoc) = 0 Then
+                            End If
+                        End If
+                    End If
+                End If
+            Next oneContent
+        End If
+    Next cancelInfo ' Next ƒXƒe[ƒgƒƒ“ƒg‚Åƒ‹[ƒv•Ï”‚ğ–¾¦
+
+    If debugLog Then
+        Debug.Print "æ‚èÁ‚µ\¿ˆ—‚ğŠ®—¹‚µ‚Ü‚µ‚½"
+    End If
+End Sub
+' ‹x‰É“ú”‚ğŒvZ‚·‚éŠÖ”
+Private Sub ‹x‰É“ú”ŒvZ(empDict As Object, Optional debugLog As Boolean = False)
+    Dim emp As Variant
+
+    For Each emp In empDict.keys
+        Dim holidayCount As Double
+        Dim morningHalfDays As Long
+        Dim afternoonHalfDays As Long
+        Dim hourlyLeaveTotal As Double
+
+        holidayCount = 0
+        morningHalfDays = 0
+        afternoonHalfDays = 0
+        hourlyLeaveTotal = 0
+
+        If debugLog Then
+            Debug.Print "===================="
+            Debug.Print "Ğˆõ–¼: " & emp
+            Debug.Print "===================="
+        End If
+
+        Dim processedDates As Object
+        Set processedDates = CreateObject("Scripting.Dictionary")
+
+        Dim key As Variant
+        For Each key In empDict(emp).keys
+            Dim keyStr As String
+            keyStr = CStr(key)
+
+            If InStr(keyStr, "—L‹x_") = 1 Then
+                Dim parts As Variant
+                parts = Split(keyStr, "_")
+
+                If UBound(parts) >= 1 Then
+                    Dim dateStr As String
+                    Dim typeStr As String
+
+                    dateStr = parts(1)
+                    If UBound(parts) >= 2 Then
+                        typeStr = parts(2)
+                    Else
+                        typeStr = ""
+                    End If
+
+                    If Not processedDates.Exists(dateStr) Then
+                        If typeStr = "" Then
+                            holidayCount = holidayCount + 1
+                            processedDates.Add dateStr, 1
+                            If debugLog Then Debug.Print "—L‹xiI“új’Ç‰Á: " & dateStr
+                        ElseIf typeStr = "Œß‘O" Then
+                            morningHalfDays = morningHalfDays + 1
+                            processedDates.Add dateStr, 1
+                            holidayCount = holidayCount + 0.5
+                            If debugLog Then Debug.Print "Œß‘O—L‹x’Ç‰Á: " & dateStr
+                        ElseIf typeStr = "ŒßŒã" Then
+                            afternoonHalfDays = afternoonHalfDays + 1
+                            processedDates.Add dateStr, 1
+                            holidayCount = holidayCount + 0.5
+                            If debugLog Then Debug.Print "ŒßŒã—L‹x’Ç‰Á: " & dateStr
+                        End If
+                    End If
+                End If
+            ElseIf InStr(keyStr, "ŠÔ—L‹xŠÔ") > 0 Then
+                hourlyLeaveTotal = hourlyLeaveTotal + empDict(emp)(keyStr)
+                If debugLog Then Debug.Print "ŠÔ—L‹x‡Œvi‰ÁZj: " & empDict(emp)(keyStr)
+            End If
+        Next key
+
+        ' WŒvŒ‹‰Ê‚ğ•Û‘¶
+        If Not empDict(emp).Exists("—L‹x“ú”") Then
+            empDict(emp).Add "—L‹x“ú”", holidayCount
+        Else
+            empDict(emp)("—L‹x“ú”") = holidayCount
+        End If
+
+        If Not empDict(emp).Exists("Œß‘O—L‹x‰ñ”") Then
+            empDict(emp).Add "Œß‘O—L‹x‰ñ”", morningHalfDays
+        Else
+            empDict(emp)("Œß‘O—L‹x‰ñ”") = morningHalfDays
+        End If
+
+        If Not empDict(emp).Exists("ŒßŒã—L‹x‰ñ”") Then
+            empDict(emp).Add "ŒßŒã—L‹x‰ñ”", afternoonHalfDays
+        Else
+            empDict(emp)("ŒßŒã—L‹x‰ñ”") = afternoonHalfDays
+        End If
+
+        If Not empDict(emp).Exists("ŠÔ—L‹xŠÔ") Then
+            empDict(emp).Add "ŠÔ—L‹xŠÔ", hourlyLeaveTotal
+        Else
+            empDict(emp)("ŠÔ—L‹xŠÔ") = hourlyLeaveTotal
+        End If
+
+        If Not empDict(emp).Exists("5“úˆÈã‚Ì‹x‰Éæ“¾") Then
+            empDict(emp).Add "5“úˆÈã‚Ì‹x‰Éæ“¾", IIf(holidayCount >= 5, "Z", "~")
+        Else
+            empDict(emp)("5“úˆÈã‚Ì‹x‰Éæ“¾") = IIf(holidayCount >= 5, "Z", "~")
+        End If
+    Next emp
+End Sub
+
+
+
+
+
+

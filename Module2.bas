@@ -1,142 +1,391 @@
-ï»¿' ========================================
-' Module2
-' ã‚¿ã‚¤ãƒ—: æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-' è¡Œæ•°: 136
-' ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚: 2025-10-20 14:30:49
+Attribute VB_Name = "Module2"
+' ========================================
+' Module5 (Š®‘SC³”Å - 2025-11-17 ÅI”Å)
+' ƒ^ƒCƒv: •W€ƒ‚ƒWƒ…[ƒ‹
+' C³“à—e: J—ñ‚É–µ‚í•ÊƒR[ƒh‚ğŠmÀ‚É‘‚«‚Ş
 ' ========================================
 
-Option Explicit
-
-' *************************************************************
-' ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ï¼šä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯ï¼ˆã‚³ã‚¢æ©Ÿèƒ½ï¼‰
-' ç›®çš„ï¼šå®Ÿåƒæ™‚é–“ã«å¿œã˜ãŸä¼‘æ†©æ™‚é–“ã®å–å¾—ç¢ºèªãŠã‚ˆã³æ®‹æ¥­æ™‚é–“ã‚’è¨ˆç®—ã™ã‚‹
-' Copyright (c) 2025 SI1 shunpei.suzuki
-' ä½œæˆæ—¥ï¼š2025å¹´3æœˆ3æ—¥
-'
-' æ”¹ç‰ˆå±¥æ­´ï¼š
-' 2025/03/03 åˆç‰ˆä½œæˆ_v1.5
-' 2025/03/07 å±Šå‡ºç”³è«‹æ™‚ã®å‚™è€ƒæ¬„ç¢ºèªã‚’è¿½åŠ â‘ 
-' 2025/03/11 å±Šå‡ºç”³è«‹æ™‚ã®å‚™è€ƒæ¬„ç¢ºèªã‚’è¿½åŠ â‘¡_v1.7
-' 2025/03/21 é™¤å¤–ç¤¾å“¡æ©Ÿèƒ½ãƒ»ç¤¾å“¡æ•°ã‚«ã‚¦ãƒ³ãƒˆä¿®æ­£ãƒ»ãƒ‘ãƒ•ã‚©ãƒ¼ãƒãƒ³ã‚¹æœ€é©åŒ–_v2.0
-' 2025/03/31 æœˆæœ«æœ€çµ‚å–¶æ¥­æ—¥ã®å½“æ—¥åˆ†ãƒã‚§ãƒƒã‚¯æ©Ÿèƒ½è¿½åŠ 
-' 2025/04/02 ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«åˆ†å‰²ã«ã‚ˆã‚‹ãƒªãƒ•ã‚¡ã‚¯ã‚¿ãƒªãƒ³ã‚°
-' 2025/04/02 å‹¤æ€ ç”³è«‹ã¨å…¥åŠ›å†…å®¹ã®çŸ›ç›¾æ¤œçŸ¥æ©Ÿèƒ½è¿½åŠ ï¼ˆåˆå‰æœ‰ä¼‘ãƒ»åˆå¾Œæœ‰ä¼‘ï¼‰
-' 2025/10/18 LINE WORKSé€šçŸ¥æ©Ÿèƒ½æ¡ˆå†…ã‚’ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã«è¿½åŠ 
-' *************************************************************
-
-' å®šæ•°å®šç¾©
-Const SHEET_NAME_MISSING_ENTRIES As String = "å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§"
-Const COL_EMPLOYEE_ID As Integer = 1
-Const COL_EMPLOYEE_NAME As Integer = 2
-Const COL_DATE As Integer = 3
-Const COL_DAY_TYPE As Integer = 4
-Const COL_LEAVE_TYPE As Integer = 5
-Const COL_MISSING_ENTRY_TYPE As Integer = 6
-Const COL_COMMENT As Integer = 7
-Const COL_ATTENDANCE_TIME As Integer = 8 ' å‡ºå‹¤æ™‚åˆ»åˆ—ã‚’è¿½åŠ 
-Const COL_DEPARTURE_TIME As Integer = 9 ' é€€å‹¤æ™‚åˆ»åˆ—ã‚’è¿½åŠ 
-Const COL_CONTRADICTION_TYPE As Integer = 10 ' çŸ›ç›¾ç¨®åˆ¥åˆ—ã‚’è¿½åŠ 
-Const DEBUG_MODE As Boolean = False ' ãƒ‡ãƒãƒƒã‚°ãƒ¢ãƒ¼ãƒ‰è¨­å®š - é€šå¸¸é‹ç”¨æ™‚ã¯False
-
-' ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
-Public g_IncludeToday As Boolean
-
-' å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã®ãƒ¡ã‚¤ãƒ³å‡¦ç†
-Public Sub å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯()
-    On Error GoTo ErrorHandler
-    
-    ' å½“æ—¥åˆ†ã‚’å«ã‚ã‚‹ã‹ã©ã†ã‹ã®ã‚ªãƒ—ã‚·ãƒ§ãƒ³
-    Dim includeToday As Boolean
-    
-    ' æœˆæœ«ã®æœ€å¾Œã®5å–¶æ¥­æ—¥ä»¥å†…ã‹ã©ã†ã‹ã‚’ç¢ºèª
-    Dim isWithinLastFiveDays As Boolean
-    isWithinLastFiveDays = IsWithinLastFiveBusinessDaysOfMonth(Date)
-    
-    ' ãƒ¦ãƒ¼ã‚¶ãƒ¼ã«ç¢ºèªï¼ˆæœˆæœ«ã®æœ€å¾Œã®5å–¶æ¥­æ—¥ä»¥å†…ã®å ´åˆã¯ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§Trueï¼‰
-    Dim promptMsg As String
-    If isWithinLastFiveDays Then
-        promptMsg = "æœ¬æ—¥ã¯æœˆæœ«ã®æœ€å¾Œã®5å–¶æ¥­æ—¥ä»¥å†…ã§ã™ã€‚" & vbCrLf & _
-                   "å½“æ—¥åˆ†ã®å‹¤æ€ å…¥åŠ›çŠ¶æ…‹ã‚‚ãƒã‚§ãƒƒã‚¯ã—ã¾ã™ã‹ï¼Ÿ" & vbCrLf & _
-                   "ï¼ˆã€Œã¯ã„ã€ï¼šå½“æ—¥åˆ†ã‚’å«ã‚€ã€ã€Œã„ã„ãˆã€ï¼šå‰æ—¥ã¾ã§ã®ã¿ï¼‰"
-        includeToday = (MsgBox(promptMsg, vbQuestion + vbYesNo + vbDefaultButton1, "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯") = vbYes)
-    Else
-        promptMsg = "å½“æ—¥åˆ†ã®å‹¤æ€ å…¥åŠ›çŠ¶æ…‹ã‚‚ãƒã‚§ãƒƒã‚¯ã—ã¾ã™ã‹ï¼Ÿ" & vbCrLf & _
-                   "ï¼ˆã€Œã¯ã„ã€ï¼šå½“æ—¥åˆ†ã‚’å«ã‚€ã€ã€Œã„ã„ãˆã€ï¼šå‰æ—¥ã¾ã§ã®ã¿ï¼‰"
-        includeToday = (MsgBox(promptMsg, vbQuestion + vbYesNo + vbDefaultButton2, "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯") = vbYes)
-    End If
-    
-    ' ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°ã«è¨­å®š
-    g_IncludeToday = includeToday
-    
-    Application.ScreenUpdating = False
-    Application.DisplayAlerts = False
-    Application.Calculation = xlCalculationManual ' è¨ˆç®—ãƒ¢ãƒ¼ãƒ‰ã‚’æ‰‹å‹•ã«è¨­å®š
-    
-    ' é€²æ—çŠ¶æ³è¡¨ç¤º
-    Application.StatusBar = "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã‚’é–‹å§‹ã—ã¦ã„ã¾ã™..."
-    
-    ' CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã‚’å–å¾—
-    Dim wsCSVData As Worksheet
-    Set wsCSVData = ThisWorkbook.Worksheets("CSVãƒ‡ãƒ¼ã‚¿")
-    
-    If wsCSVData Is Nothing Then
-        MsgBox "CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚å…ˆã«CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚“ã§ãã ã•ã„ã€‚", vbExclamation
-        GoTo CleanExit
-    End If
-    
-    ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã‚·ãƒ¼ãƒˆã®æº–å‚™
-    Dim missingEntriesSheet As Worksheet
-    Set missingEntriesSheet = PrepareOutputSheet()
-    
-    ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œã®æ¤œå‡ºã¨å‡ºåŠ›
-    DetectMissingEntries wsCSVData, missingEntriesSheet
-    
-    ' æ¦‚è¦çµ±è¨ˆã®è¨ˆç®—ã¨è¡¨ç¤º
-    CalculateAndDisplaySummary missingEntriesSheet
-    
-    ' æˆåŠŸãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ï¼ˆLINE WORKSé€šçŸ¥æ©Ÿèƒ½ã®æ¡ˆå†…ã‚’è¿½åŠ ï¼‰
-    MsgBox "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ãŒå®Œäº†ã—ã¾ã—ãŸã€‚" & vbCrLf & _
-           "é›†è¨ˆçµæœã‚’è¡¨ç¤ºã—ã¾ã™ã€‚" & vbCrLf & vbCrLf & _
-           "ã€LINE WORKSé€šçŸ¥ã«ã¤ã„ã¦ã€‘" & vbCrLf & _
-           "ã€Œå‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã€ã‚·ãƒ¼ãƒˆã®Låˆ—ã«ã‚ã‚‹" & vbCrLf & _
-           "ã€ŒLINE WORKSé€šçŸ¥ã€ãƒœã‚¿ãƒ³ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨ã€" & vbCrLf & _
-           "SI1éƒ¨ãƒªãƒ¼ãƒ€ãƒ¼ãƒãƒ£ãƒ³ãƒãƒ«ã«é€šçŸ¥ãŒé€ä¿¡ã•ã‚Œã¾ã™ã€‚", vbInformation
-    
-CleanExit:
-    Application.StatusBar = False
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = True
-    Application.Calculation = xlCalculationAutomatic ' è¨ˆç®—ãƒ¢ãƒ¼ãƒ‰ã‚’è‡ªå‹•ã«æˆ»ã™
-    Exit Sub
-    
-ErrorHandler:
-    MsgBox "ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbCritical
-    Resume CleanExit
-End Sub
-
-' ã™ã¹ã¦ã®ãƒã‚§ãƒƒã‚¯ã‚’ä¸€åº¦ã«å®Ÿè¡Œã™ã‚‹é–¢æ•°
-Public Sub ã™ã¹ã¦ã®ãƒã‚§ãƒƒã‚¯å®Ÿè¡Œ()
-    ' ç”»é¢æ›´æ–°ã¨è¨ˆç®—ã‚’ä¸€æ™‚åœæ­¢
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-    Application.DisplayAlerts = False
-    
-    ' ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯å®Ÿè¡Œ
-    Call ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯
-    
-    ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯å®Ÿè¡Œ
-    Call å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯
-    
-    ' ç”»é¢æ›´æ–°ã¨è¨ˆç®—ã‚’å†é–‹
-    Application.ScreenUpdating = True
-    Application.Calculation = xlCalculationAutomatic
-    Application.DisplayAlerts = True
-    
-    ' å®Œäº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ï¼ˆLINE WORKSé€šçŸ¥æ©Ÿèƒ½ã®æ¡ˆå†…ã‚’è¿½åŠ ï¼‰
-    MsgBox "ã™ã¹ã¦ã®ãƒã‚§ãƒƒã‚¯ãŒå®Œäº†ã—ã¾ã—ãŸã€‚" & vbCrLf & vbCrLf & _
-           "ã€LINE WORKSé€šçŸ¥ã«ã¤ã„ã¦ã€‘" & vbCrLf & _
-           "ã€Œå‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã€ã‚·ãƒ¼ãƒˆã®Låˆ—ã«ã‚ã‚‹" & vbCrLf & _
-           "ã€ŒLINE WORKSé€šçŸ¥ã€ãƒœã‚¿ãƒ³ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨ã€" & vbCrLf & _
-           "SI1éƒ¨ãƒªãƒ¼ãƒ€ãƒ¼ãƒãƒ£ãƒ³ãƒãƒ«ã«é€šçŸ¥ãŒé€ä¿¡ã•ã‚Œã¾ã™ã€‚", vbInformation
-End Sub
-
+Option Explicit
+
+' *************************************************************
+' ƒ‚ƒWƒ…[ƒ‹F‹Î‘Ó“ü—Í˜R‚êŒŸo
+' –Ú“IF‹Î‘Ó“ü—Í˜R‚ê‚Æ\¿–µ‚‚ğŒŸo‚·‚é
+' *************************************************************
+
+' ’è”’è‹`
+Private Const COL_EMPLOYEE_ID As Integer = 1
+Private Const COL_EMPLOYEE_NAME As Integer = 2
+Private Const COL_DATE As Integer = 3
+Private Const COL_DAY_TYPE As Integer = 4
+Private Const COL_LEAVE_TYPE As Integer = 5
+Private Const COL_MISSING_ENTRY_TYPE As Integer = 6
+Private Const COL_COMMENT As Integer = 7
+Private Const COL_ATTENDANCE_TIME As Integer = 8
+Private Const COL_DEPARTURE_TIME As Integer = 9
+Private Const COL_CONTRADICTION_TYPE As Integer = 10 ' J—ñ
+Private Const DEBUG_MODE As Boolean = True ' ƒfƒoƒbƒOƒ‚[ƒh—LŒø‰»
+
+' ƒnƒCƒ‰ƒCƒgF’è‹`
+Private Const COLOR_CONTRADICTION As Long = 16750848  ' ƒIƒŒƒ“ƒW
+Private Const COLOR_MISSING As Long = 16764108        ' Ô
+
+' *************************************************************
+' ŠÖ”–¼: DetectMissingEntries
+' –Ú“I: ‹Î‘Ó“ü—Í˜R‚ê‚Æ\¿–µ‚‚ğŒŸo
+' *************************************************************
+Public Sub DetectMissingEntries(wsCSVData As Worksheet, outputSheet As Worksheet)
+    Dim includeToday As Boolean
+    includeToday = g_IncludeToday
+    
+    On Error GoTo ErrorHandler
+    Application.StatusBar = "‹Î‘Ó“ü—Í˜R‚êE–µ‚‚ğŒŸo‚µ‚Ä‚¢‚Ü‚·..."
+    
+    ' ÅIs‚ğæ“¾
+    Dim lastRow As Long
+    lastRow = wsCSVData.Cells(wsCSVData.Rows.count, "A").End(xlUp).Row
+    
+    If lastRow <= 1 Then
+        MsgBox "CSVƒf[ƒ^‚ª‘¶İ‚µ‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    
+    ' —ñƒCƒ“ƒfƒbƒNƒX‚Ì“Á’è
+    Dim colIndex As Object
+    Set colIndex = GetColumnIndexes(wsCSVData)
+    If colIndex Is Nothing Then Exit Sub
+    
+    ' ƒf[ƒ^‚ğ”z—ñ‚É“Ç‚İ‚İ
+    Dim dataArray As Variant
+    dataArray = wsCSVData.Range(wsCSVData.Cells(2, 1), _
+                                wsCSVData.Cells(lastRow, wsCSVData.Cells(1, wsCSVData.Columns.count).End(xlToLeft).Column)).Value
+    
+    ' •Ï”’è‹`
+    Dim employeeDict As Object
+    Set employeeDict = CreateObject("Scripting.Dictionary")
+    Dim totalMissingCount As Long, missingAttendanceCount As Long, missingDepartureCount As Long, missingBothCount As Long, contradictionCount As Long
+    totalMissingCount = 0: missingAttendanceCount = 0: missingDepartureCount = 0: missingBothCount = 0: contradictionCount = 0
+    Dim outputRow As Long
+    outputRow = 2
+    
+    Dim i As Long
+    For i = 1 To UBound(dataArray, 1)
+        ' --- ƒf[ƒ^æ“¾‚ÆƒNƒŠ[ƒjƒ“ƒO ---
+        Dim employeeID As String, employeeName As String
+        Dim entryDate As Date
+        Dim dayType As String, deliveryContent As String
+        Dim attendanceTime As String, departureTime As String
+        
+        ' CleanStringŠÖ”‚ğ’Ê‚µ‚ÄƒSƒ~‚ğœ‹
+        employeeID = CleanString(dataArray(i, colIndex("Ğˆõ”Ô†")))
+        employeeName = CleanString(dataArray(i, colIndex("–¼")))
+        dayType = CleanString(dataArray(i, colIndex("ƒJƒŒƒ“ƒ_[")))
+        deliveryContent = CleanString(dataArray(i, colIndex("“Ío“à—e")))
+        attendanceTime = CleanString(dataArray(i, colIndex("oĞ")))
+        departureTime = CleanString(dataArray(i, colIndex("‘ŞĞ")))
+        
+        ' “ú•t•ÏŠ·iƒGƒ‰[‚ÍƒXƒLƒbƒvj
+        On Error Resume Next
+        entryDate = CDate(dataArray(i, colIndex("“ú•t")))
+        If Err.Number <> 0 Then
+            On Error GoTo ErrorHandler
+            GoTo NextRow
+        End If
+        On Error GoTo ErrorHandler
+        
+        ' ‹Î‘Ó“ü—Í‚ª•K—v‚©‚Ç‚¤‚©‚ğ”»’è
+        If Not IsEntryRequired(dayType, deliveryContent) Then GoTo NextRow
+        
+        ' === ‘æ1’iŠKF–µ‚ŒŸo ===
+        Dim contradictionResult As Variant
+        contradictionResult = CheckContradiction(deliveryContent, attendanceTime, departureTime)
+        
+        ' ššš ƒfƒoƒbƒOƒƒO’Ç‰Á ššš
+        If DEBUG_MODE Then
+            Debug.Print "[DEBUG] s" & (i + 1) & ": " & employeeName & " - –µ‚ƒ`ƒFƒbƒNŒ‹‰Ê=" & contradictionResult(0) & ", ƒR[ƒh=" & contradictionResult(2)
+        End If
+        
+        If contradictionResult(0) Then
+            ' –µ‚‚ ‚è
+            If Not employeeDict.Exists(employeeID) Then employeeDict.Add employeeID, employeeName
+            
+            With outputSheet
+                .Cells(outputRow, COL_EMPLOYEE_ID).Value = employeeID
+                .Cells(outputRow, COL_EMPLOYEE_NAME).Value = employeeName
+                .Cells(outputRow, COL_DATE).Value = entryDate
+                .Cells(outputRow, COL_DAY_TYPE).Value = dayType
+                .Cells(outputRow, COL_LEAVE_TYPE).Value = deliveryContent
+                .Cells(outputRow, COL_MISSING_ENTRY_TYPE).Value = ""
+                .Cells(outputRow, COL_COMMENT).Value = contradictionResult(1)
+                .Cells(outputRow, COL_ATTENDANCE_TIME).Value = attendanceTime
+                .Cells(outputRow, COL_DEPARTURE_TIME).Value = departureTime
+                
+                ' ššš d—vF–µ‚í•ÊƒR[ƒh‚ğJ—ñ‚É‘‚«‚Ş ššš
+                .Cells(outputRow, COL_CONTRADICTION_TYPE).Value = contradictionResult(2)
+                
+                Debug.Print "[INFO] š–µ‚‚ğƒV[ƒg‚É‘‚«‚İ: s" & outputRow & ", J—ñ=" & contradictionResult(2)
+                
+                .Range(.Cells(outputRow, 1), .Cells(outputRow, COL_DEPARTURE_TIME)).Interior.Color = COLOR_CONTRADICTION
+            End With
+            
+            outputRow = outputRow + 1
+            contradictionCount = contradictionCount + 1
+            totalMissingCount = totalMissingCount + 1
+        Else
+            ' === ‘æ2’iŠKF‹Î‘Ó˜R‚êŒŸo ===
+            Dim missingResult As Variant
+            missingResult = CheckMissingEntry(attendanceTime, departureTime)
+            
+            If missingResult(0) Then
+                ' ˜R‚ê‚ ‚è
+                If Not employeeDict.Exists(employeeID) Then employeeDict.Add employeeID, employeeName
+                
+                With outputSheet
+                    .Cells(outputRow, COL_EMPLOYEE_ID).Value = employeeID
+                    .Cells(outputRow, COL_EMPLOYEE_NAME).Value = employeeName
+                    .Cells(outputRow, COL_DATE).Value = entryDate
+                    .Cells(outputRow, COL_DAY_TYPE).Value = dayType
+                    .Cells(outputRow, COL_LEAVE_TYPE).Value = deliveryContent
+                    .Cells(outputRow, COL_MISSING_ENTRY_TYPE).Value = missingResult(1)
+                    .Cells(outputRow, COL_COMMENT).Value = missingResult(2)
+                    .Cells(outputRow, COL_ATTENDANCE_TIME).Value = attendanceTime
+                    .Cells(outputRow, COL_DEPARTURE_TIME).Value = departureTime
+                    
+                    ' –µ‚‚È‚µ‚Ìê‡‚Í0‚ğƒZƒbƒg
+                    .Cells(outputRow, COL_CONTRADICTION_TYPE).Value = 0
+                    
+                    .Range(.Cells(outputRow, 1), .Cells(outputRow, COL_DEPARTURE_TIME)).Interior.Color = COLOR_MISSING
+                End With
+                
+                outputRow = outputRow + 1
+                totalMissingCount = totalMissingCount + 1
+                
+                Select Case missingResult(1)
+                    Case "o‹Î‚È‚µ": missingAttendanceCount = missingAttendanceCount + 1
+                    Case "‘Ş‹Î‚È‚µ": missingDepartureCount = missingDepartureCount + 1
+                    Case "o‹ÎE‘Ş‹Î‚È‚µ": missingBothCount = missingBothCount + 1
+                End Select
+            End If
+        End If
+NextRow:
+    Next i
+    
+    ' Œ‹‰Ê‘‚«‚İ‚ÆŒãˆ—
+    If outputRow = 2 Then
+        outputSheet.Cells(2, 1).Value = "‹Î‘Ó“ü—Í˜R‚êE–µ‚‚ÍŒŸo‚³‚ê‚Ü‚¹‚ñ‚Å‚µ‚½B"
+        outputSheet.Range(outputSheet.Cells(2, 1), outputSheet.Cells(2, COL_COMMENT)).Merge
+        outputSheet.Range(outputSheet.Cells(2, 1), outputSheet.Cells(2, COL_COMMENT)).HorizontalAlignment = xlCenter
+    End If
+    
+    ' “Œvî•ñ
+    With outputSheet
+        .Range("J2").Value = totalMissingCount
+        .Range("J3").Value = missingAttendanceCount
+        .Range("J4").Value = missingDepartureCount
+        .Range("J5").Value = missingBothCount
+        .Range("J6").Value = employeeDict.count
+        .Range("J7").Value = contradictionCount
+        .Range("J2:J7").Font.Color = RGB(255, 255, 255) ' ”’•¶š‚ÅŒ©‚¦‚È‚­‚·‚é
+        .Columns("A:I").AutoFit
+        .Columns("J").ColumnWidth = 0 ' J—ñ‚ğ‰B‚·
+    End With
+    
+    If DEBUG_MODE Then Debug.Print "[INFO] ŒŸoŠ®—¹: ‘Œ”=" & totalMissingCount & "Œ, –µ‚=" & contradictionCount & "Œ"
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "‹Î‘Ó“ü—Í˜R‚ê‚ÌŒŸo’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbCritical
+    Resume Next
+End Sub
+
+' *************************************************************
+' ŠÖ”–¼: CleanString
+' –Ú“I: ƒZƒ‹’l‚©‚çƒSƒ~•¶šANBSPAƒGƒ‰[’l‚ğˆÀ‘S‚Éœ‹‚µ‚Ä•¶š—ñ‰»
+' *************************************************************
+Private Function CleanString(val As Variant) As String
+    If IsError(val) Then
+        CleanString = ""
+        Exit Function
+    End If
+    
+    If IsNull(val) Or IsEmpty(val) Then
+        CleanString = ""
+        Exit Function
+    End If
+    
+    Dim s As String
+    s = CStr(val)
+    
+    ' 1. ƒm[ƒuƒŒ[ƒNƒXƒy[ƒX(160)‚ğ’ÊíƒXƒy[ƒX(32)‚É’uŠ·
+    If InStr(s, ChrW(160)) > 0 Then
+        s = Replace(s, ChrW(160), " ")
+    End If
+    
+    ' 2. ƒ^ƒuA‰üs‚ğœ‹
+    s = Replace(s, vbTab, "")
+    s = Replace(s, vbCr, "")
+    s = Replace(s, vbLf, "")
+    
+    ' 3. §Œä•¶š(0-31)‚Ìœ‹
+    Dim i As Long
+    Dim clean As String
+    clean = ""
+    For i = 1 To Len(s)
+        Dim c As String
+        c = Mid(s, i, 1)
+        If AscW(c) >= 32 Then
+            clean = clean & c
+        End If
+    Next i
+    
+    ' 4. ‘OŒã‚Ì‹ó”’íœ
+    CleanString = Trim(clean)
+End Function
+
+' *************************************************************
+' ŠÖ”–¼: CheckContradiction
+' –Ú“I: \¿“à—e‚Æo‘Ş‹Î‚Ì–µ‚‚ğŒŸo
+' –ß‚è’l: Array(–µ‚ƒtƒ‰ƒO, ƒRƒƒ“ƒg, –µ‚í•ÊƒR[ƒh)
+' *************************************************************
+Private Function CheckContradiction(deliveryContent As String, attendanceTime As String, departureTime As String) As Variant
+    Dim hasContradiction As Boolean: hasContradiction = False
+    Dim comment As String: comment = ""
+    Dim contradictionType As Integer: contradictionType = 0
+    
+    ' Œß‘O—L‹x‚Ì–µ‚ƒ`ƒFƒbƒN
+    If deliveryContent = "Œß‘O—L‹x" And attendanceTime <> "" Then
+        Dim attHour As Integer
+        attHour = GetHourFromTimeString(attendanceTime)
+        If attHour > 0 And attHour < 13 Then
+            hasContradiction = True
+            comment = "Œß‘O—L‹x‚È‚Ì‚Éo‹Î‚ª13‚æ‚è‘Oi" & FormatTimeDisplay(attendanceTime) & "j‚É‚È‚Á‚Ä‚¢‚Ü‚·"
+            contradictionType = 1  ' š Œß‘O—L‹x–µ‚
+        End If
+    End If
+    
+    ' ŒßŒã—L‹x‚Ì–µ‚ƒ`ƒFƒbƒN
+    If deliveryContent = "ŒßŒã—L‹x" And departureTime <> "" Then
+        Dim depH As Integer, depM As Integer
+        depH = GetHourFromTimeString(departureTime)
+        depM = GetMinuteFromTimeString(departureTime)
+        If depH > 12 Or (depH = 12 And depM > 0) Then
+            hasContradiction = True
+            comment = "ŒßŒã—L‹x‚È‚Ì‚É‘Ş‹Î‚ª12‚æ‚èŒãi" & FormatTimeDisplay(departureTime) & "j‚É‚È‚Á‚Ä‚¢‚Ü‚·"
+            contradictionType = 2  ' š ŒßŒã—L‹x–µ‚
+        End If
+    End If
+    
+    ' ‚¨’‹‹xŒeŠÔ‚Ì–µ‚ƒ`ƒFƒbƒNi–µ‚‚ª–¢ŒŸo‚Ìê‡‚Ì‚İj
+    If Not hasContradiction And attendanceTime <> "" Then
+        If GetHourFromTimeString(attendanceTime) = 12 Then
+            hasContradiction = True
+            comment = "‚¨’‹‹xŒeŠÔ(12:00`12:59)‚Éo‹Îi" & FormatTimeDisplay(attendanceTime) & "j‚µ‚Ä‚¢‚Ü‚·"
+            contradictionType = 3  ' š ‚¨’‹‹xŒeŠÔ–µ‚
+        End If
+    End If
+    
+    If Not hasContradiction And departureTime <> "" Then
+        Dim dH As Integer, dM As Integer
+        dH = GetHourFromTimeString(departureTime)
+        dM = GetMinuteFromTimeString(departureTime)
+        If dH = 12 And dM > 0 Then
+            hasContradiction = True
+            comment = "‚¨’‹‹xŒeŠÔ(12:01`12:59)‚É‘Ş‹Îi" & FormatTimeDisplay(departureTime) & "j‚µ‚Ä‚¢‚Ü‚·"
+            contradictionType = 3  ' š ‚¨’‹‹xŒeŠÔ–µ‚
+        End If
+    End If
+    
+    ' ššš d—vF3—v‘f‚ÌArray‚ğ•Ô‚· ššš
+    CheckContradiction = Array(hasContradiction, comment, contradictionType)
+End Function
+
+' *************************************************************
+' ŠÖ”–¼: CheckMissingEntry
+' –Ú“I: o‘Ş‹Î‚Ì˜R‚ê‚ğŒŸo
+' *************************************************************
+Private Function CheckMissingEntry(attendanceTime As String, departureTime As String) As Variant
+    Dim hasAttendance As Boolean, hasDeparture As Boolean
+    hasAttendance = (attendanceTime <> "")
+    hasDeparture = (departureTime <> "")
+    
+    If Not hasAttendance And Not hasDeparture Then
+        CheckMissingEntry = Array(True, "o‹ÎE‘Ş‹Î‚È‚µ", "o‹Î‚Æ‘Ş‹Î‚Ì—¼•û‚ª“ü—Í‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ")
+    ElseIf Not hasAttendance Then
+        CheckMissingEntry = Array(True, "o‹Î‚È‚µ", "o‹Î‚ª“ü—Í‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ")
+    ElseIf Not hasDeparture Then
+        CheckMissingEntry = Array(True, "‘Ş‹Î‚È‚µ", "‘Ş‹Î‚ª“ü—Í‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ")
+    Else
+        CheckMissingEntry = Array(False, "", "")
+    End If
+End Function
+
+' *************************************************************
+' ŠÖ”–¼: GetColumnIndexes
+' *************************************************************
+Private Function GetColumnIndexes(ws As Worksheet) As Object
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    Dim lastCol As Long: lastCol = ws.Cells(1, ws.Columns.count).End(xlToLeft).Column
+    Dim i As Long
+    For i = 1 To lastCol
+        dict(CleanString(ws.Cells(1, i).Value)) = i
+    Next i
+    
+    Dim required As Variant: required = Array("Ğˆõ”Ô†", "–¼", "“ú•t", "ƒJƒŒƒ“ƒ_[", "“Ío“à—e", "oĞ", "‘ŞĞ")
+    Dim c As Variant
+    For Each c In required
+        If Not dict.Exists(c) Then
+            MsgBox "•K—v‚È—ñu" & c & "v‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
+            Set GetColumnIndexes = Nothing: Exit Function
+        End If
+    Next c
+    Set GetColumnIndexes = dict
+End Function
+
+' *************************************************************
+' ŠÖ”–¼: IsEntryRequired
+' *************************************************************
+Public Function IsEntryRequired(calendarType As String, deliveryContent As String) As Boolean
+    IsEntryRequired = True
+    If InStr(1, calendarType, "–@’èŠO", vbTextCompare) > 0 Then
+        IsEntryRequired = False
+        If InStr(1, deliveryContent, "‹xo") > 0 Or InStr(1, deliveryContent, "‹x“úo‹Î") > 0 Then IsEntryRequired = True
+    ElseIf InStr(1, calendarType, "•½“ú", vbTextCompare) > 0 Then
+        Select Case deliveryContent
+            Case "—L‹x", "Œ‡‹Î", "U‘Ö‹x‰É", "“Á•Ê‹x‰É": IsEntryRequired = False
+            Case Else: IsEntryRequired = True
+        End Select
+    End If
+End Function
+
+' *************************************************************
+' ‰ğÍEƒtƒH[ƒ}ƒbƒg—pƒwƒ‹ƒp[ŠÖ”
+' *************************************************************
+Private Function GetHourFromTimeString(timeStr As String) As Integer
+    On Error Resume Next
+    If IsNumeric(timeStr) Then
+        GetHourFromTimeString = hour(CDbl(timeStr))
+    Else
+        Dim parts: parts = Split(timeStr, ":")
+        If UBound(parts) >= 0 Then GetHourFromTimeString = CInt(parts(0)) Else GetHourFromTimeString = 0
+    End If
+End Function
+
+Private Function GetMinuteFromTimeString(timeStr As String) As Integer
+    On Error Resume Next
+    If IsNumeric(timeStr) Then
+        GetMinuteFromTimeString = minute(CDbl(timeStr))
+    Else
+        Dim parts: parts = Split(timeStr, ":")
+        If UBound(parts) >= 1 Then GetMinuteFromTimeString = CInt(parts(1)) Else GetMinuteFromTimeString = 0
+    End If
+End Function
+
+Private Function FormatTimeDisplay(timeStr As String) As String
+    On Error Resume Next
+    If IsNumeric(timeStr) Then
+        FormatTimeDisplay = Format(CDbl(timeStr), "h:mm")
+    Else
+        FormatTimeDisplay = timeStr
+    End If
+    On Error GoTo 0
+End Function
+

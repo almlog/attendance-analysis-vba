@@ -1,913 +1,485 @@
-Attribute VB_Name = "Module8_Notification"
 ' *************************************************************
-' Module8_Notification (Š®‘SC³”Å - 2025-11-14)
-' –Ú“I: LINE WORKS’Ê’m‹@”\
-' C³“à—e:
-' - ‰Ò“­—¦î•ñ’Ç‰Á
-' - ”¼‹x\¿–µ‚’Ê’m’Ç‰Á
+' Module8_Notification (æœ€çµ‚å®Œæˆç‰ˆ - 2025-11-17)
+' ç›®çš„: LINE WORKS Incoming Webhooké€šçŸ¥ (å®Œå…¨ãƒ‡ãƒãƒƒã‚°ãƒ­ã‚°ä»˜)
+' ä¿®æ­£ç‚¹: JSONæ§‹é€ ã‚’ { "body": { "text": ... } } ã«æ­£å¼å¯¾å¿œ
 ' *************************************************************
-
 Option Explicit
 
-' ’è”’è‹`
-Private Const MAX_MESSAGE_LENGTH As Long = 1000
-
 ' *************************************************************
-' ŠÖ”–¼: SendToLineWorks
-' –Ú“I: LINE WORKS WebhookŒo—R‚ÅƒƒbƒZ[ƒW‘—M
+' é–¢æ•°å: SendToLineWorks
+' ç›®çš„: ä¿®æ­£ã•ã‚ŒãŸJSONæ§‹é€ ã§ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’é€ä¿¡ã™ã‚‹
 ' *************************************************************
 Public Function SendToLineWorks(webhookUrl As String, messageText As String) As Boolean
     On Error GoTo ErrorHandler
     
+    Debug.Print String(60, "-")
+    Debug.Print "[DEBUG] SendToLineWorks é–‹å§‹: " & Now
+    
     If Trim(webhookUrl) = "" Then
-        MsgBox "Webhook URL‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB", vbExclamation
-        SendToLineWorks = False
+        Debug.Print "[ERROR] Webhook URLãŒç©ºã§ã™"
         Exit Function
     End If
-    
     If Trim(messageText) = "" Then
-        MsgBox "‘—M‚·‚éƒƒbƒZ[ƒW‚ª‹ó‚Å‚·B", vbExclamation
-        SendToLineWorks = False
+        Debug.Print "[ERROR] é€ä¿¡ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãŒç©ºã§ã™"
         Exit Function
     End If
-    
-    ' Channel IDæ“¾
-    Dim channelId As String
-    Dim configSheet As Worksheet
-    On Error Resume Next
-    Set configSheet = ThisWorkbook.Sheets("İ’è")
-    If Not configSheet Is Nothing Then
-        channelId = Trim(CStr(configSheet.Cells(5, 2).Value))
-    End If
-    On Error GoTo ErrorHandler
-    
-    If channelId = "" Then
-        MsgBox "Channel ID‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB" & vbCrLf & vbCrLf & _
-               "[İ’è]ƒV[ƒg‚ÌB5ƒZƒ‹(CHANNEL_ID)‚É’l‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B", _
-               vbExclamation, "İ’èƒGƒ‰["
-        SendToLineWorks = False
-        Exit Function
-    End If
-    
-    Debug.Print "========================================="
-    Debug.Print "LINE WORKS‘—MŠJn: " & Now
-    Debug.Print "Channel ID: " & channelId
-    Debug.Print "ƒƒbƒZ[ƒW’·: " & Len(messageText) & "•¶š"
-    
-    ' ƒeƒLƒXƒgƒGƒXƒP[ƒv
+
+    ' 1. æ–‡å­—åˆ—ã®æµ„åŒ– (ã‚´ãƒŸæ–‡å­—é™¤å»)
+    Dim cleanText As String
+    cleanText = SanitizeString(messageText)
+    Debug.Print "[DEBUG] Step 1: ã‚µãƒ‹ã‚¿ã‚¤ã‚ºå®Œäº† (æ–‡å­—æ•°: " & Len(messageText) & " -> " & Len(cleanText) & ")"
+
+    ' 2. ã‚¨ã‚¹ã‚±ãƒ¼ãƒ—å‡¦ç†
     Dim escapedText As String
-    escapedText = messageText
-    escapedText = Replace(escapedText, "\", "\\")
-    escapedText = Replace(escapedText, """", "\""")
-    escapedText = Replace(escapedText, vbLf, "\n")
-    escapedText = Replace(escapedText, vbCr, "")
-    escapedText = Replace(escapedText, vbTab, " ")
+    escapedText = EscapeJsonText(cleanText)
+    Debug.Print "[DEBUG] Step 2: ã‚¨ã‚¹ã‚±ãƒ¼ãƒ—å®Œäº†"
+
+    ' 3. JSONæ–‡å­—åˆ—ä½œæˆ (â˜…ã“ã“ãŒæ±ºå®šçš„ãªä¿®æ­£ç‚¹â˜…)
+    ' Incoming Webhookä»•æ§˜: { "body": { "text": "..." } }
+    ' æ—§ä»•æ§˜(Bot API): { "content": { "type": "text", "text": "..." } } <- ã“ã‚ŒãŒ400ã‚¨ãƒ©ãƒ¼ã®åŸå› ã§ã—ãŸ
+    Dim jsonStr As String
+    jsonStr = "{""body"":{""text"":""" & escapedText & """}}"
     
-    ' JSONì¬
-    Dim jsonBody As String
-    jsonBody = "{""channelId"":""" & channelId & """,""body"":{""text"":""" & escapedText & """}}"
-    
-    Debug.Print "JSON’·: " & Len(jsonBody) & "•¶š"
-    
-    ' HTTP‘—M
+    Debug.Print "[DEBUG] Step 3: JSONç”Ÿæˆ (å…ˆé ­60æ–‡å­—): " & Left(jsonStr, 60) & "..."
+
+    ' 4. HTTPé€ä¿¡è¨­å®š
     Dim http As Object
-    Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+    Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     
+    http.setTimeouts 5000, 5000, 10000, 10000 ' ã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆè¨­å®š
     http.Open "POST", webhookUrl, False
+    
+    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¨­å®š (Charsetã‚’æŒ‡å®šã—ã¦Stringé€ä¿¡æ™‚ã®æ–‡å­—åŒ–ã‘ã‚’é˜²ã)
     http.setRequestHeader "Content-Type", "application/json; charset=UTF-8"
-    http.send jsonBody
     
-    Debug.Print "HTTP Status: " & http.Status
-    Debug.Print "Response: " & http.responseText
-    Debug.Print "========================================="
+    ' 5. é€ä¿¡å®Ÿè¡Œ
+    ' æ–‡å­—åˆ—ã‚’ãã®ã¾ã¾æ¸¡ã™ (ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚¨ãƒ©ãƒ¼å›é¿ã®ãŸã‚ãƒã‚¤ãƒŠãƒªå¤‰æ›ã¯å»ƒæ­¢)
+    Debug.Print "[DEBUG] Step 4: é€ä¿¡å®Ÿè¡Œ..."
+    http.send jsonStr
+
+    ' 6. çµæœç¢ºèª
+    Debug.Print "[DEBUG] Step 5: HTTP Status: " & http.Status
+    Debug.Print "[DEBUG] Response: " & http.responseText
     
-    If http.Status = 200 Then
+    If http.Status = 200 Or http.Status = 201 Then
+        Debug.Print "[SUCCESS] é€ä¿¡æˆåŠŸ"
         SendToLineWorks = True
     Else
-        MsgBox "LINE WORKS‘—MƒGƒ‰[" & vbCrLf & vbCrLf & _
-               "HTTP Status: " & http.Status & vbCrLf & _
-               "Response: " & http.responseText, vbCritical
+        Debug.Print "[ERROR] é€ä¿¡å¤±æ•—"
+        MsgBox "é€ä¿¡ã‚¨ãƒ©ãƒ¼: HTTP " & http.Status & vbCrLf & _
+               "è©³ç´°: " & http.responseText, vbCritical
         SendToLineWorks = False
     End If
     
-    Set http = Nothing
+    Debug.Print String(60, "-")
     Exit Function
-    
+
 ErrorHandler:
-    Debug.Print "—áŠOƒGƒ‰[: " & Err.Description
-    MsgBox "’Ê’m‘—M’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & vbCrLf & Err.Description, vbCritical
+    Debug.Print "[CRITICAL ERROR] " & Err.Description
+    MsgBox "ã‚·ã‚¹ãƒ†ãƒ ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸã€‚" & vbCrLf & Err.Description, vbCritical
     SendToLineWorks = False
 End Function
 
 ' *************************************************************
-' ŠÖ”–¼: ConvertDecimalTimeToHHMM
-' –Ú“I: ¬”ŠÔ‚ğuHH:MMvŒ`®‚É•ÏŠ·
+' é–¢æ•°å: SanitizeString
+' ç›®çš„: JSONç ´å£Šã®åŸå› ã¨ãªã‚‹ã‚´ãƒŸæ–‡å­—(NBSP, åˆ¶å¾¡æ–‡å­—)ã‚’é™¤å»
+' *************************************************************
+Private Function SanitizeString(text As String) As String
+    Dim s As String
+    s = text
+    
+    ' 1. ãƒãƒ¼ãƒ–ãƒ¬ãƒ¼ã‚¯ã‚¹ãƒšãƒ¼ã‚¹(160)ã‚’åŠè§’ã‚¹ãƒšãƒ¼ã‚¹ã«ç½®æ›
+    s = Replace(s, ChrW(160), " ")
+    
+    ' 2. åˆ¶å¾¡æ–‡å­—ã®é™¤å»ãƒ»ç½®æ›
+    Dim i As Long, L As Long
+    Dim ch As String, code As Long
+    Dim result As String
+    
+    L = Len(s)
+    result = ""
+    
+    For i = 1 To L
+        ch = Mid(s, i, 1)
+        code = AscW(ch)
+        If code < 0 Then code = code + 65536 ' Unicodeè£œæ­£
+        
+        Select Case code
+            Case 9, 10, 13 ' Tab, LF, CR ã¯è¨±å¯
+                result = result & ch
+            Case Is < 32   ' ãã®ä»–ã®åˆ¶å¾¡æ–‡å­—ã¯å‰Šé™¤
+                ' ç„¡è¦–
+            Case Else      ' é€šå¸¸æ–‡å­—
+                result = result & ch
+        End Select
+    Next i
+    
+    SanitizeString = result
+End Function
+
+' *************************************************************
+' é–¢æ•°å: EscapeJsonText
+' ç›®çš„: JSONã‚¨ã‚¹ã‚±ãƒ¼ãƒ—å‡¦ç†
+' *************************************************************
+Private Function EscapeJsonText(text As String) As String
+    Dim result As String
+    Dim i As Long
+    Dim ch As String
+    Dim code As Long
+    
+    result = ""
+    If text = "" Then EscapeJsonText = "": Exit Function
+    
+    For i = 1 To Len(text)
+        ch = Mid(text, i, 1)
+        code = AscW(ch)
+        If code < 0 Then code = code + 65536
+        
+        Select Case code
+            Case 34 ' " (ãƒ€ãƒ–ãƒ«ã‚¯ã‚©ãƒ¼ãƒˆ) -> \"
+                result = result & "\"""
+            Case 92 ' \ (ãƒãƒƒã‚¯ã‚¹ãƒ©ãƒƒã‚·ãƒ¥) -> \\
+                result = result & "\\"
+            Case 8  ' BS -> \b
+                result = result & "\b"
+            Case 12 ' FF -> \f
+                result = result & "\f"
+            Case 10 ' LF (æ”¹è¡Œ) -> \n
+                result = result & "\n"
+            Case 13 ' CR (å¾©å¸°) -> ç„¡è¦–
+            Case 9  ' Tab -> \t
+                result = result & "\t"
+            Case Else
+                result = result & ch
+        End Select
+    Next i
+    EscapeJsonText = result
+End Function
+
+' ==========================================================
+' ä»¥ä¸‹ã€ãƒ“ã‚¸ãƒã‚¹ãƒ­ã‚¸ãƒƒã‚¯é–¢æ•°ç¾¤ (æ—¢å­˜ã®ã¾ã¾ç¶­æŒ)
+' ==========================================================
+
+' *************************************************************
+' é–¢æ•°å: ConvertDecimalTimeToHHMM
 ' *************************************************************
 Private Function ConvertDecimalTimeToHHMM(decimalTime As Variant) As String
     On Error Resume Next
-    
-    If IsEmpty(decimalTime) Or decimalTime = "" Or decimalTime = 0 Then
-        ConvertDecimalTimeToHHMM = "00:00"
-        Exit Function
-    End If
-    
-    Dim totalMinutes As Long
-    totalMinutes = CLng(CDbl(decimalTime) * 24 * 60)
-    
-    Dim hours As Long, minutes As Long
-    hours = totalMinutes \ 60
-    minutes = totalMinutes Mod 60
-    
-    ConvertDecimalTimeToHHMM = Format(hours, "00") & ":" & Format(minutes, "00")
+    If IsEmpty(decimalTime) Or decimalTime = "" Or decimalTime = 0 Then ConvertDecimalTimeToHHMM = "00:00": Exit Function
+    ConvertDecimalTimeToHHMM = Format(CLng(CDbl(decimalTime) * 24 * 60) \ 60, "00") & ":" & Format(CLng(CDbl(decimalTime) * 24 * 60) Mod 60, "00")
 End Function
 
 ' *************************************************************
-' ŠÖ”–¼: GenerateAttendanceMissingPart
-' –Ú“I: ‹Î‘Ó“ü—Í˜R‚êƒƒbƒZ[ƒW¶¬
+' é–¢æ•°å: GenerateAttendanceMissingPart (å‹¤æ€ å…¥åŠ›æ¼ã‚Œ)
 ' *************************************************************
 Private Function GenerateAttendanceMissingPart() As String
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚ê•”•ª‚Ì¶¬ŠJn"
-    
-    Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("‹Î‘Ó“ü—Í˜R‚êˆê——")
-    On Error GoTo ErrorHandler
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Sheets("å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§")
+    If ws Is Nothing Then GenerateAttendanceMissingPart = "": Exit Function
+    Dim lastRow As Long: lastRow = ws.Cells(ws.Rows.count, 1).End(xlUp).Row
+    If lastRow <= 1 Then GenerateAttendanceMissingPart = "": Exit Function
     
-    If ws Is Nothing Then
-        Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
-        GenerateAttendanceMissingPart = ""
-        Exit Function
-    End If
+    Dim empDict As Object: Set empDict = CreateObject("Scripting.Dictionary")
+    Dim i As Long, totalMissingCount As Long: totalMissingCount = 0
     
-    Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
-    
-    If lastRow <= 1 Then
-        Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚êƒf[ƒ^‚È‚µ"
-        GenerateAttendanceMissingPart = ""
-        Exit Function
-    End If
-    
-    Dim empDict As Object
-    Set empDict = CreateObject("Scripting.Dictionary")
-    
-    Dim i As Long
-    Dim empID As String, empName As String, targetDate As Date
-    Dim contradictionType As String
-    Dim totalMissingCount As Long
-    totalMissingCount = 0
-    
+    ' Jåˆ—(çŸ›ç›¾ã‚¿ã‚¤ãƒ—)ãŒç©ºã¾ãŸã¯0ã®è¡Œã‚’å¯¾è±¡ï¼ˆç´”ç²‹ãªå…¥åŠ›æ¼ã‚Œã®ã¿ï¼‰
     For i = 2 To lastRow
-        ' ššš –µ‚í•Ê‚ğƒ`ƒFƒbƒN‚µ‚ÄA–µ‚‚ª‚ ‚és‚ÍƒXƒLƒbƒv ššš
-        contradictionType = Trim(CStr(ws.Cells(i, 10).Value))
-        If contradictionType <> "" And contradictionType <> "0" Then
-            GoTo NextMissing
-        End If
-        
-        empID = Trim(ws.Cells(i, 1).Value)
-        empName = Trim(ws.Cells(i, 2).Value)
-        
-        On Error Resume Next
-        targetDate = CDate(ws.Cells(i, 3).Value)
-        If Err.Number <> 0 Then
-            Debug.Print "[WARNING] s" & i & "‚Ì“ú•t‚ª•s³"
-            GoTo NextMissing
-        End If
-        On Error GoTo ErrorHandler
-        
-        totalMissingCount = totalMissingCount + 1
-        
-        If Not empDict.Exists(empID) Then
-            Dim newColl As Collection
-            Set newColl = New Collection
-            empDict.Add empID, Array(empName, newColl)
-        End If
-        
-        Dim empData As Variant
-        empData = empDict(empID)
-        empData(1).Add targetDate
-        empDict(empID) = empData
-        
-NextMissing:
-    Next i
-    
-    If empDict.Count = 0 Then
-        Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚êƒf[ƒ^‚È‚µ(‰ğÍŒã)"
-        GenerateAttendanceMissingPart = ""
-        Exit Function
-    End If
-    
-    Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚ê: " & empDict.Count & "–¼, " & totalMissingCount & "Œ"
-    
-    ' ƒ\[ƒgˆ—iÈ—ª - Šù‘¶ƒR[ƒh‚Æ“¯‚¶j
-    Dim keys As Variant
-    keys = empDict.keys
-    
-    Dim sortArray() As Variant
-    ReDim sortArray(0 To empDict.Count - 1, 0 To 2)
-    
-    Dim j As Long
-    For j = 0 To empDict.Count - 1
-        empData = empDict(keys(j))
-        sortArray(j, 0) = keys(j)
-        sortArray(j, 1) = empData(0)
-        sortArray(j, 2) = empData(1).Count
-    Next j
-    
-    Dim temp As Variant, swapped As Boolean, n As Long
-    n = empDict.Count
-    
-    Do
-        swapped = False
-        For j = 0 To n - 2
-            If sortArray(j, 2) < sortArray(j + 1, 2) Then
-                temp = sortArray(j, 0): sortArray(j, 0) = sortArray(j + 1, 0): sortArray(j + 1, 0) = temp
-                temp = sortArray(j, 1): sortArray(j, 1) = sortArray(j + 1, 1): sortArray(j + 1, 1) = temp
-                temp = sortArray(j, 2): sortArray(j, 2) = sortArray(j + 1, 2): sortArray(j + 1, 2) = temp
-                swapped = True
+        Dim cType As String
+        cType = Trim(CStr(ws.Cells(i, 10).Value))
+        If cType = "" Or cType = "0" Then
+            Dim empID As String: empID = Trim(ws.Cells(i, 1).Value)
+            totalMissingCount = totalMissingCount + 1
+            If Not empDict.Exists(empID) Then
+                Dim newColl As Collection: Set newColl = New Collection
+                empDict.Add empID, Array(ws.Cells(i, 2).Value, newColl)
             End If
-        Next j
-        n = n - 1
-    Loop While swapped
-    
-    ' ƒƒbƒZ[ƒW¶¬
-    Dim message As String
-    message = "–¢“ü—ÍÒ: " & empDict.Count & "–¼ / –¢“ü—Í“ú”: " & totalMissingCount & "“ú" & vbLf & vbLf
-    
-    For j = 0 To UBound(sortArray, 1)
-        Dim empID_sorted As String, empName_sorted As String, missingCount As Long
-        
-        empID_sorted = sortArray(j, 0)
-        empName_sorted = sortArray(j, 1)
-        missingCount = sortArray(j, 2)
-        
-        empData = empDict(empID_sorted)
-        
-        Dim urgencyMark As String
-        If missingCount >= 5 Then
-            urgencyMark = "[!!‹Ù‹}!!]"
-        ElseIf missingCount >= 3 Then
-            urgencyMark = "[!—v’ˆÓ!]"
-        Else
-            urgencyMark = "[Šm”F]"
+            Dim empData: empData = empDict(empID)
+            empData(1).Add CDate(ws.Cells(i, 3).Value)
+            empDict(empID) = empData
         End If
-        
-        Dim empText As String
-        empText = urgencyMark & " " & empName_sorted & " ‚³‚ñ (" & missingCount & "“ú)" & vbLf
-        
-        Dim dateItem As Variant, dateCount As Integer
-        dateCount = 0
-        For Each dateItem In empData(1)
-            If dateCount < 5 Then
-                empText = empText & "  - " & Format(dateItem, "mm/dd (aaa)") & vbLf
-                dateCount = dateCount + 1
-            End If
-        Next dateItem
-        
-        If missingCount > 5 Then
-            empText = empText & "  ...‘¼" & (missingCount - 5) & "“ú" & vbLf
-        End If
-        
-        empText = empText & vbLf
-        message = message & empText
-    Next j
-    
-    GenerateAttendanceMissingPart = message
-    Exit Function
-    
-ErrorHandler:
-    Debug.Print "[ERROR] ‹Î‘Ó“ü—Í˜R‚ê•”•ª¶¬ƒGƒ‰[: " & Err.Description
-    GenerateAttendanceMissingPart = ""
-End Function
-
-' *************************************************************
-' ŠÖ”–¼: GenerateBreakTimeViolationPart
-' –Ú“I: ‹xŒeŠÔˆá”½ƒƒbƒZ[ƒW¶¬
-' *************************************************************
-Private Function GenerateBreakTimeViolationPart() As String
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "[INFO] ‹xŒeŠÔˆá”½•”•ª‚Ì¶¬ŠJn"
-    
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½Ò")
-    On Error GoTo ErrorHandler
-    
-    If ws Is Nothing Then
-        Debug.Print "[INFO] ‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½ÒƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
-        GenerateBreakTimeViolationPart = ""
-        Exit Function
-    End If
-    
-    Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
-    
-    If lastRow <= 1 Then
-        Debug.Print "[INFO] ‹xŒeŠÔˆá”½ƒf[ƒ^‚È‚µ"
-        GenerateBreakTimeViolationPart = ""
-        Exit Function
-    End If
-    
-    If ws.Cells(2, 1).Value = "‹xŒeŠÔˆá”½‚Í‚ ‚è‚Ü‚¹‚ñB" Then
-        Debug.Print "[INFO] ‹xŒeŠÔˆá”½‚È‚µ"
-        GenerateBreakTimeViolationPart = ""
-        Exit Function
-    End If
-    
-    Dim empDict As Object
-    Set empDict = CreateObject("Scripting.Dictionary")
-    
-    Dim i As Long
-    Dim empID As String, empName As String, targetDate As Date
-    Dim workTime As Variant, breakTime As Variant, shortage As Variant
-    Dim totalViolationCount As Long
-    totalViolationCount = 0
-    
-    For i = 2 To lastRow
-        empID = Trim(ws.Cells(i, 1).Value)
-        empName = Trim(ws.Cells(i, 2).Value)
-        
-        On Error Resume Next
-        targetDate = CDate(ws.Cells(i, 4).Value)
-        If Err.Number <> 0 Then
-            Debug.Print "[WARNING] s" & i & "‚Ì“ú•t‚ª•s³"
-            GoTo NextViolation
-        End If
-        On Error GoTo ErrorHandler
-        
-        workTime = ws.Cells(i, 5).Value
-        breakTime = ws.Cells(i, 6).Value
-        shortage = ws.Cells(i, 8).Value
-        
-        Dim workTimeStr As String, breakTimeStr As String, shortageStr As String
-        workTimeStr = ConvertDecimalTimeToHHMM(workTime)
-        breakTimeStr = ConvertDecimalTimeToHHMM(breakTime)
-        shortageStr = ConvertDecimalTimeToHHMM(shortage)
-        
-        totalViolationCount = totalViolationCount + 1
-        
-        If Not empDict.Exists(empID) Then
-            Dim newColl As Collection
-            Set newColl = New Collection
-            empDict.Add empID, Array(empName, newColl)
-        End If
-        
-        Dim empData As Variant
-        empData = empDict(empID)
-        empData(1).Add Array(targetDate, workTimeStr, breakTimeStr, shortageStr)
-        empDict(empID) = empData
-        
-NextViolation:
     Next i
-    
-    If empDict.Count = 0 Then
-        Debug.Print "[INFO] ‹xŒeŠÔˆá”½ƒf[ƒ^‚È‚µ(‰ğÍŒã)"
-        GenerateBreakTimeViolationPart = ""
-        Exit Function
-    End If
-    
-    Debug.Print "[INFO] ‹xŒeŠÔˆá”½: " & empDict.Count & "–¼, " & totalViolationCount & "Œ"
+    If empDict.count = 0 Then GenerateAttendanceMissingPart = "": Exit Function
     
     Dim message As String
-    message = "ˆá”½Ò: " & empDict.Count & "–¼ / ˆá”½Œ”: " & totalViolationCount & "Œ" & vbLf & vbLf
-    
+    message = "æœªå…¥åŠ›è€…: " & empDict.count & "å / æœªå…¥åŠ›æ—¥æ•°: " & totalMissingCount & "æ—¥" & vbLf & vbLf
     Dim key As Variant
     For Each key In empDict.keys
         empData = empDict(key)
-        
-        Dim empText As String
-        empText = "[ˆá”½] " & empData(0) & " ‚³‚ñ" & vbLf
-        
-        Dim violationItem As Variant, violationCount As Integer
-        violationCount = 0
-        For Each violationItem In empData(1)
-            If violationCount < 5 Then
-                empText = empText & "  - " & Format(violationItem(0), "mm/dd") & _
-                          ": À“­" & violationItem(1) & " / ‹xŒe" & violationItem(2) & _
-                          " -> •s‘«" & violationItem(3) & vbLf
-                violationCount = violationCount + 1
-            End If
-        Next violationItem
-        
-        If empData(1).Count > 5 Then
-            empText = empText & "  ...‘¼" & (empData(1).Count - 5) & "Œ" & vbLf
-        End If
-        
-        empText = empText & vbLf
-        message = message & empText
+        message = message & "[ç¢ºèª] " & empData(0) & " ã•ã‚“" & vbLf
+        Dim d As Variant, c As Integer: c = 0
+        For Each d In empData(1)
+            If c < 5 Then message = message & "  - " & Format(d, "mm/dd (aaa)") & vbLf: c = c + 1
+        Next d
+        If empData(1).count > 5 Then message = message & "  ...ä»–" & (empData(1).count - 5) & "æ—¥" & vbLf
+        message = message & vbLf
     Next key
-    
-    GenerateBreakTimeViolationPart = message
-    Exit Function
-    
-ErrorHandler:
-    Debug.Print "[ERROR] ‹xŒeŠÔˆá”½•”•ª¶¬ƒGƒ‰[: " & Err.Description
-    GenerateBreakTimeViolationPart = ""
+    GenerateAttendanceMissingPart = message
 End Function
 
 ' *************************************************************
-' ŠÖ”–¼: GenerateOperatingRatePart
-' –Ú“I: ‰Ò“­—¦ƒƒbƒZ[ƒW¶¬
-' ì¬“ú: 2025-11-14
+' é–¢æ•°å: GenerateBreakTimeViolationPart (ä¼‘æ†©æ™‚é–“é•å)
+' *************************************************************
+Private Function GenerateBreakTimeViolationPart() As String
+    GenerateBreakTimeViolationPart = ""
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Sheets("ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯_é•åè€…")
+    If ws Is Nothing Then Exit Function
+    If ws.Cells(2, 1).Value = "ä¼‘æ†©æ™‚é–“é•åã¯ã‚ã‚Šã¾ã›ã‚“ã€‚" Then Exit Function
+    Dim lastRow As Long: lastRow = ws.Cells(ws.Rows.count, 1).End(xlUp).Row
+    If lastRow <= 1 Then Exit Function
+    
+    Dim message As String
+    message = "é•åä»¶æ•°: " & (lastRow - 1) & "ä»¶" & vbLf & vbLf
+    
+    Dim i As Long, count As Integer: count = 0
+    For i = 2 To lastRow
+        If count < 5 Then
+            message = message & "[é•å] " & ws.Cells(i, 2).Value & " (" & Format(ws.Cells(i, 4).Value, "mm/dd") & ")" & vbLf
+            message = message & "  ä¸è¶³æ™‚é–“: " & ConvertDecimalTimeToHHMM(ws.Cells(i, 8).Value) & vbLf
+            count = count + 1
+        End If
+    Next i
+    If lastRow - 1 > 5 Then message = message & "  ...ä»–" & (lastRow - 1 - 5) & "ä»¶" & vbLf
+    
+    GenerateBreakTimeViolationPart = message & vbLf
+End Function
+
+' *************************************************************
+' é–¢æ•°å: GenerateOperatingRatePart (ç¨¼åƒç‡)
 ' *************************************************************
 Private Function GenerateOperatingRatePart() As String
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "[INFO] ‰Ò“­—¦•”•ª‚Ì¶¬ŠJn"
-    
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
-    On Error GoTo ErrorHandler
-    
-    If ws Is Nothing Then
-        Debug.Print "[INFO] ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
-        GenerateOperatingRatePart = ""
-        Exit Function
-    End If
-    
-    ' ‰Ò“­—¦ƒZƒNƒVƒ‡ƒ“‚Ìƒwƒbƒ_[‚ğ’T‚·i3‰ñ–Ú‚Ìu•”vj
-    Dim headerRow As Long
-    Dim i As Long
-    headerRow = 0
-    
-    Dim deptHeaderCount As Integer
-    deptHeaderCount = 0
-    
-    For i = 1 To 100
-        If ws.Cells(i, 1).Value = "•”" Then
-            deptHeaderCount = deptHeaderCount + 1
-            If deptHeaderCount = 3 Then
-                headerRow = i
-                Exit For
-            End If
-        End If
-    Next i
-    
-    If headerRow = 0 Then
-        Debug.Print "[INFO] ‰Ò“­—¦ƒZƒNƒVƒ‡ƒ“‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
-        GenerateOperatingRatePart = ""
-        Exit Function
-    End If
-    
-    Debug.Print "[INFO] ‰Ò“­—¦ƒwƒbƒ_[”­Œ©: s" & headerRow
-    
-    ' ƒf[ƒ^s‚ğæ“¾
-    Dim dataStartRow As Long
-    dataStartRow = headerRow + 1
-    
-    ' ÅIs‚ğ’T‚·
-    Dim lastRow As Long
-    lastRow = dataStartRow
-    
-    For i = dataStartRow To dataStartRow + 50
-        If ws.Cells(i, 1).Value = "‡Œv" Then
-            lastRow = i
-            Debug.Print "[INFO] ‡Œvs”­Œ©: s" & lastRow
-            Exit For
-        End If
-        If ws.Cells(i, 1).Value = "" Then
-            lastRow = i - 1
-            Debug.Print "[INFO] ƒf[ƒ^I—¹: s" & lastRow
-            Exit For
-        End If
-    Next i
-    
-    If lastRow < dataStartRow Then
-        Debug.Print "[INFO] ‰Ò“­—¦ƒf[ƒ^‚È‚µ"
-        GenerateOperatingRatePart = ""
-        Exit Function
-    End If
-    
-    ' ƒƒbƒZ[ƒW¶¬
-    Dim message As String
-    message = ""
-    
-    ' ‘S‘Ì‰Ò“­—¦
-    Dim totalRate As String
-    totalRate = Trim(CStr(ws.Cells(lastRow, 5).Value))
-    
-    Debug.Print "[INFO] ‘S‘Ì‰Ò“­—¦: " & totalRate
-    
-    message = "y‘S‘Ì‰Ò“­—¦z" & vbLf
-    message = message & "  " & totalRate & vbLf & vbLf
-    
-    ' •”–å•Ê‰Ò“­—¦
-    message = message & "y•”–å•Ê‰Ò“­—¦z" & vbLf
-    
-    Dim deptCount As Integer
-    deptCount = 0
-    
-    For i = dataStartRow To lastRow - 1
-        Dim deptName As String
-        Dim workDays As String
-        Dim rate As String
-        Dim personCount As String
-        
-        deptName = Trim(CStr(ws.Cells(i, 1).Value))
-        workDays = Trim(CStr(ws.Cells(i, 2).Value))
-        rate = Trim(CStr(ws.Cells(i, 5).Value))
-        personCount = Trim(CStr(ws.Cells(i, 6).Value))
-        
-        If deptName <> "" Then
-            deptCount = deptCount + 1
-            
-            ' ‰Ò“­—¦•]‰¿
-            Dim rateMark As String
-            Dim actionMsg As String
-            Dim rateValue As Double
-            
-            On Error Resume Next
-            rateValue = CDbl(Replace(rate, "%", ""))
-            If Err.Number <> 0 Then
-                rateValue = 0
-                Debug.Print "[WARNING] ‰Ò“­—¦•ÏŠ·ƒGƒ‰[: " & rate
-            End If
-            On Error GoTo ErrorHandler
-            
-            actionMsg = ""
-            
-            If rateValue >= 100 Then
-                rateMark = "[!!ˆÙí!!]"
-                If rateValue >= 110 Then
-                    actionMsg = " -> ‹Ù‹}: ‹Æ–±íŒ¸Elˆõ•â[ŒŸ“¢"
-                ElseIf rateValue >= 105 Then
-                    actionMsg = " -> —vˆö•ªÍ‚Æ‰ü‘Pô—§ˆÄ‚ª•K—v"
-                Else
-                    actionMsg = " -> c‹ÆŠÔ‚ÌŒp‘±ŠÄ‹"
-                End If
-            ElseIf rateValue >= 95 Then
-                rateMark = "[—v’ˆÓ]"
-                actionMsg = " -> c‹ÆŒXŒü‚ ‚èA’‹‚ª•K—v"
-            ElseIf rateValue >= 90 Then
-                rateMark = "[“K³]"
-            Else
-                rateMark = "[Œx]"
-                actionMsg = " -> ‰Ò“­•s‘«A—vˆöŠm”F‚ª•K—v"
-            End If
-            
-            message = message & rateMark & " " & deptName & ": " & rate & vbLf
-            message = message & "     (l”:" & personCount & "–¼ / ‰c‹Æ“ú:" & workDays & "“ú)" & vbLf
-            If actionMsg <> "" Then
-                message = message & "     " & actionMsg & vbLf
-            End If
-            
-            Debug.Print "[INFO] •”–å’Ç‰Á: " & deptName & " - " & rate & " (" & rateMark & ")"
-        End If
-    Next i
-    
-    Debug.Print "[INFO] •”–å”: " & deptCount
-    
-    If deptCount = 0 Then
-        Debug.Print "[INFO] •”–åƒf[ƒ^‚È‚µ"
-        GenerateOperatingRatePart = ""
-        Exit Function
-    End If
-    
-    message = message & vbLf & "¦Šî€: 7.5h/“ú x ‰c‹Æ“ú” x l”" & vbLf
-    message = message & "¦—L‹xE“Á‹x‚Í‰Ò“­ŠÔ‚ÉŠÜ‚Ü‚¸" & vbLf
-    message = message & "¦c‹Æ‚Í‰Ò“­ŠÔ‚ÉŠÜ‚Ş"
-    
-    Debug.Print "[INFO] ‰Ò“­—¦ƒƒbƒZ[ƒW¶¬Š®—¹: " & Len(message) & "•¶š"
-    GenerateOperatingRatePart = message
-    Exit Function
-    
-ErrorHandler:
-    Debug.Print "[ERROR] ‰Ò“­—¦•”•ª¶¬ƒGƒ‰[: " & Err.Description & " (s:" & Erl & ")"
     GenerateOperatingRatePart = ""
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Sheets("å‹¤æ€ æƒ…å ±åˆ†æçµæœ")
+    If ws Is Nothing Then Exit Function
+    
+    ' ã‚·ãƒ³ãƒ—ãƒ«ã«åˆè¨ˆè¡Œã‚’æ¢ã™
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.count, 1).End(xlUp).Row
+    ' åˆè¨ˆè¡Œã®ç¨¼åƒç‡(Eåˆ—)ã‚’å–å¾—
+    Dim totalRate As String
+    totalRate = ws.Cells(lastRow, 5).Value
+    
+    If totalRate <> "" Then
+        GenerateOperatingRatePart = "ã€å…¨ä½“ç¨¼åƒç‡ã€‘ " & totalRate & vbLf & vbLf
+    End If
 End Function
 
 ' *************************************************************
-' ŠÖ”–¼: GenerateContradictionPart
-' –Ú“I: ”¼‹x\¿–µ‚ƒƒbƒZ[ƒW¶¬
-' ì¬“ú: 2025-11-14
+' é–¢æ•°å: GenerateContradictionPart (ç”³è«‹çŸ›ç›¾)
+' *************************************************************
+' *************************************************************
+' é–¢æ•°å: GenerateContradictionPart (ç”³è«‹çŸ›ç›¾)
+' ä¿®æ­£: ãƒ‡ãƒãƒƒã‚°ãƒ­ã‚°è¿½åŠ ç‰ˆ
 ' *************************************************************
 Private Function GenerateContradictionPart() As String
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "[INFO] ”¼‹x–µ‚•”•ª‚Ì¶¬ŠJn"
-    
-    Dim ws As Worksheet
+    GenerateContradictionPart = ""
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("‹Î‘Ó“ü—Í˜R‚êˆê——")
-    On Error GoTo ErrorHandler
     
+    Debug.Print "[INFO] ç”³è«‹çŸ›ç›¾éƒ¨åˆ†ã®ç”Ÿæˆé–‹å§‹"
+    
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Sheets("å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§")
     If ws Is Nothing Then
-        Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
-        GenerateContradictionPart = ""
+        Debug.Print "[ERROR] å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“"
         Exit Function
     End If
     
-    Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    Dim lastRow As Long: lastRow = ws.Cells(ws.Rows.count, 1).End(xlUp).Row
+    Debug.Print "[DEBUG] æœ€çµ‚è¡Œ: " & lastRow
     
-    If lastRow <= 1 Then
-        Debug.Print "[INFO] –µ‚ƒf[ƒ^‚È‚µ"
-        GenerateContradictionPart = ""
-        Exit Function
-    End If
-    
-    ' –µ‚ƒf[ƒ^‚ğûW
-    Dim contradictions As Collection
-    Set contradictions = New Collection
-    
+    Dim message As String: message = ""
+    Dim cnt As Long: cnt = 0
     Dim i As Long
-    Dim empID As String, empName As String
-    Dim targetDate As Date
-    Dim leaveType As String, comment As String
-    Dim attendanceTime As String, departureTime As String
-    Dim contradictionType As String
     
+    ' â˜…â˜…â˜… å…¨è¡Œã‚’ã‚¹ã‚­ãƒ£ãƒ³ã—ã¦Jåˆ—ã®å€¤ã‚’ç¢ºèª â˜…â˜…â˜…
     For i = 2 To lastRow
-        ' J—ñiCOL_CONTRADICTION_TYPE = 10j‚ğƒ`ƒFƒbƒN
-        contradictionType = Trim(CStr(ws.Cells(i, 10).Value))
+        Dim cType As String
+        Dim empName As String
+        Dim targetDate As String
+        Dim comment As String
         
-        ' –µ‚í•Ê‚ª‚ ‚éê‡‚Ì‚İˆ—
-        If contradictionType <> "" And contradictionType <> "0" Then
-            empID = Trim(ws.Cells(i, 1).Value)
-            empName = Trim(ws.Cells(i, 2).Value)
+        empName = Trim(CStr(ws.Cells(i, 2).Value))
+        targetDate = ""
+        On Error Resume Next
+        targetDate = Format(ws.Cells(i, 3).Value, "mm/dd")
+        On Error GoTo 0
+        
+        cType = Trim(CStr(ws.Cells(i, 10).Value)) ' Jåˆ—
+        comment = Trim(CStr(ws.Cells(i, 7).Value))
+        
+        ' ãƒ‡ãƒãƒƒã‚°å‡ºåŠ›
+        Debug.Print "[DEBUG] è¡Œ" & i & ": æ°å=" & empName & " æ—¥ä»˜=" & targetDate & " Jåˆ—=" & cType & " ã‚³ãƒ¡ãƒ³ãƒˆ=" & Left(comment, 30)
+        
+        If cType <> "" And cType <> "0" Then
+            cnt = cnt + 1
+            Debug.Print "[INFO] â˜…çŸ›ç›¾æ¤œå‡º (ä»¶æ•°:" & cnt & "): " & empName & " (" & targetDate & ")"
             
-            On Error Resume Next
-            targetDate = CDate(ws.Cells(i, 3).Value)
-            If Err.Number <> 0 Then
-                Debug.Print "[WARNING] s" & i & "‚Ì“ú•t‚ª•s³"
-                GoTo NextContradiction
+            If cnt <= 5 Then
+                message = message & "[çŸ›ç›¾] " & empName & " (" & targetDate & ")" & vbLf
+                message = message & "  " & comment & vbLf & vbLf
             End If
-            On Error GoTo ErrorHandler
-            
-            leaveType = Trim(ws.Cells(i, 5).Value)
-            comment = Trim(ws.Cells(i, 7).Value)
-            attendanceTime = Trim(ws.Cells(i, 8).Value)
-            departureTime = Trim(ws.Cells(i, 9).Value)
-            
-            ' ƒRƒŒƒNƒVƒ‡ƒ“‚É’Ç‰Á
-            Dim contradictionData As Object
-            Set contradictionData = CreateObject("Scripting.Dictionary")
-            contradictionData.Add "empName", empName
-            contradictionData.Add "targetDate", targetDate
-            contradictionData.Add "leaveType", leaveType
-            contradictionData.Add "comment", comment
-            contradictionData.Add "attendanceTime", attendanceTime
-            contradictionData.Add "departureTime", departureTime
-            contradictionData.Add "contradictionType", contradictionType
-            
-            contradictions.Add contradictionData
         End If
-        
-NextContradiction:
     Next i
     
-    ' –µ‚‚ª‚È‚¢ê‡
-    If contradictions.Count = 0 Then
-        Debug.Print "[INFO] –µ‚ƒf[ƒ^‚È‚µ(‰ğÍŒã)"
-        GenerateContradictionPart = ""
-        Exit Function
+    Debug.Print "[INFO] çŸ›ç›¾ä»¶æ•°åˆè¨ˆ: " & cnt & "ä»¶"
+    
+    If cnt > 0 Then
+        GenerateContradictionPart = "çŸ›ç›¾ä»¶æ•°: " & cnt & "ä»¶" & vbLf & vbLf & message
+        If cnt > 5 Then GenerateContradictionPart = GenerateContradictionPart & "  ...ä»–" & (cnt - 5) & "ä»¶" & vbLf
+    Else
+        Debug.Print "[INFO] çŸ›ç›¾ãƒ‡ãƒ¼ã‚¿ãªã—"
     End If
-    
-    Debug.Print "[INFO] ”¼‹x–µ‚: " & contradictions.Count & "Œ"
-    
-    ' ƒƒbƒZ[ƒW¶¬
-    Dim message As String
-    message = "–µ‚Œ”: " & contradictions.Count & "Œ" & vbLf & vbLf
-    
-    Dim item As Variant
-    For Each item In contradictions
-        Dim itemText As String
-        itemText = "[–µ‚] " & item("empName") & " ‚³‚ñ" & vbLf
-        itemText = itemText & "  “ú•t: " & Format(item("targetDate"), "mm/dd (aaa)") & vbLf
-        itemText = itemText & "  \¿: " & item("leaveType") & vbLf
-        
-        If item("contradictionType") = "1" Then
-            ' Œß‘O—L‹x–µ‚
-            itemText = itemText & "  o‹Î: " & item("attendanceTime") & " (13‚æ‚è‘O)" & vbLf
-        ElseIf item("contradictionType") = "2" Then
-            ' ŒßŒã—L‹x–µ‚
-            itemText = itemText & "  ‘Ş‹Î: " & item("departureTime") & " (12‚æ‚èŒã)" & vbLf
-        ElseIf item("contradictionType") = "3" Then
-            ' ‚¨’‹‹xŒeŠÔ–µ‚
-            If item("attendanceTime") <> "" Then
-                itemText = itemText & "  o‹Î: " & item("attendanceTime") & " (12‘ä)" & vbLf
-            End If
-            If item("departureTime") <> "" Then
-                itemText = itemText & "  ‘Ş‹Î: " & item("departureTime") & " (12‘ä)" & vbLf
-            End If
-        End If
-        
-        itemText = itemText & "  ¨ " & item("comment") & vbLf & vbLf
-        message = message & itemText
-    Next item
-    
-    GenerateContradictionPart = message
-    Exit Function
-    
-ErrorHandler:
-    Debug.Print "[ERROR] ”¼‹x–µ‚•”•ª¶¬ƒGƒ‰[: " & Err.Description
-    GenerateContradictionPart = ""
 End Function
 
 ' *************************************************************
-' ŠÖ”–¼: SendNotificationToLineWorks
-' –Ú“I: ƒƒCƒ“ˆ—i4ƒƒbƒZ[ƒW‘Î‰”Åj
-' C³“ú: 2025-11-14
+' é–¢æ•°å: SendNotificationToLineWorks (ãƒ¡ã‚¤ãƒ³å®Ÿè¡Œãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£)
 ' *************************************************************
 Public Sub SendNotificationToLineWorks()
     On Error GoTo ErrorHandler
     
     Debug.Print vbCrLf & "####################################"
-    Debug.Print "# LINE WORKS’Ê’mˆ—ŠJn"
+    Debug.Print "# LINE WORKSé€šçŸ¥å‡¦ç†é–‹å§‹"
     Debug.Print "####################################"
     
     Application.ScreenUpdating = False
+    Dim configSheet As Worksheet: Set configSheet = ThisWorkbook.Sheets("è¨­å®š")
+    If configSheet Is Nothing Then MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation: Exit Sub
     
-    Dim configSheet As Worksheet
-    On Error Resume Next
-    Set configSheet = ThisWorkbook.Sheets("İ’è")
+    Dim webhookUrl As String: webhookUrl = Trim(configSheet.Cells(1, 2).Value)
+    If webhookUrl = "" Then MsgBox "Webhook URLãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚", vbExclamation: Exit Sub
+
+    ' å„ãƒ‘ãƒ¼ãƒ„ã®ç”Ÿæˆ
+    Dim p1 As String, p2 As String, p3 As String, p4 As String
+    p1 = GenerateAttendanceMissingPart()
+    p2 = GenerateBreakTimeViolationPart()
+    p3 = GenerateOperatingRatePart()
+    p4 = GenerateContradictionPart()
+
+    If p1 = "" And p2 = "" And p3 = "" And p4 = "" Then
+        Application.ScreenUpdating = True
+        MsgBox "é€šçŸ¥ã™ã‚‹ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“ã€‚", vbInformation
+        Exit Sub
+    End If
+
+    ' é€ä¿¡ç¢ºèª
+    Application.ScreenUpdating = True
+    If MsgBox("LINE WORKSã«é€šçŸ¥ã‚’é€ä¿¡ã—ã¾ã™ã‹?", vbQuestion + vbYesNo, "é€ä¿¡ç¢ºèª") = vbNo Then Exit Sub
+    Application.ScreenUpdating = False
+
+    ' ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸çµ„ç«‹
+    Dim fullMsg As String
+    fullMsg = "ã€SI1éƒ¨ å‹¤æ€ ã‚¢ãƒ©ãƒ¼ãƒˆã€‘" & vbLf & _
+              Format(Now, "yyyy/mm/dd hh:nn") & vbLf & _
+              "=============================" & vbLf & vbLf
+    
+    If p1 <> "" Then fullMsg = fullMsg & "ã€å‹¤æ€ å…¥åŠ›æ¼ã‚Œã€‘" & vbLf & p1 & vbLf
+    If p2 <> "" Then fullMsg = fullMsg & "ã€ä¼‘æ†©æ™‚é–“é•åã€‘" & vbLf & p2 & vbLf
+    If p4 <> "" Then fullMsg = fullMsg & "ã€ç”³è«‹çŸ›ç›¾ã€‘" & vbLf & p4 & vbLf
+    If p3 <> "" Then fullMsg = fullMsg & "-----------------------------" & vbLf & p3
+    
+    fullMsg = fullMsg & "=============================" & vbLf & _
+              "â€»å„æ‰€å±GLã‚ˆã‚Šè©²å½“è€…ã¸æ³¨æ„å–šèµ·ã¨å…¥åŠ›å¯¾å¿œã‚’ãŠé¡˜ã„ã—ã¾ã™"
+
+    ' é€ä¿¡å®Ÿè¡Œ
+    Dim result As Boolean
+    result = SendToLineWorks(webhookUrl, fullMsg)
+
+    Application.ScreenUpdating = True
+    
+    If result Then
+        MsgBox "LINE WORKSã¸ã®é€šçŸ¥é€ä¿¡ãŒå®Œäº†ã—ã¾ã—ãŸã€‚", vbInformation
+    End If
+    
+    Debug.Print "####################################" & vbCrLf
+    Exit Sub
+
+ErrorHandler:
+    Application.ScreenUpdating = True
+    MsgBox "äºˆæœŸã›ã¬ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbCritical
+End Sub
+
+' *************************************************************
+' é–¢æ•°å: TestLineWorksSend
+' *************************************************************
+Public Sub TestLineWorksSend()
+    Dim configSheet As Worksheet: Set configSheet = ThisWorkbook.Sheets("è¨­å®š")
+    Dim webhookUrl As String: webhookUrl = Trim(configSheet.Cells(1, 2).Value)
+    
+    ' ãƒ†ã‚¹ãƒˆãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
+    Dim msg As String
+    msg = "ãƒ†ã‚¹ãƒˆé€ä¿¡æˆåŠŸã§ã™ã€‚" & vbLf & "ã“ã‚Œã¯Incoming Webhookå½¢å¼ã®ãƒ†ã‚¹ãƒˆã§ã™ã€‚"
+    
+    If SendToLineWorks(webhookUrl, msg) Then
+        MsgBox "ãƒ†ã‚¹ãƒˆé€ä¿¡æˆåŠŸï¼", vbInformation
+    Else
+        MsgBox "ãƒ†ã‚¹ãƒˆé€ä¿¡å¤±æ•—", vbCritical
+    End If
+End Sub
+
+' *************************************************************
+' é–¢æ•°å: TestGenerateMessage
+' ç›®çš„: LINEé€ä¿¡ã›ãšã«ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸å†…å®¹ã®ã¿ç¢ºèªï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
+' *************************************************************
+Public Sub TestGenerateMessage()
     On Error GoTo ErrorHandler
     
-    If configSheet Is Nothing Then
-        Application.ScreenUpdating = True
-        MsgBox "İ’èƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
-        Exit Sub
-    End If
-    
-    Dim webhookUrl As String
-    webhookUrl = Trim(configSheet.Cells(1, 2).Value)
-    
-    If webhookUrl = "" Then
-        Application.ScreenUpdating = True
-        MsgBox "Webhook URL‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB", vbExclamation
-        Exit Sub
-    End If
-    
-    ' ƒƒbƒZ[ƒW¶¬i4í—Şj
-    Dim attendancePart As String, breakTimePart As String
-    Dim operatingRatePart As String, contradictionPart As String
-    
-    attendancePart = GenerateAttendanceMissingPart()
-    breakTimePart = GenerateBreakTimeViolationPart()
-    operatingRatePart = GenerateOperatingRatePart()
-    contradictionPart = GenerateContradictionPart()
-    
-    If attendancePart = "" And breakTimePart = "" And _
-       operatingRatePart = "" And contradictionPart = "" Then
-        Application.ScreenUpdating = True
-        MsgBox "’Ê’m‚·‚éƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñB", vbInformation
-        Exit Sub
-    End If
-    
-    ' ‘—MŠm”F
-    Application.ScreenUpdating = True
-    Dim confirmResult As VbMsgBoxResult
-    
-    Dim confirmMsg As String
-    confirmMsg = "LINE WORKS‚É’Ê’m‚ğ‘—M‚µ‚Ü‚·‚©?" & vbCrLf & vbCrLf
-    If attendancePart <> "" Then
-        confirmMsg = confirmMsg & "- ‹Î‘Ó“ü—Í˜R‚ê’Ê’m" & vbCrLf
-    End If
-    If breakTimePart <> "" Then
-        confirmMsg = confirmMsg & "- ‹xŒeŠÔˆá”½’Ê’m" & vbCrLf
-    End If
-    If operatingRatePart <> "" Then
-        confirmMsg = confirmMsg & "- ‰Ò“­—¦î•ñ" & vbCrLf
-    End If
-    If contradictionPart <> "" Then
-        confirmMsg = confirmMsg & "- ”¼‹x\¿–µ‚" & vbCrLf
-    End If
-    
-    confirmResult = MsgBox(confirmMsg, vbQuestion + vbYesNo, "‘—MŠm”F")
-    
-    If confirmResult = vbNo Then
-        MsgBox "‘—M‚ğƒLƒƒƒ“ƒZƒ‹‚µ‚Ü‚µ‚½B", vbInformation
-        Exit Sub
-    End If
-    
-    Application.ScreenUpdating = False
-    
-    ' ‘—Mˆ—i4ƒƒbƒZ[ƒW‘Î‰j
-    Dim result1 As Boolean, result2 As Boolean
-    Dim result3 As Boolean, result4 As Boolean
-    result1 = False
-    result2 = False
-    result3 = False
-    result4 = False
-    
-    ' 1. ‹Î‘Ó“ü—Í˜R‚êƒƒbƒZ[ƒW
-    If attendancePart <> "" Then
-        Dim message1 As String
-        message1 = "ySI1•” ‹Î‘ÓƒAƒ‰[ƒg - –¢“ü—Íz" & vbLf
-        message1 = message1 & Format(Now, "yyyy”NmmŒdd“ú hh:nn") & vbLf
-        message1 = message1 & "=============================" & vbLf & vbLf
-        message1 = message1 & "y‹Î‘Ó“ü—Í˜R‚êz" & vbLf
-        message1 = message1 & attendancePart & vbLf
-        message1 = message1 & "=============================" & vbLf
-        message1 = message1 & "¦ŠeŠ‘®GL‚æ‚èŠY“–Ò‚Ö’ˆÓŠ«‹N‚Æ“ü—Í‘Î‰‚ğ‚¨Šè‚¢‚µ‚Ü‚·"
-        
-        result1 = SendToLineWorks(webhookUrl, message1)
-        
-        If Not result1 Then
-            Application.ScreenUpdating = True
-            Exit Sub
-        End If
-        
-        If breakTimePart <> "" Or operatingRatePart <> "" Or contradictionPart <> "" Then
-            Application.Wait Now + timeValue("00:00:02")
-        End If
-    End If
-    
-    ' 2. ‹xŒeŠÔˆá”½ƒƒbƒZ[ƒW
-    If breakTimePart <> "" Then
-        Dim message2 As String
-        message2 = "ySI1•” ‹Î‘ÓƒAƒ‰[ƒg - ‹xŒeŠÔˆá”½z" & vbLf
-        message2 = message2 & Format(Now, "yyyy”NmmŒdd“ú hh:nn") & vbLf
-        message2 = message2 & "=============================" & vbLf & vbLf
-        message2 = message2 & "y‹xŒeŠÔˆá”½z" & vbLf
-        message2 = message2 & breakTimePart & vbLf
-        message2 = message2 & "=============================" & vbLf
-        message2 = message2 & "¦ŠeŠ‘®GL‚æ‚èŠY“–Ò‚Ö’ˆÓŠ«‹N‚Æ“ü—Í‘Î‰‚ğ‚¨Šè‚¢‚µ‚Ü‚·"
-        
-        result2 = SendToLineWorks(webhookUrl, message2)
-        
-        If Not result2 Then
-            Application.ScreenUpdating = True
-            Exit Sub
-        End If
-        
-        If operatingRatePart <> "" Or contradictionPart <> "" Then
-            Application.Wait Now + timeValue("00:00:02")
-        End If
-    End If
-    
-    ' 3. ‰Ò“­—¦ƒŒƒ|[ƒg
-    If operatingRatePart <> "" Then
-        Dim message3 As String
-        message3 = "ySI1•” ‰Ò“­—¦ƒŒƒ|[ƒgz" & vbLf
-        message3 = message3 & Format(Now, "yyyy”NmmŒdd“ú hh:nn") & vbLf
-        message3 = message3 & "=============================" & vbLf & vbLf
-        message3 = message3 & operatingRatePart & vbLf & vbLf
-        message3 = message3 & "=============================" & vbLf
-        message3 = message3 & "¦‹‹—^ŒvZ‚ÌŠî‘bƒf[ƒ^‚Å‚·"
-        
-        result3 = SendToLineWorks(webhookUrl, message3)
-        
-        If Not result3 Then
-            Application.ScreenUpdating = True
-            Exit Sub
-        End If
-        
-        If contradictionPart <> "" Then
-            Application.Wait Now + timeValue("00:00:02")
-        End If
-    End If
-    
-    ' 4. ”¼‹x\¿–µ‚ƒƒbƒZ[ƒW
-    If contradictionPart <> "" Then
-        Dim message4 As String
-        message4 = "ySI1•” ‹Î‘ÓƒAƒ‰[ƒg - ”¼‹x\¿–µ‚z" & vbLf
-        message4 = message4 & Format(Now, "yyyy”NmmŒdd“ú hh:nn") & vbLf
-        message4 = message4 & "=============================" & vbLf & vbLf
-        message4 = message4 & "y”¼‹x\¿‚Æ‹Î‘Ó“ü—Í‚Ì–µ‚z" & vbLf
-        message4 = message4 & contradictionPart & vbLf
-        message4 = message4 & "=============================" & vbLf
-        message4 = message4 & "¦\¿“à—e‚Æ‹Î‘Ó“ü—Í‚ªˆê’v‚µ‚Ä‚¢‚Ü‚¹‚ñBC³‚ğ‚¨Šè‚¢‚µ‚Ü‚·B"
-        
-        result4 = SendToLineWorks(webhookUrl, message4)
-    End If
-    
-    Application.ScreenUpdating = True
-    
-    ' Œ‹‰Ê•\¦
-    Dim resultMsg As String
-    If attendancePart <> "" And result1 Then
-        resultMsg = "[OK] ‹Î‘Ó“ü—Í˜R‚ê’Ê’m: ‘—MŠ®—¹" & vbCrLf
-    End If
-    If breakTimePart <> "" And result2 Then
-        resultMsg = resultMsg & "[OK] ‹xŒeŠÔˆá”½’Ê’m: ‘—MŠ®—¹" & vbCrLf
-    End If
-    If operatingRatePart <> "" And result3 Then
-        resultMsg = resultMsg & "[OK] ‰Ò“­—¦ƒŒƒ|[ƒg: ‘—MŠ®—¹" & vbCrLf
-    End If
-    If contradictionPart <> "" And result4 Then
-        resultMsg = resultMsg & "[OK] ”¼‹x\¿–µ‚: ‘—MŠ®—¹"
-    End If
-    
-    If resultMsg <> "" Then
-        MsgBox "LINE WORKS‚Ö‚Ì’Ê’m‘—M‚ªŠ®—¹‚µ‚Ü‚µ‚½B" & vbCrLf & vbCrLf & resultMsg, _
-               vbInformation, "‘—MŠ®—¹"
-    End If
-    
+    Debug.Print vbCrLf & "####################################"
+    Debug.Print "# ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ç”Ÿæˆãƒ†ã‚¹ãƒˆï¼ˆé€ä¿¡ãªã—ï¼‰"
     Debug.Print "####################################"
-    Debug.Print "# LINE WORKS’Ê’mˆ—I—¹"
-    Debug.Print "####################################" & vbCrLf
     
+    ' å„ãƒ‘ãƒ¼ãƒ„ã®ç”Ÿæˆ
+    Dim p1 As String, p2 As String, p3 As String, p4 As String
+    p1 = GenerateAttendanceMissingPart()
+    p2 = GenerateBreakTimeViolationPart()
+    p3 = GenerateOperatingRatePart()
+    p4 = GenerateContradictionPart()
+
+    If p1 = "" And p2 = "" And p3 = "" And p4 = "" Then
+        MsgBox "é€šçŸ¥ã™ã‚‹ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“ã€‚", vbInformation
+        Exit Sub
+    End If
+
+    ' ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸çµ„ç«‹
+    Dim fullMsg As String
+    fullMsg = "ã€SI1éƒ¨ å‹¤æ€ ã‚¢ãƒ©ãƒ¼ãƒˆã€‘" & vbLf & _
+              Format(Now, "yyyy/mm/dd hh:nn") & vbLf & _
+              "=============================" & vbLf & vbLf
+    
+    If p1 <> "" Then fullMsg = fullMsg & "ã€å‹¤æ€ å…¥åŠ›æ¼ã‚Œã€‘" & vbLf & p1 & vbLf
+    If p2 <> "" Then fullMsg = fullMsg & "ã€ä¼‘æ†©æ™‚é–“é•åã€‘" & vbLf & p2 & vbLf
+    If p4 <> "" Then fullMsg = fullMsg & "ã€ç”³è«‹çŸ›ç›¾ã€‘" & vbLf & p4 & vbLf
+    If p3 <> "" Then fullMsg = fullMsg & "-----------------------------" & vbLf & p3
+    
+    fullMsg = fullMsg & "=============================" & vbLf & _
+              "â€»å„æ‰€å±GLã‚ˆã‚Šè©²å½“è€…ã¸æ³¨æ„å–šèµ·ã¨å…¥åŠ›å¯¾å¿œã‚’ãŠé¡˜ã„ã—ã¾ã™"
+
+    ' â˜…â˜…â˜… ã‚¤ãƒŸãƒ‡ã‚£ã‚¨ã‚¤ãƒˆã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«å…¨æ–‡å‡ºåŠ› â˜…â˜…â˜…
+    Debug.Print vbCrLf & "========== ç”Ÿæˆã•ã‚ŒãŸãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ =========="
+    Debug.Print fullMsg
+    Debug.Print "=========================================="
+    
+    ' â˜…â˜…â˜… ãƒãƒƒãƒ—ã‚¢ãƒƒãƒ—ã§ã‚‚è¡¨ç¤ºï¼ˆæœ€åˆã®500æ–‡å­—ã®ã¿ï¼‰ â˜…â˜…â˜…
+    Dim displayMsg As String
+    If Len(fullMsg) > 500 Then
+        displayMsg = Left(fullMsg, 500) & vbCrLf & vbCrLf & "... (ä»¥ä¸‹çœç•¥ã€å…¨æ–‡ã¯ã‚¤ãƒŸãƒ‡ã‚£ã‚¨ã‚¤ãƒˆã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’ç¢ºèª)"
+    Else
+        displayMsg = fullMsg
+    End If
+    
+    MsgBox displayMsg, vbInformation, "ç”Ÿæˆãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ç¢ºèªï¼ˆé€ä¿¡ãªã—ï¼‰"
+    
+    ' æ–‡å­—æ•°æƒ…å ±
+    MsgBox "ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸æ–‡å­—æ•°: " & Len(fullMsg) & "æ–‡å­—" & vbCrLf & vbCrLf & _
+           "å‹¤æ€ å…¥åŠ›æ¼ã‚Œ: " & IIf(p1 <> "", "ã‚ã‚Š", "ãªã—") & vbCrLf & _
+           "ä¼‘æ†©æ™‚é–“é•å: " & IIf(p2 <> "", "ã‚ã‚Š", "ãªã—") & vbCrLf & _
+           "ç”³è«‹çŸ›ç›¾: " & IIf(p4 <> "", "ã‚ã‚Š", "ãªã—") & vbCrLf & _
+           "ç¨¼åƒç‡: " & IIf(p3 <> "", "ã‚ã‚Š", "ãªã—"), _
+           vbInformation, "ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸çµ±è¨ˆ"
+    
+    Debug.Print "####################################" & vbCrLf
     Exit Sub
     
 ErrorHandler:
-    Application.ScreenUpdating = True
-    MsgBox "’Ê’mˆ—’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½:" & vbCrLf & Err.Description, vbCritical
+    MsgBox "ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbCritical
 End Sub
-
-
 

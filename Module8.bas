@@ -1,485 +1,481 @@
-ï»¿' ========================================
-' Module8
-' ã‚¿ã‚¤ãƒ—: æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-' è¡Œæ•°: 479
-' ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚: 2025-10-20 14:30:49
-' ========================================
+Attribute VB_Name = "Module8"
+Option Explicit
 
-Option Explicit
-
-' *************************************************************
-' ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ï¼šå®šæ™‚é€€ç¤¾ç‡åˆ†æ
-' ç›®çš„ï¼šéƒ¨é–€ã”ã¨ã®å®šæ™‚é€€ç¤¾ç‡ã‚’è‡ªå‹•è¨ˆç®—ã—ã€åˆ†æçµæœã‚·ãƒ¼ãƒˆã«å‡ºåŠ›ã™ã‚‹
-' Copyright (c) 2025 SI1 shunpei.suzuki
-' ä½œæˆæ—¥ï¼š2025å¹´8æœˆ20æ—¥
-'
-' æ”¹ç‰ˆå±¥æ­´ï¼š
-' 2025/08/20 åˆç‰ˆä½œæˆ_v1.0
-' *************************************************************
-
-' =====================================================
-' å®šæ•°å®šç¾©
-' =====================================================
-' ã‚·ãƒ¼ãƒˆå
-Private Const SHEET_NAME_ANALYSIS_RESULT As String = "å‹¤æ€ æƒ…å ±åˆ†æçµæœ"
-
-' åˆ—å
-Private Const COL_NAME_DEPT As String = "éƒ¨é–€"
-Private Const COL_NAME_WORK_TIME As String = "å®Ÿåƒæ™‚é–“"
-Private Const COL_NAME_LEAVE_TIME As String = "é€€ç¤¾"
-Private Const COL_NAME_DELIVERY As String = "å±Šå‡ºå†…å®¹"
-
-' åˆ¤å®šåŸºæº–ï¼ˆåˆ†å˜ä½ï¼‰
-Private Const MIN_WORK_MINUTES As Double = 60          ' ç·å‹¤å‹™æ—¥ã®æœ€å°å®Ÿåƒæ™‚é–“ï¼ˆ1æ™‚é–“ï¼‰
-Private Const ON_TIME_LEAVE_MINUTES As Double = 1065   ' å®šæ™‚é€€ç¤¾ã®é€€ç¤¾æ™‚åˆ»åŸºæº–ï¼ˆ17:45ï¼‰
-
-' =====================================================
-' ãƒ¡ã‚¤ãƒ³ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£ï¼šå®šæ™‚é€€ç¤¾ç‡ã®è¨ˆç®—ã¨å‡ºåŠ›
-' =====================================================
-Public Sub CalculateAndOutputRate()
-    On Error GoTo ErrorHandler
-    
-    ' ãƒ‡ãƒãƒƒã‚°ç”¨ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸è¿½åŠ 
-    Debug.Print "CalculateAndOutputRate: é–‹å§‹"
-    
-    ' ç”»é¢æ›´æ–°ã‚’åœæ­¢ã—ã¦å‡¦ç†ã‚’é«˜é€ŸåŒ–
-    Application.ScreenUpdating = False
-    Application.StatusBar = "å®šæ™‚é€€ç¤¾ç‡ã‚’è¨ˆç®—ã—ã¦ã„ã¾ã™..."
-    
-    ' ã‚·ãƒ¼ãƒˆã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®å–å¾—
-    Dim wsCSVData As Worksheet  ' â† CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã‚’ä½¿ç”¨
-    Dim wsAnalysisResult As Worksheet
-    
-    ' ã‚·ãƒ¼ãƒˆã®å­˜åœ¨ç¢ºèªã¨è¨­å®š
-    On Error Resume Next
-    Set wsCSVData = ThisWorkbook.Worksheets("CSVãƒ‡ãƒ¼ã‚¿")  ' â† å¤‰æ›´
-    Set wsAnalysisResult = ThisWorkbook.Worksheets(SHEET_NAME_ANALYSIS_RESULT)
-    On Error GoTo ErrorHandler
-    
-    ' ã‚·ãƒ¼ãƒˆã®å­˜åœ¨ãƒã‚§ãƒƒã‚¯
-    If wsCSVData Is Nothing Then
-        MsgBox "ã€ŒCSVãƒ‡ãƒ¼ã‚¿ã€ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & _
-               "CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’å…ˆã«èª­ã¿è¾¼ã‚“ã§ãã ã•ã„ã€‚", vbExclamation, "ã‚¨ãƒ©ãƒ¼"
-        GoTo CleanExit
-    End If
-    
-    If wsAnalysisResult Is Nothing Then
-        MsgBox "ã€Œ" & SHEET_NAME_ANALYSIS_RESULT & "ã€ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation, "ã‚¨ãƒ©ãƒ¼"
-        GoTo CleanExit
-    End If
-    
-    ' éƒ¨é–€ã”ã¨ã®é›†è¨ˆãƒ‡ãƒ¼ã‚¿ã‚’å–å¾—ï¼ˆCSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã‹ã‚‰ï¼‰
-    Dim deptData As Object
-    Set deptData = GetOnTimeDepartureData(wsCSVData)  ' â† CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã‚’æ¸¡ã™
-    
-    ' ãƒ‡ãƒ¼ã‚¿ãŒç©ºã®å ´åˆã®ãƒã‚§ãƒƒã‚¯
-    If deptData Is Nothing Or deptData.Count = 0 Then
-        MsgBox "é›†è¨ˆå¯èƒ½ãªãƒ‡ãƒ¼ã‚¿ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚", vbInformation, "æƒ…å ±"
-        GoTo CleanExit
-    End If
-    
-    ' çµæœã‚’ã‚·ãƒ¼ãƒˆã«æ›¸ãå‡ºã—
-    Call WriteResultsToSheet(deptData, wsAnalysisResult)
-    
-    ' å‡¦ç†å®Œäº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ï¼ˆã‚µã‚¤ãƒ¬ãƒ³ãƒˆå®Ÿè¡Œã®ãŸã‚ã‚³ãƒ¡ãƒ³ãƒˆã‚¢ã‚¦ãƒˆï¼‰
-    ' MsgBox "å®šæ™‚é€€ç¤¾ç‡ã®è¨ˆç®—ãŒå®Œäº†ã—ã¾ã—ãŸã€‚", vbInformation, "å®Œäº†"
-    Debug.Print "CalculateAndOutputRate: å®Œäº†"
-    
-CleanExit:
-    ' ç”»é¢æ›´æ–°ã‚’å†é–‹
-    Application.ScreenUpdating = True
-    Application.StatusBar = False
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "CalculateAndOutputRate ã‚¨ãƒ©ãƒ¼: " & Err.Description
-    ' MsgBox "ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸã€‚" & vbCrLf & _
-    '        "ã‚¨ãƒ©ãƒ¼å†…å®¹: " & Err.Description & vbCrLf & _
-    '        "ã‚¨ãƒ©ãƒ¼ç•ªå·: " & Err.Number, vbCritical, "ã‚¨ãƒ©ãƒ¼"
-    Resume CleanExit
-End Sub
-
-' =====================================================
-' è¨ˆç®—ç”¨é–¢æ•°ï¼šéƒ¨é–€ã”ã¨ã®å®šæ™‚é€€ç¤¾ãƒ‡ãƒ¼ã‚¿ã‚’å–å¾—
-' =====================================================
-Private Function GetOnTimeDepartureData(ByVal sourceSheet As Worksheet) As Object
-    On Error GoTo ErrorHandler
-    
-    ' Dictionaryã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ä½œæˆ
-    Dim deptDict As Object
-    Set deptDict = CreateObject("Scripting.Dictionary")
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‹ã‚‰å¿…è¦ãªåˆ—ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’å–å¾—
-    Dim colDept As Long, colWorkTime As Long, colLeaveTime As Long
-    Dim colDelivery As Long
-    Dim lastCol As Long
-    Dim i As Long
-    
-    lastCol = sourceSheet.Cells(1, sourceSheet.Columns.Count).End(xlToLeft).Column
-    
-    ' åˆ—åã‹ã‚‰åˆ—ç•ªå·ã‚’ç‰¹å®š
-    For i = 1 To lastCol
-        Select Case sourceSheet.Cells(1, i).Value
-            Case COL_NAME_DEPT
-                colDept = i
-            Case COL_NAME_WORK_TIME
-                colWorkTime = i
-            Case COL_NAME_LEAVE_TIME
-                colLeaveTime = i
-            Case COL_NAME_DELIVERY
-                colDelivery = i
-        End Select
-    Next i
-    
-    ' å¿…è¦ãªåˆ—ãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã®ã‚¨ãƒ©ãƒ¼å‡¦ç†
-    If colDept = 0 Or colWorkTime = 0 Or colLeaveTime = 0 Then
-        MsgBox "å¿…è¦ãªåˆ—ï¼ˆéƒ¨é–€ã€å®Ÿåƒæ™‚é–“ã€é€€ç¤¾ï¼‰ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", _
-               vbExclamation, "ã‚¨ãƒ©ãƒ¼"
-        Set GetOnTimeDepartureData = Nothing
-        Exit Function
-    End If
-    
-    ' ãƒ‡ãƒ¼ã‚¿ç¯„å›²ã‚’å–å¾—
-    Dim lastRow As Long
-    lastRow = sourceSheet.Cells(sourceSheet.Rows.Count, colDept).End(xlUp).Row
-    
-    If lastRow <= 1 Then
-        Set GetOnTimeDepartureData = Nothing
-        Exit Function
-    End If
-    
-    ' ãƒ‡ãƒ¼ã‚¿ã‚’é…åˆ—ã«ä¸€æ‹¬èª­ã¿è¾¼ã¿
-    Dim dataArray As Variant
-    dataArray = sourceSheet.Range(sourceSheet.Cells(2, 1), _
-                                  sourceSheet.Cells(lastRow, lastCol)).Value
-    
-    ' é…åˆ—ã‚’ãƒ«ãƒ¼ãƒ—ã—ã¦é›†è¨ˆ
-    Dim rowIndex As Long
-    Dim deptName As String
-    Dim workTimeStr As String
-    Dim leaveTimeStr As String
-    Dim deliveryContent As String
-    Dim workMinutes As Double
-    Dim leaveMinutes As Double
-    Dim deptStats As Variant
-    Dim isOnTimeDeparture As Boolean
-    Dim isWorkDay As Boolean
-    
-    ' ãƒ‡ãƒãƒƒã‚°ç”¨ã‚«ã‚¦ãƒ³ã‚¿ãƒ¼
-    Dim debugOnTimeCount As Long
-    Dim debugWorkDayCount As Long
-    debugOnTimeCount = 0
-    debugWorkDayCount = 0
-    
-    For rowIndex = 1 To UBound(dataArray, 1)
-        ' éƒ¨é–€åã®å–å¾—
-        deptName = Trim(CStr(dataArray(rowIndex, colDept)))
-        
-        ' ç©ºã®éƒ¨é–€åã¯ã‚¹ã‚­ãƒƒãƒ—
-        If deptName <> "" Then
-            ' å®Ÿåƒæ™‚é–“ã®å–å¾—ã¨å¤‰æ›
-            workTimeStr = CStr(dataArray(rowIndex, colWorkTime))
-            workMinutes = Round(ConvertTimeToMinutesLocal(workTimeStr), 0)
-            
-            ' é€€ç¤¾æ™‚åˆ»ã®å–å¾—
-            leaveTimeStr = CStr(dataArray(rowIndex, colLeaveTime))
-            leaveMinutes = ConvertTimeToMinutesLocal(leaveTimeStr)
-            
-            ' å±Šå‡ºå†…å®¹ã®å–å¾—ï¼ˆå±Šå‡ºåˆ—ãŒãªã„å ´åˆã‚‚è€ƒæ…®ï¼‰
-            If colDelivery > 0 Then
-                deliveryContent = Trim(CStr(dataArray(rowIndex, colDelivery)))
-            Else
-                deliveryContent = ""
-            End If
-            
-            ' éƒ¨é–€ãŒåˆã‚ã¦å‡ºç¾ã—ãŸå ´åˆã¯åˆæœŸåŒ–
-            If Not deptDict.Exists(deptName) Then
-                deptDict.Add deptName, Array(0, 0)
-            End If
-            
-            ' ç¾åœ¨ã®çµ±è¨ˆå€¤ã‚’å–å¾—
-            deptStats = deptDict(deptName)
-            
-            ' ===== ç·å‹¤å‹™æ—¥ã®åˆ¤å®š =====
-            isWorkDay = False
-            
-            ' æŒ¯æ›¿ä¼‘æš‡ã¯å‹¤å‹™æ—¥ã¨ã—ã¦ã‚«ã‚¦ãƒ³ãƒˆã—ãªã„
-            If deliveryContent = "æŒ¯æ›¿ä¼‘æš‡" Then
-                isWorkDay = False
-                
-            ' ä¼‘æš‡ç³»ã®å±Šå‡ºï¼ˆå®Ÿåƒ0ã§ã‚‚å‹¤å‹™æ—¥ã¨ã™ã‚‹ï¼‰
-            ElseIf deliveryContent = "æœ‰ä¼‘" Or _
-                   deliveryContent = "åˆå‰æœ‰ä¼‘" Or _
-                   deliveryContent = "åˆå¾Œæœ‰ä¼‘" Or _
-                   deliveryContent = "æ™‚é–“æœ‰ä¼‘" Or _
-                   deliveryContent = "å­ã®çœ‹è­·ä¼‘æš‡" Or _
-                   deliveryContent = "ç”Ÿç†ä¼‘æš‡" Or _
-                   deliveryContent = "ç‰¹åˆ¥ä¼‘æš‡" Then
-                isWorkDay = True
-                
-            ' ãã®ä»–ã®å±Šå‡ºï¼ˆæ¬ å‹¤ã€é…åˆ»ã€æ—©é€€ã€ä¼‘æ—¥å‡ºå‹¤ã€æŒ¯æ›¿å‡ºå‹¤ã€é›»è»Šé…å»¶ã€ä¼‘æ†©ä¿®æ­£ï¼‰
-            ElseIf deliveryContent = "æ¬ å‹¤" Or _
-                   deliveryContent = "é…åˆ»" Or _
-                   deliveryContent = "æ—©é€€" Or _
-                   deliveryContent = "ä¼‘æ—¥å‡ºå‹¤" Or _
-                   deliveryContent = "æŒ¯æ›¿å‡ºå‹¤" Or _
-                   deliveryContent = "é›»è»Šé…å»¶" Or _
-                   deliveryContent = "ä¼‘æ†©ä¿®æ­£" Then
-                ' å®ŸåƒãŒã‚ã‚‹å ´åˆã®ã¿å‹¤å‹™æ—¥
-                If workMinutes >= 60 Then
-                    isWorkDay = True
-                End If
-                
-            ' å±Šå‡ºãªã—ã§å®ŸåƒãŒã‚ã‚‹å ´åˆ
-            ElseIf deliveryContent = "" And workMinutes >= 60 Then
-                isWorkDay = True
-            End If
-            
-            If isWorkDay Then
-                deptStats(0) = deptStats(0) + 1  ' ç·å‹¤å‹™æ—¥æ•°ã‚’å¢—åŠ 
-                debugWorkDayCount = debugWorkDayCount + 1
-                
-                ' ===== å®šæ™‚é€€ç¤¾ã®åˆ¤å®š =====
-                isOnTimeDeparture = False
-                
-                ' å®šæ™‚é€€ç¤¾ã‹ã‚‰é™¤å¤–ã™ã‚‹å±Šå‡º
-                If deliveryContent = "é…åˆ»" Or _
-                   deliveryContent = "æ—©é€€" Or _
-                   deliveryContent = "æ¬ å‹¤" Or _
-                   deliveryContent = "ä¼‘æ—¥å‡ºå‹¤" Then
-                    isOnTimeDeparture = False
-                    
-                ' ä¼‘æš‡ç³»ã®å±Šå‡ºã¯å…¨ã¦å®šæ™‚é€€ç¤¾
-                ElseIf deliveryContent = "æœ‰ä¼‘" Or _
-                       deliveryContent = "åˆå‰æœ‰ä¼‘" Or _
-                       deliveryContent = "åˆå¾Œæœ‰ä¼‘" Or _
-                       deliveryContent = "æ™‚é–“æœ‰ä¼‘" Or _
-                       deliveryContent = "å­ã®çœ‹è­·ä¼‘æš‡" Or _
-                       deliveryContent = "ç”Ÿç†ä¼‘æš‡" Or _
-                       deliveryContent = "ç‰¹åˆ¥ä¼‘æš‡" Then
-                    isOnTimeDeparture = True
-                    Debug.Print "ä¼‘æš‡ã§å®šæ™‚é€€ç¤¾: " & deptName & " - " & deliveryContent
-                    
-                ' ãã®ä»–ã®å±Šå‡ºã¾ãŸã¯å±Šå‡ºãªã—ã®å ´åˆã€é€€ç¤¾æ™‚åˆ»ã§åˆ¤å®š
-                Else
-                    ' é€€ç¤¾æ™‚åˆ»ãŒ17:45ã‚ˆã‚Šå‰ï¼ˆ17:45 = 1065åˆ†ï¼‰
-                    If leaveMinutes > 0 And leaveMinutes < 1065 Then
-                        isOnTimeDeparture = True
-                        Debug.Print "17:45å‰é€€ç¤¾ã§å®šæ™‚é€€ç¤¾: " & deptName & " - å±Šå‡º:" & deliveryContent & " é€€ç¤¾:" & leaveTimeStr
-                    End If
-                End If
-                
-                If isOnTimeDeparture Then
-                    deptStats(1) = deptStats(1) + 1  ' å®šæ™‚é€€ç¤¾æ—¥æ•°ã‚’å¢—åŠ 
-                    debugOnTimeCount = debugOnTimeCount + 1
-                End If
-            End If
-            
-            ' æ›´æ–°ã—ãŸå€¤ã‚’è¾æ›¸ã«æˆ»ã™
-            deptDict(deptName) = deptStats
-        End If
-    Next rowIndex
-    
-    Debug.Print "ç·å‹¤å‹™æ—¥æ•°: " & debugWorkDayCount
-    Debug.Print "å®šæ™‚é€€ç¤¾ç·æ•°: " & debugOnTimeCount
-    
-    ' çµæœã‚’è¿”ã™
-    Set GetOnTimeDepartureData = deptDict
-    Exit Function
-    
-ErrorHandler:
-    MsgBox "ãƒ‡ãƒ¼ã‚¿é›†è¨ˆä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbCritical, "ã‚¨ãƒ©ãƒ¼"
-    Set GetOnTimeDepartureData = Nothing
-End Function
-' =====================================================
-' æ›¸ãå‡ºã—ç”¨ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£ï¼šè¨ˆç®—çµæœã‚’æ—¢å­˜ã®éƒ¨é–€åˆ¥æ®‹æ¥­é›†è¨ˆè¡¨ã«è¿½åŠ 
-' =====================================================
-Private Sub WriteResultsToSheet(ByVal results As Object, ByVal targetSheet As Worksheet)
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "WriteResultsToSheet: é–‹å§‹"
-    Debug.Print "çµæœä»¶æ•°: " & results.Count
-    
-    ' éƒ¨é–€åˆ¥æ®‹æ¥­é›†è¨ˆè¡¨ã‚’æ¢ã™
-    Dim headerRow As Long
-    Dim i As Long, j As Long
-    headerRow = 0
-    Debug.Print "ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œ: " & headerRow
-    ' ã€Œéƒ¨ç½²ã€ã¨ã„ã†ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’æ¢ã™ï¼ˆæœ€å¤§30è¡Œã¾ã§æ¤œç´¢ï¼‰
-    For i = 1 To 30
-        If targetSheet.Cells(i, 1).Value = "éƒ¨ç½²" Then
-            headerRow = i
-            Exit For
-        End If
-    Next i
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼ãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã¯ã‚¨ãƒ©ãƒ¼
-    If headerRow = 0 Then
-        MsgBox "éƒ¨é–€åˆ¥æ®‹æ¥­é›†è¨ˆè¡¨ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation, "ã‚¨ãƒ©ãƒ¼"
-        Exit Sub
-    End If
-    
-    ' æ—¢å­˜ã®ãƒ˜ãƒƒãƒ€ãƒ¼ã®æœ€å¾Œã«æ–°ã—ã„åˆ—ã‚’è¿½åŠ ï¼ˆ7åˆ—ç›®ã‹ã‚‰ï¼‰
-    targetSheet.Cells(headerRow, 7).Value = "ç·å‹¤å‹™æ—¥æ•°"
-    targetSheet.Cells(headerRow, 8).Value = "å®šæ™‚é€€ç¤¾æ—¥æ•°"
-    targetSheet.Cells(headerRow, 9).Value = "å®šæ™‚é€€ç¤¾ç‡"
-    
-    ' æ–°ã—ã„ãƒ˜ãƒƒãƒ€ãƒ¼ã®æ›¸å¼è¨­å®šï¼ˆç½«ç·šãªã—ã€èƒŒæ™¯è‰²ã¨å¤ªå­—ã®ã¿ï¼‰
-    With targetSheet.Range(targetSheet.Cells(headerRow, 7), targetSheet.Cells(headerRow, 9))
-        .Font.Bold = True
-        .HorizontalAlignment = xlCenter
-        .Interior.Color = RGB(200, 200, 200)
-        ' ç½«ç·šã¯è¨­å®šã—ãªã„
-    End With
-    
-    ' å„éƒ¨é–€ã®ãƒ‡ãƒ¼ã‚¿ã‚’è¿½åŠ 
-    Dim currentRow As Long
-    Dim deptName As String
-    Dim deptStats As Variant
-    Dim totalWorkDays As Long
-    Dim onTimeDays As Long
-    Dim onTimeRate As Double
-    
-    ' å…¨ç¤¾åˆè¨ˆç”¨ã®å¤‰æ•°
-    Dim totalWorkDaysAll As Long
-    Dim totalOnTimeDaysAll As Long
-    totalWorkDaysAll = 0
-    totalOnTimeDaysAll = 0
-    
-    currentRow = headerRow + 1
-    
-    ' éƒ¨ç½²åˆ—ã®å€¤ã‚’èª­ã¿å–ã£ã¦ã€å¯¾å¿œã™ã‚‹ãƒ‡ãƒ¼ã‚¿ã‚’è¿½åŠ 
-    Do While targetSheet.Cells(currentRow, 1).Value <> ""
-        deptName = Trim(targetSheet.Cells(currentRow, 1).Value)
-        
-    ' ã€Œåˆè¨ˆã€è¡Œã®å ´åˆ
-    If deptName = "åˆè¨ˆ" Then
-        ' å…¨ç¤¾åˆè¨ˆã‚’è¨ˆç®—ã—ã¦å‡ºåŠ›
-        If totalWorkDaysAll > 0 Then
-            onTimeRate = (totalOnTimeDaysAll / totalWorkDaysAll) * 100
-        Else
-            onTimeRate = 0
-        End If
-        
-        targetSheet.Cells(currentRow, 7).Value = totalWorkDaysAll
-        targetSheet.Cells(currentRow, 8).Value = totalOnTimeDaysAll
-        targetSheet.Cells(currentRow, 9).Value = Format(onTimeRate, "0.0") & "%"
-        
-        ' åˆè¨ˆè¡Œã®æ›¸å¼è¨­å®šï¼ˆä¸­å¤®æƒãˆã‚’è¿½åŠ ï¼‰
-        With targetSheet.Range(targetSheet.Cells(currentRow, 7), targetSheet.Cells(currentRow, 9))
-            .Font.Bold = True
-            .Interior.Color = RGB(240, 240, 240)
-            .HorizontalAlignment = xlCenter  ' ä¸­å¤®æƒãˆ
-        End With
-        Exit Do
-    End If
-        
-        ' é€šå¸¸ã®éƒ¨é–€ãƒ‡ãƒ¼ã‚¿
-        If results.Exists(deptName) Then
-            deptStats = results(deptName)
-            totalWorkDays = deptStats(0)
-            onTimeDays = deptStats(1)
-            
-            ' å…¨ç¤¾åˆè¨ˆã«åŠ ç®—
-            totalWorkDaysAll = totalWorkDaysAll + totalWorkDays
-            totalOnTimeDaysAll = totalOnTimeDaysAll + onTimeDays
-            
-            ' å®šæ™‚é€€ç¤¾ç‡ã®è¨ˆç®—
-            If totalWorkDays > 0 Then
-                onTimeRate = (onTimeDays / totalWorkDays) * 100
-            Else
-                onTimeRate = 0
-            End If
-            
-            ' ãƒ‡ãƒ¼ã‚¿ã®æ›¸ãè¾¼ã¿
-            targetSheet.Cells(currentRow, 7).Value = totalWorkDays
-            targetSheet.Cells(currentRow, 8).Value = onTimeDays
-            targetSheet.Cells(currentRow, 9).Value = Format(onTimeRate, "0.0") & "%"
-        Else
-            ' ãƒ‡ãƒ¼ã‚¿ãŒãªã„å ´åˆã¯0ã‚’è¡¨ç¤º
-            targetSheet.Cells(currentRow, 7).Value = 0
-            targetSheet.Cells(currentRow, 8).Value = 0
-            targetSheet.Cells(currentRow, 9).Value = "0.0%"
-        End If
-        
-        currentRow = currentRow + 1
-    Loop
-    
-    ' ãƒ‡ãƒ¼ã‚¿ç¯„å›²å…¨ä½“ã®ç½«ç·šè¨­å®š
-    ' With targetSheet.Range(targetSheet.Cells(headerRow + 1, 7), _
-    '                       targetSheet.Cells(currentRow - 1, 9))
-    '     .Borders.LineStyle = xlContinuous
-    '     .Borders.Weight = xlThin
-    '     .HorizontalAlignment = xlCenter
-    ' End With
-    
-    ' ãƒ‡ãƒ¼ã‚¿ç¯„å›²ã®ã¿ã«ç½«ç·šè¨­å®šï¼ˆãƒ˜ãƒƒãƒ€ãƒ¼ã¯å«ã¾ãªã„ï¼‰
-    With targetSheet.Range(targetSheet.Cells(headerRow + 1, 7), _
-                          targetSheet.Cells(currentRow, 9))  ' currentRowã¾ã§ï¼ˆåˆè¨ˆè¡Œå«ã‚€ï¼‰
-        .Borders.LineStyle = xlContinuous
-        .Borders.Weight = xlThin
-        .HorizontalAlignment = xlCenter
-    End With
-    
-    ' åˆ—å¹…ã®è‡ªå‹•èª¿æ•´
-    targetSheet.Columns("G:I").AutoFit
-    
-    Exit Sub
-    
-ErrorHandler:
-    MsgBox "çµæœã®å‡ºåŠ›ä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbCritical, "ã‚¨ãƒ©ãƒ¼"
-End Sub
-' =====================================================
-' ãƒ­ãƒ¼ã‚«ãƒ«æ™‚é–“å¤‰æ›é–¢æ•°ï¼ˆModule1ã®é–¢æ•°ãŒä½¿ãˆãªã„å ´åˆã®ä»£æ›¿ï¼‰
-' =====================================================
-Private Function ConvertTimeToMinutesLocal(timeStr As Variant) As Double
-    On Error GoTo ErrorHandler
-    
-    ' ãƒ‡ãƒãƒƒã‚°ç”¨
-    Dim originalValue As String
-    originalValue = CStr(timeStr)
-    
-    ' ç©ºæ–‡å­—ã¾ãŸã¯Nullã®å ´åˆ
-    If IsEmpty(timeStr) Or timeStr = "" Then
-        ConvertTimeToMinutesLocal = 0
-        Exit Function
-    End If
-    
-    ' æ•°å€¤å½¢å¼ï¼ˆExcelã®æ™‚é–“å€¤ï¼‰ã®å ´åˆ
-    If IsNumeric(timeStr) Then
-        ' Excelã®æ™‚é–“ã¯æ—¥ã®å‰²åˆã§æ ¼ç´ã•ã‚Œã¦ã„ã‚‹
-        ConvertTimeToMinutesLocal = CDbl(timeStr) * 24 * 60
-        ' ãƒ‡ãƒãƒƒã‚°å‡ºåŠ›
-        If ConvertTimeToMinutesLocal >= 450 And ConvertTimeToMinutesLocal <= 470 Then
-            Debug.Print "æ™‚é–“å¤‰æ›(æ•°å€¤): " & originalValue & " â†’ " & ConvertTimeToMinutesLocal & "åˆ†"
-        End If
-        Exit Function
-    End If
-    
-    ' HH:MMå½¢å¼ã®æ–‡å­—åˆ—ã®å ´åˆ
-    Dim timeParts As Variant
-    timeParts = Split(CStr(timeStr), ":")
-    
-    If UBound(timeParts) >= 1 Then
-        If IsNumeric(timeParts(0)) And IsNumeric(timeParts(1)) Then
-            Dim hours As Double, minutes As Double
-            hours = CDbl(timeParts(0))
-            minutes = CDbl(timeParts(1))
-            ConvertTimeToMinutesLocal = hours * 60 + minutes
-            ' ãƒ‡ãƒãƒƒã‚°å‡ºåŠ›
-            If ConvertTimeToMinutesLocal >= 450 And ConvertTimeToMinutesLocal <= 470 Then
-                Debug.Print "æ™‚é–“å¤‰æ›(æ–‡å­—åˆ—): " & originalValue & " â†’ " & ConvertTimeToMinutesLocal & "åˆ†"
-            End If
-        Else
-            ConvertTimeToMinutesLocal = 0
-        End If
-    Else
-        ConvertTimeToMinutesLocal = 0
-    End If
-    
-    Exit Function
-    
-ErrorHandler:
-    ConvertTimeToMinutesLocal = 0
-End Function
-
+' *************************************************************
+' ƒ‚ƒWƒ…[ƒ‹F’è‘ŞĞ—¦•ªÍ
+' –Ú“IF•”–å‚²‚Æ‚Ì’è‘ŞĞ—¦‚ğ©“®ŒvZ‚µA•ªÍŒ‹‰ÊƒV[ƒg‚Éo—Í‚·‚é
+' Copyright (c) 2025 SI1 shunpei.suzuki
+' ì¬“úF2025”N8Œ20“ú
+'
+' ‰ü”Å—š—ğF
+' 2025/08/20 ‰”Åì¬_v1.0
+' *************************************************************
+
+' =====================================================
+' ’è”’è‹`
+' =====================================================
+' ƒV[ƒg–¼
+Private Const SHEET_NAME_ANALYSIS_RESULT As String = "‹Î‘Óî•ñ•ªÍŒ‹‰Ê"
+
+' —ñ–¼
+Private Const COL_NAME_DEPT As String = "•”–å"
+Private Const COL_NAME_WORK_TIME As String = "À“­ŠÔ"
+Private Const COL_NAME_LEAVE_TIME As String = "‘ŞĞ"
+Private Const COL_NAME_DELIVERY As String = "“Ío“à—e"
+
+' ”»’èŠî€i•ª’PˆÊj
+Private Const MIN_WORK_MINUTES As Double = 60          ' ‘‹Î–±“ú‚ÌÅ¬À“­ŠÔi1ŠÔj
+Private Const ON_TIME_LEAVE_MINUTES As Double = 1065   ' ’è‘ŞĞ‚Ì‘ŞĞŠî€i17:45j
+
+' =====================================================
+' ƒƒCƒ“ƒvƒƒV[ƒWƒƒF’è‘ŞĞ—¦‚ÌŒvZ‚Æo—Í
+' =====================================================
+Public Sub CalculateAndOutputRate()
+    On Error GoTo ErrorHandler
+    
+    ' ƒfƒoƒbƒO—pƒƒbƒZ[ƒW’Ç‰Á
+    Debug.Print "CalculateAndOutputRate: ŠJn"
+    
+    ' ‰æ–ÊXV‚ğ’â~‚µ‚Äˆ—‚ğ‚‘¬‰»
+    Application.ScreenUpdating = False
+    Application.StatusBar = "’è‘ŞĞ—¦‚ğŒvZ‚µ‚Ä‚¢‚Ü‚·..."
+    
+    ' ƒV[ƒgƒIƒuƒWƒFƒNƒg‚Ìæ“¾
+    Dim wsCSVData As Worksheet  ' © CSVƒf[ƒ^ƒV[ƒg‚ğg—p
+    Dim wsAnalysisResult As Worksheet
+    
+    ' ƒV[ƒg‚Ì‘¶İŠm”F‚Æİ’è
+    On Error Resume Next
+    Set wsCSVData = ThisWorkbook.Worksheets("CSVƒf[ƒ^")  ' © •ÏX
+    Set wsAnalysisResult = ThisWorkbook.Worksheets(SHEET_NAME_ANALYSIS_RESULT)
+    On Error GoTo ErrorHandler
+    
+    ' ƒV[ƒg‚Ì‘¶İƒ`ƒFƒbƒN
+    If wsCSVData Is Nothing Then
+        MsgBox "uCSVƒf[ƒ^vƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & _
+               "CSVƒtƒ@ƒCƒ‹‚ğæ‚É“Ç‚İ‚ñ‚Å‚­‚¾‚³‚¢B", vbExclamation, "ƒGƒ‰["
+        GoTo CleanExit
+    End If
+    
+    If wsAnalysisResult Is Nothing Then
+        MsgBox "u" & SHEET_NAME_ANALYSIS_RESULT & "vƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation, "ƒGƒ‰["
+        GoTo CleanExit
+    End If
+    
+    ' •”–å‚²‚Æ‚ÌWŒvƒf[ƒ^‚ğæ“¾iCSVƒf[ƒ^ƒV[ƒg‚©‚çj
+    Dim deptData As Object
+    Set deptData = GetOnTimeDepartureData(wsCSVData)  ' © CSVƒf[ƒ^ƒV[ƒg‚ğ“n‚·
+    
+    ' ƒf[ƒ^‚ª‹ó‚Ìê‡‚Ìƒ`ƒFƒbƒN
+    If deptData Is Nothing Or deptData.count = 0 Then
+        MsgBox "WŒv‰Â”\‚Èƒf[ƒ^‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B", vbInformation, "î•ñ"
+        GoTo CleanExit
+    End If
+    
+    ' Œ‹‰Ê‚ğƒV[ƒg‚É‘‚«o‚µ
+    Call WriteResultsToSheet(deptData, wsAnalysisResult)
+    
+    ' ˆ—Š®—¹ƒƒbƒZ[ƒWiƒTƒCƒŒƒ“ƒgÀs‚Ì‚½‚ßƒRƒƒ“ƒgƒAƒEƒgj
+    ' MsgBox "’è‘ŞĞ—¦‚ÌŒvZ‚ªŠ®—¹‚µ‚Ü‚µ‚½B", vbInformation, "Š®—¹"
+    Debug.Print "CalculateAndOutputRate: Š®—¹"
+    
+CleanExit:
+    ' ‰æ–ÊXV‚ğÄŠJ
+    Application.ScreenUpdating = True
+    Application.StatusBar = False
+    Exit Sub
+    
+ErrorHandler:
+    Debug.Print "CalculateAndOutputRate ƒGƒ‰[: " & Err.Description
+    ' MsgBox "ƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½B" & vbCrLf & _
+    '        "ƒGƒ‰[“à—e: " & Err.Description & vbCrLf & _
+    '        "ƒGƒ‰[”Ô†: " & Err.Number, vbCritical, "ƒGƒ‰["
+    Resume CleanExit
+End Sub
+
+' =====================================================
+' ŒvZ—pŠÖ”F•”–å‚²‚Æ‚Ì’è‘ŞĞƒf[ƒ^‚ğæ“¾
+' =====================================================
+Private Function GetOnTimeDepartureData(ByVal sourceSheet As Worksheet) As Object
+    On Error GoTo ErrorHandler
+    
+    ' DictionaryƒIƒuƒWƒFƒNƒg‚Ìì¬
+    Dim deptDict As Object
+    Set deptDict = CreateObject("Scripting.Dictionary")
+    
+    ' ƒwƒbƒ_[s‚©‚ç•K—v‚È—ñƒCƒ“ƒfƒbƒNƒX‚ğæ“¾
+    Dim colDept As Long, colWorkTime As Long, colLeaveTime As Long
+    Dim colDelivery As Long
+    Dim lastCol As Long
+    Dim i As Long
+    
+    lastCol = sourceSheet.Cells(1, sourceSheet.Columns.count).End(xlToLeft).Column
+    
+    ' —ñ–¼‚©‚ç—ñ”Ô†‚ğ“Á’è
+    For i = 1 To lastCol
+        Select Case sourceSheet.Cells(1, i).Value
+            Case COL_NAME_DEPT
+                colDept = i
+            Case COL_NAME_WORK_TIME
+                colWorkTime = i
+            Case COL_NAME_LEAVE_TIME
+                colLeaveTime = i
+            Case COL_NAME_DELIVERY
+                colDelivery = i
+        End Select
+    Next i
+    
+    ' •K—v‚È—ñ‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡‚ÌƒGƒ‰[ˆ—
+    If colDept = 0 Or colWorkTime = 0 Or colLeaveTime = 0 Then
+        MsgBox "•K—v‚È—ñi•”–åAÀ“­ŠÔA‘ŞĞj‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", _
+               vbExclamation, "ƒGƒ‰["
+        Set GetOnTimeDepartureData = Nothing
+        Exit Function
+    End If
+    
+    ' ƒf[ƒ^”ÍˆÍ‚ğæ“¾
+    Dim lastRow As Long
+    lastRow = sourceSheet.Cells(sourceSheet.Rows.count, colDept).End(xlUp).Row
+    
+    If lastRow <= 1 Then
+        Set GetOnTimeDepartureData = Nothing
+        Exit Function
+    End If
+    
+    ' ƒf[ƒ^‚ğ”z—ñ‚ÉˆêŠ‡“Ç‚İ‚İ
+    Dim dataArray As Variant
+    dataArray = sourceSheet.Range(sourceSheet.Cells(2, 1), _
+                                  sourceSheet.Cells(lastRow, lastCol)).Value
+    
+    ' ”z—ñ‚ğƒ‹[ƒv‚µ‚ÄWŒv
+    Dim rowIndex As Long
+    Dim deptName As String
+    Dim workTimeStr As String
+    Dim leaveTimeStr As String
+    Dim deliveryContent As String
+    Dim workMinutes As Double
+    Dim leaveMinutes As Double
+    Dim deptStats As Variant
+    Dim isOnTimeDeparture As Boolean
+    Dim isWorkDay As Boolean
+    
+    ' ƒfƒoƒbƒO—pƒJƒEƒ“ƒ^[
+    Dim debugOnTimeCount As Long
+    Dim debugWorkDayCount As Long
+    debugOnTimeCount = 0
+    debugWorkDayCount = 0
+    
+    For rowIndex = 1 To UBound(dataArray, 1)
+        ' •”–å–¼‚Ìæ“¾
+        deptName = Trim(CStr(dataArray(rowIndex, colDept)))
+        
+        ' ‹ó‚Ì•”–å–¼‚ÍƒXƒLƒbƒv
+        If deptName <> "" Then
+            ' À“­ŠÔ‚Ìæ“¾‚Æ•ÏŠ·
+            workTimeStr = CStr(dataArray(rowIndex, colWorkTime))
+            workMinutes = Round(ConvertTimeToMinutesLocal(workTimeStr), 0)
+            
+            ' ‘ŞĞ‚Ìæ“¾
+            leaveTimeStr = CStr(dataArray(rowIndex, colLeaveTime))
+            leaveMinutes = ConvertTimeToMinutesLocal(leaveTimeStr)
+            
+            ' “Ío“à—e‚Ìæ“¾i“Ío—ñ‚ª‚È‚¢ê‡‚àl—¶j
+            If colDelivery > 0 Then
+                deliveryContent = Trim(CStr(dataArray(rowIndex, colDelivery)))
+            Else
+                deliveryContent = ""
+            End If
+            
+            ' •”–å‚ª‰‚ß‚ÄoŒ»‚µ‚½ê‡‚Í‰Šú‰»
+            If Not deptDict.Exists(deptName) Then
+                deptDict.Add deptName, Array(0, 0)
+            End If
+            
+            ' Œ»İ‚Ì“Œv’l‚ğæ“¾
+            deptStats = deptDict(deptName)
+            
+            ' ===== ‘‹Î–±“ú‚Ì”»’è =====
+            isWorkDay = False
+            
+            ' U‘Ö‹x‰É‚Í‹Î–±“ú‚Æ‚µ‚ÄƒJƒEƒ“ƒg‚µ‚È‚¢
+            If deliveryContent = "U‘Ö‹x‰É" Then
+                isWorkDay = False
+                
+            ' ‹x‰ÉŒn‚Ì“ÍoiÀ“­0‚Å‚à‹Î–±“ú‚Æ‚·‚éj
+            ElseIf deliveryContent = "—L‹x" Or _
+                   deliveryContent = "Œß‘O—L‹x" Or _
+                   deliveryContent = "ŒßŒã—L‹x" Or _
+                   deliveryContent = "ŠÔ—L‹x" Or _
+                   deliveryContent = "q‚ÌŠÅŒì‹x‰É" Or _
+                   deliveryContent = "¶—‹x‰É" Or _
+                   deliveryContent = "“Á•Ê‹x‰É" Then
+                isWorkDay = True
+                
+            ' ‚»‚Ì‘¼‚Ì“ÍoiŒ‡‹ÎA’xA‘‘ŞA‹x“úo‹ÎAU‘Öo‹ÎA“dÔ’x‰„A‹xŒeC³j
+            ElseIf deliveryContent = "Œ‡‹Î" Or _
+                   deliveryContent = "’x" Or _
+                   deliveryContent = "‘‘Ş" Or _
+                   deliveryContent = "‹x“úo‹Î" Or _
+                   deliveryContent = "U‘Öo‹Î" Or _
+                   deliveryContent = "“dÔ’x‰„" Or _
+                   deliveryContent = "‹xŒeC³" Then
+                ' À“­‚ª‚ ‚éê‡‚Ì‚İ‹Î–±“ú
+                If workMinutes >= 60 Then
+                    isWorkDay = True
+                End If
+                
+            ' “Ío‚È‚µ‚ÅÀ“­‚ª‚ ‚éê‡
+            ElseIf deliveryContent = "" And workMinutes >= 60 Then
+                isWorkDay = True
+            End If
+            
+            If isWorkDay Then
+                deptStats(0) = deptStats(0) + 1  ' ‘‹Î–±“ú”‚ğ‘‰Á
+                debugWorkDayCount = debugWorkDayCount + 1
+                
+                ' ===== ’è‘ŞĞ‚Ì”»’è =====
+                isOnTimeDeparture = False
+                
+                ' ’è‘ŞĞ‚©‚çœŠO‚·‚é“Ío
+                If deliveryContent = "’x" Or _
+                   deliveryContent = "‘‘Ş" Or _
+                   deliveryContent = "Œ‡‹Î" Or _
+                   deliveryContent = "‹x“úo‹Î" Then
+                    isOnTimeDeparture = False
+                    
+                ' ‹x‰ÉŒn‚Ì“Ío‚Í‘S‚Ä’è‘ŞĞ
+                ElseIf deliveryContent = "—L‹x" Or _
+                       deliveryContent = "Œß‘O—L‹x" Or _
+                       deliveryContent = "ŒßŒã—L‹x" Or _
+                       deliveryContent = "ŠÔ—L‹x" Or _
+                       deliveryContent = "q‚ÌŠÅŒì‹x‰É" Or _
+                       deliveryContent = "¶—‹x‰É" Or _
+                       deliveryContent = "“Á•Ê‹x‰É" Then
+                    isOnTimeDeparture = True
+                    Debug.Print "‹x‰É‚Å’è‘ŞĞ: " & deptName & " - " & deliveryContent
+                    
+                ' ‚»‚Ì‘¼‚Ì“Ío‚Ü‚½‚Í“Ío‚È‚µ‚Ìê‡A‘ŞĞ‚Å”»’è
+                Else
+                    ' ‘ŞĞ‚ª17:45‚æ‚è‘Oi17:45 = 1065•ªj
+                    If leaveMinutes > 0 And leaveMinutes < 1065 Then
+                        isOnTimeDeparture = True
+                        Debug.Print "17:45‘O‘ŞĞ‚Å’è‘ŞĞ: " & deptName & " - “Ío:" & deliveryContent & " ‘ŞĞ:" & leaveTimeStr
+                    End If
+                End If
+                
+                If isOnTimeDeparture Then
+                    deptStats(1) = deptStats(1) + 1  ' ’è‘ŞĞ“ú”‚ğ‘‰Á
+                    debugOnTimeCount = debugOnTimeCount + 1
+                End If
+            End If
+            
+            ' XV‚µ‚½’l‚ğ«‘‚É–ß‚·
+            deptDict(deptName) = deptStats
+        End If
+    Next rowIndex
+    
+    Debug.Print "‘‹Î–±“ú”: " & debugWorkDayCount
+    Debug.Print "’è‘ŞĞ‘”: " & debugOnTimeCount
+    
+    ' Œ‹‰Ê‚ğ•Ô‚·
+    Set GetOnTimeDepartureData = deptDict
+    Exit Function
+    
+ErrorHandler:
+    MsgBox "ƒf[ƒ^WŒv’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbCritical, "ƒGƒ‰["
+    Set GetOnTimeDepartureData = Nothing
+End Function
+' =====================================================
+' ‘‚«o‚µ—pƒvƒƒV[ƒWƒƒFŒvZŒ‹‰Ê‚ğŠù‘¶‚Ì•”–å•Êc‹ÆWŒv•\‚É’Ç‰Á
+' =====================================================
+Private Sub WriteResultsToSheet(ByVal results As Object, ByVal targetSheet As Worksheet)
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "WriteResultsToSheet: ŠJn"
+    Debug.Print "Œ‹‰ÊŒ”: " & results.count
+    
+    ' •”–å•Êc‹ÆWŒv•\‚ğ’T‚·
+    Dim headerRow As Long
+    Dim i As Long, j As Long
+    headerRow = 0
+    Debug.Print "ƒwƒbƒ_[s: " & headerRow
+    ' u•”v‚Æ‚¢‚¤ƒwƒbƒ_[‚ğ’T‚·iÅ‘å30s‚Ü‚ÅŒŸõj
+    For i = 1 To 30
+        If targetSheet.Cells(i, 1).Value = "•”" Then
+            headerRow = i
+            Exit For
+        End If
+    Next i
+    
+    ' ƒwƒbƒ_[‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡‚ÍƒGƒ‰[
+    If headerRow = 0 Then
+        MsgBox "•”–å•Êc‹ÆWŒv•\‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation, "ƒGƒ‰["
+        Exit Sub
+    End If
+    
+    ' Šù‘¶‚Ìƒwƒbƒ_[‚ÌÅŒã‚ÉV‚µ‚¢—ñ‚ğ’Ç‰Ái7—ñ–Ú‚©‚çj
+    targetSheet.Cells(headerRow, 7).Value = "‘‹Î–±“ú”"
+    targetSheet.Cells(headerRow, 8).Value = "’è‘ŞĞ“ú”"
+    targetSheet.Cells(headerRow, 9).Value = "’è‘ŞĞ—¦"
+    
+    ' V‚µ‚¢ƒwƒbƒ_[‚Ì‘®İ’èiŒrü‚È‚µA”wŒiF‚Æ‘¾š‚Ì‚İj
+    With targetSheet.Range(targetSheet.Cells(headerRow, 7), targetSheet.Cells(headerRow, 9))
+        .Font.Bold = True
+        .HorizontalAlignment = xlCenter
+        .Interior.Color = RGB(200, 200, 200)
+        ' Œrü‚Íİ’è‚µ‚È‚¢
+    End With
+    
+    ' Še•”–å‚Ìƒf[ƒ^‚ğ’Ç‰Á
+    Dim currentRow As Long
+    Dim deptName As String
+    Dim deptStats As Variant
+    Dim totalWorkDays As Long
+    Dim onTimeDays As Long
+    Dim onTimeRate As Double
+    
+    ' ‘SĞ‡Œv—p‚Ì•Ï”
+    Dim totalWorkDaysAll As Long
+    Dim totalOnTimeDaysAll As Long
+    totalWorkDaysAll = 0
+    totalOnTimeDaysAll = 0
+    
+    currentRow = headerRow + 1
+    
+    ' •”—ñ‚Ì’l‚ğ“Ç‚İæ‚Á‚ÄA‘Î‰‚·‚éƒf[ƒ^‚ğ’Ç‰Á
+    Do While targetSheet.Cells(currentRow, 1).Value <> ""
+        deptName = Trim(targetSheet.Cells(currentRow, 1).Value)
+        
+    ' u‡Œvvs‚Ìê‡
+    If deptName = "‡Œv" Then
+        ' ‘SĞ‡Œv‚ğŒvZ‚µ‚Äo—Í
+        If totalWorkDaysAll > 0 Then
+            onTimeRate = (totalOnTimeDaysAll / totalWorkDaysAll) * 100
+        Else
+            onTimeRate = 0
+        End If
+        
+        targetSheet.Cells(currentRow, 7).Value = totalWorkDaysAll
+        targetSheet.Cells(currentRow, 8).Value = totalOnTimeDaysAll
+        targetSheet.Cells(currentRow, 9).Value = Format(onTimeRate, "0.0") & "%"
+        
+        ' ‡Œvs‚Ì‘®İ’èi’†‰›‘µ‚¦‚ğ’Ç‰Áj
+        With targetSheet.Range(targetSheet.Cells(currentRow, 7), targetSheet.Cells(currentRow, 9))
+            .Font.Bold = True
+            .Interior.Color = RGB(240, 240, 240)
+            .HorizontalAlignment = xlCenter  ' ’†‰›‘µ‚¦
+        End With
+        Exit Do
+    End If
+        
+        ' ’Êí‚Ì•”–åƒf[ƒ^
+        If results.Exists(deptName) Then
+            deptStats = results(deptName)
+            totalWorkDays = deptStats(0)
+            onTimeDays = deptStats(1)
+            
+            ' ‘SĞ‡Œv‚É‰ÁZ
+            totalWorkDaysAll = totalWorkDaysAll + totalWorkDays
+            totalOnTimeDaysAll = totalOnTimeDaysAll + onTimeDays
+            
+            ' ’è‘ŞĞ—¦‚ÌŒvZ
+            If totalWorkDays > 0 Then
+                onTimeRate = (onTimeDays / totalWorkDays) * 100
+            Else
+                onTimeRate = 0
+            End If
+            
+            ' ƒf[ƒ^‚Ì‘‚«‚İ
+            targetSheet.Cells(currentRow, 7).Value = totalWorkDays
+            targetSheet.Cells(currentRow, 8).Value = onTimeDays
+            targetSheet.Cells(currentRow, 9).Value = Format(onTimeRate, "0.0") & "%"
+        Else
+            ' ƒf[ƒ^‚ª‚È‚¢ê‡‚Í0‚ğ•\¦
+            targetSheet.Cells(currentRow, 7).Value = 0
+            targetSheet.Cells(currentRow, 8).Value = 0
+            targetSheet.Cells(currentRow, 9).Value = "0.0%"
+        End If
+        
+        currentRow = currentRow + 1
+    Loop
+    
+    ' ƒf[ƒ^”ÍˆÍ‘S‘Ì‚ÌŒrüİ’è
+    ' With targetSheet.Range(targetSheet.Cells(headerRow + 1, 7), _
+    '                       targetSheet.Cells(currentRow - 1, 9))
+    '     .Borders.LineStyle = xlContinuous
+    '     .Borders.Weight = xlThin
+    '     .HorizontalAlignment = xlCenter
+    ' End With
+    
+    ' ƒf[ƒ^”ÍˆÍ‚Ì‚İ‚ÉŒrüİ’èiƒwƒbƒ_[‚ÍŠÜ‚Ü‚È‚¢j
+    With targetSheet.Range(targetSheet.Cells(headerRow + 1, 7), _
+                          targetSheet.Cells(currentRow, 9))  ' currentRow‚Ü‚Åi‡ŒvsŠÜ‚Şj
+        .Borders.LineStyle = xlContinuous
+        .Borders.Weight = xlThin
+        .HorizontalAlignment = xlCenter
+    End With
+    
+    ' —ñ•‚Ì©“®’²®
+    targetSheet.Columns("G:I").AutoFit
+    
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Œ‹‰Ê‚Ìo—Í’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbCritical, "ƒGƒ‰["
+End Sub
+' =====================================================
+' ƒ[ƒJƒ‹ŠÔ•ÏŠ·ŠÖ”iModule1‚ÌŠÖ”‚ªg‚¦‚È‚¢ê‡‚Ì‘ã‘Öj
+' =====================================================
+Private Function ConvertTimeToMinutesLocal(timeStr As Variant) As Double
+    On Error GoTo ErrorHandler
+    
+    ' ƒfƒoƒbƒO—p
+    Dim originalValue As String
+    originalValue = CStr(timeStr)
+    
+    ' ‹ó•¶š‚Ü‚½‚ÍNull‚Ìê‡
+    If IsEmpty(timeStr) Or timeStr = "" Then
+        ConvertTimeToMinutesLocal = 0
+        Exit Function
+    End If
+    
+    ' ”’lŒ`®iExcel‚ÌŠÔ’lj‚Ìê‡
+    If IsNumeric(timeStr) Then
+        ' Excel‚ÌŠÔ‚Í“ú‚ÌŠ„‡‚ÅŠi”[‚³‚ê‚Ä‚¢‚é
+        ConvertTimeToMinutesLocal = CDbl(timeStr) * 24 * 60
+        ' ƒfƒoƒbƒOo—Í
+        If ConvertTimeToMinutesLocal >= 450 And ConvertTimeToMinutesLocal <= 470 Then
+            Debug.Print "ŠÔ•ÏŠ·(”’l): " & originalValue & " ¨ " & ConvertTimeToMinutesLocal & "•ª"
+        End If
+        Exit Function
+    End If
+    
+    ' HH:MMŒ`®‚Ì•¶š—ñ‚Ìê‡
+    Dim timeParts As Variant
+    timeParts = Split(CStr(timeStr), ":")
+    
+    If UBound(timeParts) >= 1 Then
+        If IsNumeric(timeParts(0)) And IsNumeric(timeParts(1)) Then
+            Dim hours As Double, minutes As Double
+            hours = CDbl(timeParts(0))
+            minutes = CDbl(timeParts(1))
+            ConvertTimeToMinutesLocal = hours * 60 + minutes
+            ' ƒfƒoƒbƒOo—Í
+            If ConvertTimeToMinutesLocal >= 450 And ConvertTimeToMinutesLocal <= 470 Then
+                Debug.Print "ŠÔ•ÏŠ·(•¶š—ñ): " & originalValue & " ¨ " & ConvertTimeToMinutesLocal & "•ª"
+            End If
+        Else
+            ConvertTimeToMinutesLocal = 0
+        End If
+    Else
+        ConvertTimeToMinutesLocal = 0
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    ConvertTimeToMinutesLocal = 0
+End Function
+
+
+

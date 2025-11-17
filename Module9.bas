@@ -1,211 +1,208 @@
-ï»¿' ========================================
-' Module9
-' ã‚¿ã‚¤ãƒ—: æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-' è¡Œæ•°: 205
-' ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚: 2025-10-20 14:30:49
-' ========================================
+Attribute VB_Name = "Module9"
+Option Explicit
 
-Option Explicit
-
-' *************************************************************
-' è¨ºæ–­ãƒ„ãƒ¼ãƒ«: è¨­å®šå€¤ã®ç¢ºèª
-' ä½¿ç”¨æ–¹æ³•: VBã‚¨ãƒ‡ã‚£ã‚¿ã§F5å®Ÿè¡Œ
-' *************************************************************
-
-Sub Diagnose_Settings()
-    On Error Resume Next
-    
-    Dim result As String
-    result = "ã€è¨­å®šè¨ºæ–­çµæœã€‘" & vbCrLf & vbCrLf
-    
-    ' è¨­å®šã‚·ãƒ¼ãƒˆã®å­˜åœ¨ç¢ºèª
-    Dim configSheet As Worksheet
-    Set configSheet = ThisWorkbook.Sheets("è¨­å®š")
-    
-    If configSheet Is Nothing Then
-        result = result & "[ERROR] è¨­å®šã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“" & vbCrLf
-        MsgBox result, vbCritical, "è¨ºæ–­çµæœ"
-        Exit Sub
-    Else
-        result = result & "[OK] è¨­å®šã‚·ãƒ¼ãƒˆãŒå­˜åœ¨ã—ã¾ã™" & vbCrLf & vbCrLf
-    End If
-    
-    ' Aåˆ—ã®é …ç›®åã‚’ç¢ºèª
-    result = result & "ã€è¨­å®šé …ç›®ã€‘" & vbCrLf
-    result = result & "A1: " & configSheet.Range("A1").Value & vbCrLf
-    result = result & "A2: " & configSheet.Range("A2").Value & vbCrLf
-    result = result & "A3: " & configSheet.Range("A3").Value & vbCrLf
-    result = result & "A4: " & configSheet.Range("A4").Value & vbCrLf
-    result = result & "A5: " & configSheet.Range("A5").Value & vbCrLf & vbCrLf
-    
-    ' Båˆ—ã®å€¤ã‚’ç¢ºèª
-    result = result & "ã€è¨­å®šå€¤ã€‘" & vbCrLf
-    
-    ' Webhook URL
-    Dim webhookUrl As String
-    webhookUrl = Trim(configSheet.Range("B1").Value)
-    If webhookUrl = "" Then
-        result = result & "[ERROR] Webhook URL: æœªè¨­å®š" & vbCrLf
-    Else
-        result = result & "[OK] Webhook URL: " & Left(webhookUrl, 50) & "..." & vbCrLf
-    End If
-    
-    ' Bot Name
-    Dim botName As String
-    botName = Trim(configSheet.Range("B2").Value)
-    If botName = "" Then
-        result = result & "[WARN] Bot Name: æœªè¨­å®š" & vbCrLf
-    Else
-        result = result & "[OK] Bot Name: " & botName & vbCrLf
-    End If
-    
-    ' Version
-    Dim version As String
-    version = Trim(configSheet.Range("B3").Value)
-    result = result & "[INFO] Version: " & version & vbCrLf
-    
-    ' Last Update
-    Dim lastUpdate As String
-    lastUpdate = Trim(configSheet.Range("B4").Value)
-    result = result & "[INFO] Last Update: " & lastUpdate & vbCrLf
-    
-    ' Channel ID
-    Dim channelId As String
-    channelId = Trim(configSheet.Range("B5").Value)
-    If channelId = "" Then
-        result = result & "[ERROR] Channel ID: æœªè¨­å®š" & vbCrLf
-    Else
-        result = result & "[OK] Channel ID: " & channelId & vbCrLf
-    End If
-    
-    result = result & vbCrLf & "ã€è¨ºæ–­çµæœã‚µãƒãƒªãƒ¼ã€‘" & vbCrLf
-    
-    If webhookUrl = "" Or channelId = "" Then
-        result = result & "[CRITICAL] Webhook URLã¾ãŸã¯Channel IDãŒæœªè¨­å®šã§ã™" & vbCrLf
-        result = result & "ã“ã‚Œã‚‰ã®è¨­å®šãŒãªã„ã¨é€šçŸ¥ã‚’é€ä¿¡ã§ãã¾ã›ã‚“ã€‚" & vbCrLf & vbCrLf
-        result = result & "ã€è¨­å®šæ–¹æ³•ã€‘" & vbCrLf
-        result = result & "1. VBã‚¨ãƒ‡ã‚£ã‚¿ã§ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆã‚¨ã‚¯ã‚¹ãƒ—ãƒ­ãƒ¼ãƒ©ãƒ¼ã‚’é–‹ã" & vbCrLf
-        result = result & "2. [è¨­å®š]ã‚·ãƒ¼ãƒˆã‚’å³ã‚¯ãƒªãƒƒã‚¯ > ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£" & vbCrLf
-        result = result & "3. Visible ã‚’ [0 - xlSheetVisible] ã«å¤‰æ›´" & vbCrLf
-        result = result & "4. Excelã«æˆ»ã‚Šã€è¨­å®šã‚·ãƒ¼ãƒˆã‚’é–‹ã" & vbCrLf
-        result = result & "5. B1ã‚»ãƒ«ã«Webhook URLã€B5ã‚»ãƒ«ã«Channel IDã‚’å…¥åŠ›" & vbCrLf
-        result = result & "6. ä¿å­˜å¾Œã€Visibleã‚’ [2 - xlSheetVeryHidden] ã«æˆ»ã™"
-    Else
-        result = result & "[SUCCESS] ã™ã¹ã¦ã®å¿…é ˆè¨­å®šãŒå®Œäº†ã—ã¦ã„ã¾ã™"
-    End If
-    
-    ' çµæœã‚’è¡¨ç¤º
-    MsgBox result, vbInformation, "è¨­å®šè¨ºæ–­çµæœ"
-    
-    ' ã‚¤ãƒŸãƒ‡ã‚£ã‚¨ã‚¤ãƒˆã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«ã‚‚å‡ºåŠ›
-    Debug.Print vbCrLf & "========================================="
-    Debug.Print result
-    Debug.Print "=========================================" & vbCrLf
-End Sub
-
-
-' *************************************************************
-' è¨ºæ–­ãƒ„ãƒ¼ãƒ«: GetChannelIDé–¢æ•°ã®ãƒ†ã‚¹ãƒˆ
-' *************************************************************
-Sub Test_GetChannelID()
-    On Error Resume Next
-    
-    Dim channelId As String
-    channelId = GetChannelID()
-    
-    If Err.Number <> 0 Then
-        MsgBox "[ERROR] GetChannelIDé–¢æ•°ã§ã‚¨ãƒ©ãƒ¼ç™ºç”Ÿ" & vbCrLf & vbCrLf & _
-               "ã‚¨ãƒ©ãƒ¼ç•ªå·: " & Err.Number & vbCrLf & _
-               "ã‚¨ãƒ©ãƒ¼å†…å®¹: " & Err.Description, _
-               vbCritical, "é–¢æ•°ãƒ†ã‚¹ãƒˆ"
-        Exit Sub
-    End If
-    
-    If channelId = "" Then
-        MsgBox "[ERROR] Channel IDãŒå–å¾—ã§ãã¾ã›ã‚“ã§ã—ãŸ" & vbCrLf & vbCrLf & _
-               "è¨­å®šã‚·ãƒ¼ãƒˆã®B5ã‚»ãƒ«ã‚’ç¢ºèªã—ã¦ãã ã•ã„", _
-               vbExclamation, "é–¢æ•°ãƒ†ã‚¹ãƒˆ"
-    Else
-        MsgBox "[SUCCESS] Channel IDã‚’å–å¾—ã—ã¾ã—ãŸ" & vbCrLf & vbCrLf & _
-               "Channel ID: " & channelId, _
-               vbInformation, "é–¢æ•°ãƒ†ã‚¹ãƒˆ"
-    End If
-End Sub
-
-
-' *************************************************************
-' è¨ºæ–­ãƒ„ãƒ¼ãƒ«: GetWebhookURLé–¢æ•°ã®ãƒ†ã‚¹ãƒˆ
-' *************************************************************
-Sub Test_GetWebhookURL()
-    On Error Resume Next
-    
-    Dim webhookUrl As String
-    webhookUrl = GetWebhookURL()
-    
-    If Err.Number <> 0 Then
-        MsgBox "[ERROR] GetWebhookURLé–¢æ•°ã§ã‚¨ãƒ©ãƒ¼ç™ºç”Ÿ" & vbCrLf & vbCrLf & _
-               "ã‚¨ãƒ©ãƒ¼ç•ªå·: " & Err.Number & vbCrLf & _
-               "ã‚¨ãƒ©ãƒ¼å†…å®¹: " & Err.Description, _
-               vbCritical, "é–¢æ•°ãƒ†ã‚¹ãƒˆ"
-        Exit Sub
-    End If
-    
-    If webhookUrl = "" Then
-        MsgBox "[ERROR] Webhook URLãŒå–å¾—ã§ãã¾ã›ã‚“ã§ã—ãŸ" & vbCrLf & vbCrLf & _
-               "è¨­å®šã‚·ãƒ¼ãƒˆã®B1ã‚»ãƒ«ã‚’ç¢ºèªã—ã¦ãã ã•ã„", _
-               vbExclamation, "é–¢æ•°ãƒ†ã‚¹ãƒˆ"
-    Else
-        MsgBox "[SUCCESS] Webhook URLã‚’å–å¾—ã—ã¾ã—ãŸ" & vbCrLf & vbCrLf & _
-               "URL: " & Left(webhookUrl, 50) & "...", _
-               vbInformation, "é–¢æ•°ãƒ†ã‚¹ãƒˆ"
-    End If
-End Sub
-
-
-' *************************************************************
-' è¨ºæ–­ãƒ„ãƒ¼ãƒ«: è¨­å®šã‚·ãƒ¼ãƒˆã‚’ä¸€æ™‚çš„ã«è¡¨ç¤º
-' *************************************************************
-Sub Show_ConfigSheet()
-    On Error Resume Next
-    
-    Dim configSheet As Worksheet
-    Set configSheet = ThisWorkbook.Sheets("è¨­å®š")
-    
-    If configSheet Is Nothing Then
-        MsgBox "[ERROR] è¨­å®šã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“", vbCritical
-        Exit Sub
-    End If
-    
-    ' ã‚·ãƒ¼ãƒˆã‚’è¡¨ç¤º
-    configSheet.Visible = xlSheetVisible
-    configSheet.Activate
-    
-    MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆã‚’è¡¨ç¤ºã—ã¾ã—ãŸã€‚" & vbCrLf & vbCrLf & _
-           "ã€ç¢ºèªäº‹é …ã€‘" & vbCrLf & _
-           "B1ã‚»ãƒ«: Webhook URL" & vbCrLf & _
-           "B5ã‚»ãƒ«: Channel ID" & vbCrLf & vbCrLf & _
-           "ç¢ºèªå¾Œã€Hide_ConfigSheet ã‚’å®Ÿè¡Œã—ã¦éè¡¨ç¤ºã«æˆ»ã—ã¦ãã ã•ã„", _
-           vbInformation, "è¨­å®šã‚·ãƒ¼ãƒˆè¡¨ç¤º"
-End Sub
-
-
-' *************************************************************
-' è¨ºæ–­ãƒ„ãƒ¼ãƒ«: è¨­å®šã‚·ãƒ¼ãƒˆã‚’éè¡¨ç¤ºã«æˆ»ã™
-' *************************************************************
-Sub Hide_ConfigSheet()
-    On Error Resume Next
-    
-    Dim configSheet As Worksheet
-    Set configSheet = ThisWorkbook.Sheets("è¨­å®š")
-    
-    If configSheet Is Nothing Then
-        MsgBox "[ERROR] è¨­å®šã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“", vbCritical
-        Exit Sub
-    End If
-    
-    ' ã‚·ãƒ¼ãƒˆã‚’éè¡¨ç¤º
-    configSheet.Visible = xlSheetVeryHidden
-    
-    MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆã‚’éè¡¨ç¤ºã«ã—ã¾ã—ãŸ", vbInformation, "è¨­å®šã‚·ãƒ¼ãƒˆéè¡¨ç¤º"
-End Sub
-
+' *************************************************************
+' f’fƒc[ƒ‹: İ’è’l‚ÌŠm”F
+' g—p•û–@: VBƒGƒfƒBƒ^‚ÅF5Às
+' *************************************************************
+
+Sub Diagnose_Settings()
+    On Error Resume Next
+    
+    Dim result As String
+    result = "yİ’èf’fŒ‹‰Êz" & vbCrLf & vbCrLf
+    
+    ' İ’èƒV[ƒg‚Ì‘¶İŠm”F
+    Dim configSheet As Worksheet
+    Set configSheet = ThisWorkbook.Sheets("İ’è")
+    
+    If configSheet Is Nothing Then
+        result = result & "[ERROR] İ’èƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ" & vbCrLf
+        MsgBox result, vbCritical, "f’fŒ‹‰Ê"
+        Exit Sub
+    Else
+        result = result & "[OK] İ’èƒV[ƒg‚ª‘¶İ‚µ‚Ü‚·" & vbCrLf & vbCrLf
+    End If
+    
+    ' A—ñ‚Ì€–Ú–¼‚ğŠm”F
+    result = result & "yİ’è€–Úz" & vbCrLf
+    result = result & "A1: " & configSheet.Range("A1").Value & vbCrLf
+    result = result & "A2: " & configSheet.Range("A2").Value & vbCrLf
+    result = result & "A3: " & configSheet.Range("A3").Value & vbCrLf
+    result = result & "A4: " & configSheet.Range("A4").Value & vbCrLf
+    result = result & "A5: " & configSheet.Range("A5").Value & vbCrLf & vbCrLf
+    
+    ' B—ñ‚Ì’l‚ğŠm”F
+    result = result & "yİ’è’lz" & vbCrLf
+    
+    ' Webhook URL
+    Dim webhookUrl As String
+    webhookUrl = Trim(configSheet.Range("B1").Value)
+    If webhookUrl = "" Then
+        result = result & "[ERROR] Webhook URL: –¢İ’è" & vbCrLf
+    Else
+        result = result & "[OK] Webhook URL: " & Left(webhookUrl, 50) & "..." & vbCrLf
+    End If
+    
+    ' Bot Name
+    Dim botName As String
+    botName = Trim(configSheet.Range("B2").Value)
+    If botName = "" Then
+        result = result & "[WARN] Bot Name: –¢İ’è" & vbCrLf
+    Else
+        result = result & "[OK] Bot Name: " & botName & vbCrLf
+    End If
+    
+    ' Version
+    Dim version As String
+    version = Trim(configSheet.Range("B3").Value)
+    result = result & "[INFO] Version: " & version & vbCrLf
+    
+    ' Last Update
+    Dim lastUpdate As String
+    lastUpdate = Trim(configSheet.Range("B4").Value)
+    result = result & "[INFO] Last Update: " & lastUpdate & vbCrLf
+    
+    ' Channel ID
+    Dim channelId As String
+    channelId = Trim(configSheet.Range("B5").Value)
+    If channelId = "" Then
+        result = result & "[ERROR] Channel ID: –¢İ’è" & vbCrLf
+    Else
+        result = result & "[OK] Channel ID: " & channelId & vbCrLf
+    End If
+    
+    result = result & vbCrLf & "yf’fŒ‹‰ÊƒTƒ}ƒŠ[z" & vbCrLf
+    
+    If webhookUrl = "" Or channelId = "" Then
+        result = result & "[CRITICAL] Webhook URL‚Ü‚½‚ÍChannel ID‚ª–¢İ’è‚Å‚·" & vbCrLf
+        result = result & "‚±‚ê‚ç‚Ìİ’è‚ª‚È‚¢‚Æ’Ê’m‚ğ‘—M‚Å‚«‚Ü‚¹‚ñB" & vbCrLf & vbCrLf
+        result = result & "yİ’è•û–@z" & vbCrLf
+        result = result & "1. VBƒGƒfƒBƒ^‚ÅƒvƒƒWƒFƒNƒgƒGƒNƒXƒvƒ[ƒ‰[‚ğŠJ‚­" & vbCrLf
+        result = result & "2. [İ’è]ƒV[ƒg‚ğ‰EƒNƒŠƒbƒN > ƒvƒƒpƒeƒB" & vbCrLf
+        result = result & "3. Visible ‚ğ [0 - xlSheetVisible] ‚É•ÏX" & vbCrLf
+        result = result & "4. Excel‚É–ß‚èAİ’èƒV[ƒg‚ğŠJ‚­" & vbCrLf
+        result = result & "5. B1ƒZƒ‹‚ÉWebhook URLAB5ƒZƒ‹‚ÉChannel ID‚ğ“ü—Í" & vbCrLf
+        result = result & "6. •Û‘¶ŒãAVisible‚ğ [2 - xlSheetVeryHidden] ‚É–ß‚·"
+    Else
+        result = result & "[SUCCESS] ‚·‚×‚Ä‚Ì•K{İ’è‚ªŠ®—¹‚µ‚Ä‚¢‚Ü‚·"
+    End If
+    
+    ' Œ‹‰Ê‚ğ•\¦
+    MsgBox result, vbInformation, "İ’èf’fŒ‹‰Ê"
+    
+    ' ƒCƒ~ƒfƒBƒGƒCƒgƒEƒBƒ“ƒhƒE‚É‚ào—Í
+    Debug.Print vbCrLf & "========================================="
+    Debug.Print result
+    Debug.Print "=========================================" & vbCrLf
+End Sub
+
+
+' *************************************************************
+' f’fƒc[ƒ‹: GetChannelIDŠÖ”‚ÌƒeƒXƒg
+' *************************************************************
+Sub Test_GetChannelID()
+    On Error Resume Next
+    
+    Dim channelId As String
+    channelId = GetChannelID()
+    
+    If Err.Number <> 0 Then
+        MsgBox "[ERROR] GetChannelIDŠÖ”‚ÅƒGƒ‰[”­¶" & vbCrLf & vbCrLf & _
+               "ƒGƒ‰[”Ô†: " & Err.Number & vbCrLf & _
+               "ƒGƒ‰[“à—e: " & Err.Description, _
+               vbCritical, "ŠÖ”ƒeƒXƒg"
+        Exit Sub
+    End If
+    
+    If channelId = "" Then
+        MsgBox "[ERROR] Channel ID‚ªæ“¾‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½" & vbCrLf & vbCrLf & _
+               "İ’èƒV[ƒg‚ÌB5ƒZƒ‹‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢", _
+               vbExclamation, "ŠÖ”ƒeƒXƒg"
+    Else
+        MsgBox "[SUCCESS] Channel ID‚ğæ“¾‚µ‚Ü‚µ‚½" & vbCrLf & vbCrLf & _
+               "Channel ID: " & channelId, _
+               vbInformation, "ŠÖ”ƒeƒXƒg"
+    End If
+End Sub
+
+
+' *************************************************************
+' f’fƒc[ƒ‹: GetWebhookURLŠÖ”‚ÌƒeƒXƒg
+' *************************************************************
+Sub Test_GetWebhookURL()
+    On Error Resume Next
+    
+    Dim webhookUrl As String
+    webhookUrl = GetWebhookURL()
+    
+    If Err.Number <> 0 Then
+        MsgBox "[ERROR] GetWebhookURLŠÖ”‚ÅƒGƒ‰[”­¶" & vbCrLf & vbCrLf & _
+               "ƒGƒ‰[”Ô†: " & Err.Number & vbCrLf & _
+               "ƒGƒ‰[“à—e: " & Err.Description, _
+               vbCritical, "ŠÖ”ƒeƒXƒg"
+        Exit Sub
+    End If
+    
+    If webhookUrl = "" Then
+        MsgBox "[ERROR] Webhook URL‚ªæ“¾‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½" & vbCrLf & vbCrLf & _
+               "İ’èƒV[ƒg‚ÌB1ƒZƒ‹‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢", _
+               vbExclamation, "ŠÖ”ƒeƒXƒg"
+    Else
+        MsgBox "[SUCCESS] Webhook URL‚ğæ“¾‚µ‚Ü‚µ‚½" & vbCrLf & vbCrLf & _
+               "URL: " & Left(webhookUrl, 50) & "...", _
+               vbInformation, "ŠÖ”ƒeƒXƒg"
+    End If
+End Sub
+
+
+' *************************************************************
+' f’fƒc[ƒ‹: İ’èƒV[ƒg‚ğˆê“I‚É•\¦
+' *************************************************************
+Sub Show_ConfigSheet()
+    On Error Resume Next
+    
+    Dim configSheet As Worksheet
+    Set configSheet = ThisWorkbook.Sheets("İ’è")
+    
+    If configSheet Is Nothing Then
+        MsgBox "[ERROR] İ’èƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ", vbCritical
+        Exit Sub
+    End If
+    
+    ' ƒV[ƒg‚ğ•\¦
+    configSheet.Visible = xlSheetVisible
+    configSheet.Activate
+    
+    MsgBox "İ’èƒV[ƒg‚ğ•\¦‚µ‚Ü‚µ‚½B" & vbCrLf & vbCrLf & _
+           "yŠm”F–€z" & vbCrLf & _
+           "B1ƒZƒ‹: Webhook URL" & vbCrLf & _
+           "B5ƒZƒ‹: Channel ID" & vbCrLf & vbCrLf & _
+           "Šm”FŒãAHide_ConfigSheet ‚ğÀs‚µ‚Ä”ñ•\¦‚É–ß‚µ‚Ä‚­‚¾‚³‚¢", _
+           vbInformation, "İ’èƒV[ƒg•\¦"
+End Sub
+
+
+' *************************************************************
+' f’fƒc[ƒ‹: İ’èƒV[ƒg‚ğ”ñ•\¦‚É–ß‚·
+' *************************************************************
+Sub Hide_ConfigSheet()
+    On Error Resume Next
+    
+    Dim configSheet As Worksheet
+    Set configSheet = ThisWorkbook.Sheets("İ’è")
+    
+    If configSheet Is Nothing Then
+        MsgBox "[ERROR] İ’èƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ", vbCritical
+        Exit Sub
+    End If
+    
+    ' ƒV[ƒg‚ğ”ñ•\¦
+    configSheet.Visible = xlSheetVeryHidden
+    
+    MsgBox "İ’èƒV[ƒg‚ğ”ñ•\¦‚É‚µ‚Ü‚µ‚½", vbInformation, "İ’èƒV[ƒg”ñ•\¦"
+End Sub
+
+
+
+

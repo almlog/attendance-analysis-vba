@@ -1,67 +1,62 @@
-ï»¿' ========================================
-' Module4
-' ã‚¿ã‚¤ãƒ—: æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-' è¡Œæ•°: 61
-' ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚: 2025-10-20 14:30:49
-' ========================================
+Attribute VB_Name = "Module4"
+Option Explicit
 
-Option Explicit
-
-' *************************************************************
-' ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ï¼šæ—¥ä»˜ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£é–¢æ•°
-' ç›®çš„ï¼šæ—¥ä»˜é–¢é€£ã®åˆ¤å®šã‚„è¨ˆç®—ã‚’è¡Œã†é–¢æ•°ç¾¤
-' Copyright (c) 2025 SI1 shunpei.suzuki
-' ä½œæˆæ—¥ï¼š2025å¹´4æœˆ2æ—¥
-'
-' æ”¹ç‰ˆå±¥æ­´ï¼š
-' 2025/04/02 module2ã‹ã‚‰åˆ†å‰²ä½œæˆ
-' *************************************************************
-
-' æœˆæœ«ã®æœ€å¾Œã®5å–¶æ¥­æ—¥ä»¥å†…ã‹ã©ã†ã‹ã‚’åˆ¤å®šã™ã‚‹é–¢æ•°
-Public Function IsWithinLastFiveBusinessDaysOfMonth(checkDate As Date) As Boolean
-    Dim lastDayOfMonth As Date
-    Dim businessDaysLeft As Integer
-    Dim currentDate As Date
-    Dim i As Integer
-    
-    ' æœˆã®æœ€çµ‚æ—¥ã‚’å–å¾—
-    lastDayOfMonth = DateSerial(Year(checkDate), Month(checkDate) + 1, 0)
-    
-    ' æœ€çµ‚æ—¥ã‹ã‚‰é€†ç®—ã—ã¦5å–¶æ¥­æ—¥ã‚’ã‚«ã‚¦ãƒ³ãƒˆ
-    businessDaysLeft = 0
-    currentDate = lastDayOfMonth
-    
-    ' æœ€å¤§ã§æœˆæœ«ã‹ã‚‰10æ—¥å‰ã¾ã§é¡ã£ã¦5å–¶æ¥­æ—¥ã‚’æ¢ã™
-    For i = 0 To 10
-        If currentDate < checkDate Then
-            ' ãƒã‚§ãƒƒã‚¯æ—¥ã‚ˆã‚Šå‰ã®æ—¥ä»˜ã«ãªã£ãŸã‚‰çµ‚äº†
-            Exit For
-        End If
-        
-        ' åœŸæ—¥ã¨ç¥æ—¥ã‚’ã‚¹ã‚­ãƒƒãƒ—ï¼ˆç¥æ—¥åˆ¤å®šã¯ç°¡æ˜“çš„ï¼‰
-        If Weekday(currentDate) <> vbSaturday And Weekday(currentDate) <> vbSunday And Not IsHoliday(currentDate) Then
-            businessDaysLeft = businessDaysLeft + 1
-            
-            ' 5å–¶æ¥­æ—¥ä»¥å†…ãªã‚‰True
-            If businessDaysLeft <= 5 And currentDate = checkDate Then
-                IsWithinLastFiveBusinessDaysOfMonth = True
-                Exit Function
-            End If
-        End If
-        
-        ' å‰æ—¥ã¸
-        currentDate = currentDate - 1
-    Next i
-    
-    ' 5å–¶æ¥­æ—¥ä»¥å†…ã§ãªã‘ã‚Œã°False
-    IsWithinLastFiveBusinessDaysOfMonth = False
-End Function
-
-' ç¥æ—¥ã‹ã©ã†ã‹ã‚’åˆ¤å®šã™ã‚‹é–¢æ•°ï¼ˆå®Ÿéš›ã®ç¥æ—¥åˆ¤å®šã¯ã‚ˆã‚Šè¤‡é›‘ã«ãªã‚‹ãŸã‚ã€å¿…è¦ã«å¿œã˜ã¦æ‹¡å¼µï¼‰
-Public Function IsHoliday(checkDate As Date) As Boolean
-    ' ã“ã“ã«ç¥æ—¥åˆ¤å®šã®ãƒ­ã‚¸ãƒƒã‚¯ã‚’è¿½åŠ 
-    ' ä¾‹: ç¥æ—¥ãƒã‚¹ã‚¿ã‚’å‚ç…§ã™ã‚‹ãªã©
-    
-    ' ç°¡æ˜“çš„ãªå®Ÿè£…ï¼ˆå®Ÿéš›ã®ç’°å¢ƒã«åˆã‚ã›ã¦ä¿®æ­£ãŒå¿…è¦ï¼‰
-    IsHoliday = False
-End Function
+' *************************************************************
+' ƒ‚ƒWƒ…[ƒ‹F“ú•tƒ†[ƒeƒBƒŠƒeƒBŠÖ”
+' –Ú“IF“ú•tŠÖ˜A‚Ì”»’è‚âŒvZ‚ğs‚¤ŠÖ”ŒQ
+' Copyright (c) 2025 SI1 shunpei.suzuki
+' ì¬“úF2025”N4Œ2“ú
+'
+' ‰ü”Å—š—ğF
+' 2025/04/02 module2‚©‚ç•ªŠ„ì¬
+' *************************************************************
+
+' Œ––‚ÌÅŒã‚Ì5‰c‹Æ“úˆÈ“à‚©‚Ç‚¤‚©‚ğ”»’è‚·‚éŠÖ”
+Public Function IsWithinLastFiveBusinessDaysOfMonth(checkDate As Date) As Boolean
+    Dim lastDayOfMonth As Date
+    Dim businessDaysLeft As Integer
+    Dim currentDate As Date
+    Dim i As Integer
+    
+    ' Œ‚ÌÅI“ú‚ğæ“¾
+    lastDayOfMonth = DateSerial(Year(checkDate), Month(checkDate) + 1, 0)
+    
+    ' ÅI“ú‚©‚ç‹tZ‚µ‚Ä5‰c‹Æ“ú‚ğƒJƒEƒ“ƒg
+    businessDaysLeft = 0
+    currentDate = lastDayOfMonth
+    
+    ' Å‘å‚ÅŒ––‚©‚ç10“ú‘O‚Ü‚Å‘k‚Á‚Ä5‰c‹Æ“ú‚ğ’T‚·
+    For i = 0 To 10
+        If currentDate < checkDate Then
+            ' ƒ`ƒFƒbƒN“ú‚æ‚è‘O‚Ì“ú•t‚É‚È‚Á‚½‚çI—¹
+            Exit For
+        End If
+        
+        ' “y“ú‚Æj“ú‚ğƒXƒLƒbƒvij“ú”»’è‚ÍŠÈˆÕ“Ij
+        If Weekday(currentDate) <> vbSaturday And Weekday(currentDate) <> vbSunday And Not IsHoliday(currentDate) Then
+            businessDaysLeft = businessDaysLeft + 1
+            
+            ' 5‰c‹Æ“úˆÈ“à‚È‚çTrue
+            If businessDaysLeft <= 5 And currentDate = checkDate Then
+                IsWithinLastFiveBusinessDaysOfMonth = True
+                Exit Function
+            End If
+        End If
+        
+        ' ‘O“ú‚Ö
+        currentDate = currentDate - 1
+    Next i
+    
+    ' 5‰c‹Æ“úˆÈ“à‚Å‚È‚¯‚ê‚ÎFalse
+    IsWithinLastFiveBusinessDaysOfMonth = False
+End Function
+
+' j“ú‚©‚Ç‚¤‚©‚ğ”»’è‚·‚éŠÖ”iÀÛ‚Ìj“ú”»’è‚Í‚æ‚è•¡G‚É‚È‚é‚½‚ßA•K—v‚É‰‚¶‚ÄŠg’£j
+Public Function IsHoliday(checkDate As Date) As Boolean
+    ' ‚±‚±‚Éj“ú”»’è‚ÌƒƒWƒbƒN‚ğ’Ç‰Á
+    ' —á: j“úƒ}ƒXƒ^‚ğQÆ‚·‚é‚È‚Ç
+    
+    ' ŠÈˆÕ“I‚ÈÀ‘•iÀÛ‚ÌŠÂ‹«‚É‡‚í‚¹‚ÄC³‚ª•K—vj
+    IsHoliday = False
+End Function
+

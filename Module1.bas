@@ -1,2027 +1,2507 @@
-ï»¿' ========================================
-' Module1
-' ã‚¿ã‚¤ãƒ—: æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-' è¡Œæ•°: 2020
-' ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚: 2025-10-20 14:30:48
-' ========================================
-
-
-Option Explicit
-' *************************************************************
-' ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ï¼šä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯
-' ç›®çš„ï¼šå®Ÿåƒæ™‚é–“ã«å¿œã˜ãŸä¼‘æ†©æ™‚é–“ã®å–å¾—ç¢ºèªãŠã‚ˆã³æ®‹æ¥­æ™‚é–“ã‚’è¨ˆç®—ã™ã‚‹
-' Copyright (c) 2025 SI1 shunpei.suzuki
-' ä½œæˆæ—¥ï¼š2025å¹´3æœˆ3æ—¥
-'
-' æ”¹ç‰ˆå±¥æ­´ï¼š
-' 2025/03/01 åˆç‰ˆä½œæˆ_v1.0
-' 2025/03/03 å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã¨çµ±åˆ_v1.5
-' 2025/03/07 å±Šå‡ºç”³è«‹æ™‚ã®å‚™è€ƒæ¬„ç¢ºèªã‚’è¿½åŠ â‘ 
-' 2025/03/11 å±Šå‡ºç”³è«‹æ™‚ã®å‚™è€ƒæ¬„ç¢ºèªã‚’è¿½åŠ â‘¡_v1.7
-' 2025/03/16 ã‚·ãƒ¼ãƒˆåã‚’å¤‰æ›´_v1.8
-' 2025/03/21 é™¤å¤–ç¤¾å“¡æ©Ÿèƒ½ãƒ»ç¤¾å“¡æ•°ã‚«ã‚¦ãƒ³ãƒˆä¿®æ­£ãƒ»ãƒ‘ãƒ•ã‚©ãƒ¼ãƒãƒ³ã‚¹æœ€é©åŒ–_v2.0
-' 2025/08/20 å®šæ™‚é€€ç¤¾ç‡è¨ˆç®—æ©Ÿèƒ½ã‚’çµ±åˆ_v2.1
-' *************************************************************
-' ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
-Public g_HeaderCheckError As Boolean
-Sub ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯()
-    Dim ws As Worksheet
-    Dim lastRow As Long
-    Dim i As Long, j As Long
-    Dim å®Ÿåƒæ™‚é–“ As Double
-    Dim ä¼‘æ†©æ™‚é–“ As Double
-    Dim å¿…è¦ä¼‘æ†©æ™‚é–“ As Double
-    Dim ä¼‘æ†©ä¸è¶³ As Double
-    Dim resultSheet As Worksheet
-    Dim violationSheet As Worksheet
-    Dim deliverySheet As Worksheet
-    Dim overtimeSheet As Worksheet
-    
-    ' é™¤å¤–ç¤¾å“¡ç•ªå·ã‚’å–å¾—
-    Dim excludeIDs As Variant
-    excludeIDs = é™¤å¤–ç¤¾å“¡ç•ªå·å–å¾—()
-    
-    ' ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã‚·ãƒ¼ãƒˆã‚’ä½¿ç”¨
-    Set ws = ActiveSheet
-    
-    ' æœ€çµ‚è¡Œã‚’å–å¾—
-    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’ç¢ºèª
-    Dim ç¤¾å“¡ç•ªå·Col As Integer
-    Dim æ°åCol As Integer
-    Dim éƒ¨é–€Col As Integer
-    Dim ä¼‘æ†©æ™‚é–“Col As Integer
-    Dim å®Ÿåƒæ™‚é–“Col As Integer
-    Dim å±Šå‡ºCol As Integer
-    Dim çŠ¶æ³åŒºåˆ†Col As Integer
-    Dim æ³•å®šå¤–ä¼‘å‡ºCol As Integer  ' è¿½åŠ 
-    
-    ' å„åˆ—ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ç‰¹å®š
-    Dim å‚™è€ƒCol As Integer
-    å‚™è€ƒCol = 0
-    
-    For i = 1 To ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-        Select Case ws.Cells(1, i).Value
-            Case "ç¤¾å“¡ç•ªå·"
-                ç¤¾å“¡ç•ªå·Col = i
-            ' ä»–ã®åˆ—ï¼ˆç•¥ï¼‰
-            Case "å‚™è€ƒ"
-                å‚™è€ƒCol = i
-            Case "æ°å"
-                æ°åCol = i
-            Case "éƒ¨é–€"
-                éƒ¨é–€Col = i
-            Case "ä¼‘æ†©æ™‚é–“"
-                ä¼‘æ†©æ™‚é–“Col = i
-            Case "å®Ÿåƒæ™‚é–“"
-                å®Ÿåƒæ™‚é–“Col = i
-            Case "å±Šå‡ºå†…å®¹"
-                å±Šå‡ºCol = i
-            Case "çŠ¶æ³åŒºåˆ†"
-                çŠ¶æ³åŒºåˆ†Col = i
-            Case "æ³•å®šå¤–ä¼‘å‡º"
-                æ³•å®šå¤–ä¼‘å‡ºCol = i  ' è¿½åŠ 
-        End Select
-    Next i
-    
-    ' å‚™è€ƒåˆ—ãŒãƒ˜ãƒƒãƒ€ãƒ¼ã§è¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã€ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§BHåˆ—ï¼ˆé€šå¸¸ã¯60åˆ—ç›®ï¼‰ã‚’ä½¿ç”¨
-    If å‚™è€ƒCol = 0 Then
-        å‚™è€ƒCol = 60  ' BHåˆ—
-    End If
-    ' å¿…è¦ãªåˆ—ãŒå­˜åœ¨ã™ã‚‹ã‹ç¢ºèª
-    If ç¤¾å“¡ç•ªå·Col = 0 Or æ°åCol = 0 Or éƒ¨é–€Col = 0 Or ä¼‘æ†©æ™‚é–“Col = 0 Or å®Ÿåƒæ™‚é–“Col = 0 Then
-        MsgBox "å¿…è¦ãªåˆ—ï¼ˆç¤¾å“¡ç•ªå·ã€æ°åã€éƒ¨é–€ã€ä¼‘æ†©æ™‚é–“ã€å®Ÿåƒæ™‚é–“ï¼‰ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' çµæœç”¨ã®å…¨ä½“åˆ†æã‚·ãƒ¼ãƒˆã‚’ä½œæˆ
-    On Error Resume Next
-    Set resultSheet = Worksheets("æ™‚é–“ãƒã‚§ãƒƒã‚¯_å…¨ä½“")
-    If resultSheet Is Nothing Then
-        Set resultSheet = Worksheets.Add(After:=Worksheets(Worksheets.Count))
-        resultSheet.Name = "æ™‚é–“ãƒã‚§ãƒƒã‚¯_å…¨ä½“"
-    Else
-        resultSheet.Cells.Clear
-    End If
-    
-    ' é•åè€…ç”¨ã®ã‚·ãƒ¼ãƒˆã‚’ä½œæˆ
-    Set violationSheet = Worksheets("ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯_é•åè€…")
-    If violationSheet Is Nothing Then
-        Set violationSheet = Worksheets.Add(After:=resultSheet)
-        violationSheet.Name = "ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯_é•åè€…"
-    Else
-        violationSheet.Cells.Clear
-    End If
-    
-    ' å±Šå‡ºä¸€è¦§ç”¨ã®ã‚·ãƒ¼ãƒˆã‚’ä½œæˆ - åå‰å¤‰æ›´
-    Set deliverySheet = Worksheets("ä¼‘æ†©æ™‚é–“ã€å‚™è€ƒä¸€è¦§")
-    If deliverySheet Is Nothing Then
-        Set deliverySheet = Worksheets.Add(After:=violationSheet)
-        deliverySheet.Name = "ä¼‘æ†©æ™‚é–“ã€å‚™è€ƒä¸€è¦§"
-    Else
-        deliverySheet.Cells.Clear
-    End If
-    ' æ®‹æ¥­ä¸€è¦§ç”¨ã®ã‚·ãƒ¼ãƒˆã‚’ä½œæˆ
-    Set overtimeSheet = Worksheets("æ®‹æ¥­ä¸€è¦§")
-    If overtimeSheet Is Nothing Then
-        Set overtimeSheet = Worksheets.Add(After:=deliverySheet)
-        overtimeSheet.Name = "æ®‹æ¥­ä¸€è¦§"
-    Else
-        overtimeSheet.Cells.Clear
-    End If
-    On Error GoTo 0
-    
-    ' çµæœã‚·ãƒ¼ãƒˆã®ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’è¨­å®š
-    With resultSheet
-        .Cells(1, 1).Value = "ç¤¾å“¡ç•ªå·"
-        .Cells(1, 2).Value = "æ°å"
-        .Cells(1, 3).Value = "éƒ¨é–€"
-        .Cells(1, 4).Value = "æ—¥ä»˜"
-        .Cells(1, 5).Value = "å®Ÿåƒæ™‚é–“"
-        .Cells(1, 6).Value = "ä¼‘æ†©æ™‚é–“"
-        .Cells(1, 7).Value = "å¿…è¦ä¼‘æ†©æ™‚é–“"
-        .Cells(1, 8).Value = "ä¼‘æ†©ä¸è¶³æ™‚é–“"
-        .Cells(1, 9).Value = "æ®‹æ¥­æ™‚é–“"
-        .Cells(1, 10).Value = "ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹"
-        
-        ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-        .Range("A1:J1").Font.Bold = True
-        .Range("A1:J1").Interior.Color = RGB(200, 200, 200)
-    End With
-    
-    ' é•åè€…ã‚·ãƒ¼ãƒˆã®ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’è¨­å®š
-    With violationSheet
-        .Cells(1, 1).Value = "ç¤¾å“¡ç•ªå·"
-        .Cells(1, 2).Value = "æ°å"
-        .Cells(1, 3).Value = "éƒ¨é–€"
-        .Cells(1, 4).Value = "æ—¥ä»˜"
-        .Cells(1, 5).Value = "å®Ÿåƒæ™‚é–“"
-        .Cells(1, 6).Value = "ä¼‘æ†©æ™‚é–“"
-        .Cells(1, 7).Value = "å¿…è¦ä¼‘æ†©æ™‚é–“"
-        .Cells(1, 8).Value = "ä¼‘æ†©ä¸è¶³æ™‚é–“"
-        .Cells(1, 9).Value = "æ®‹æ¥­æ™‚é–“"
-        .Cells(1, 10).Value = "ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹"
-        .Cells(1, 11).Value = "å‚™è€ƒ"    ' å‚™è€ƒæ¬„ã‚’è¿½åŠ 
-        
-        ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-        .Range("A1:K1").Font.Bold = True
-        .Range("A1:K1").Interior.Color = RGB(200, 200, 200)
-    End With
-    
-    ' å±Šå‡ºä¸€è¦§ã‚·ãƒ¼ãƒˆã®ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’è¨­å®š
-    With deliverySheet
-        .Cells(1, 1).Value = "ç¤¾å“¡ç•ªå·"
-        .Cells(1, 2).Value = "æ°å"
-        .Cells(1, 3).Value = "éƒ¨é–€"
-        .Cells(1, 4).Value = "æ—¥ä»˜"
-        .Cells(1, 5).Value = "å±Šå‡º"
-        .Cells(1, 6).Value = "çŠ¶æ³åŒºåˆ†"
-        .Cells(1, 7).Value = "å®Ÿåƒæ™‚é–“"
-        .Cells(1, 8).Value = "ä¼‘æ†©æ™‚é–“"
-        .Cells(1, 9).Value = "å¿…è¦ä¼‘æ†©æ™‚é–“"
-        .Cells(1, 10).Value = "ä¼‘æ†©ä¸è¶³æ™‚é–“"
-        .Cells(1, 11).Value = "æ®‹æ¥­æ™‚é–“"
-        .Cells(1, 12).Value = "ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹"
-        .Cells(1, 13).Value = "å‚™è€ƒ"  ' å‚™è€ƒæ¬„ã‚’è¿½åŠ 
-        ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-        .Range("A1:M1").Font.Bold = True
-        .Range("A1:M1").Interior.Color = RGB(200, 200, 200)
-    End With
-    
-    ' æ®‹æ¥­ä¸€è¦§ã‚·ãƒ¼ãƒˆã®ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’è¨­å®š
-    With overtimeSheet
-        .Cells(1, 1).Value = "ç¤¾å“¡ç•ªå·"
-        .Cells(1, 2).Value = "æ°å"
-        .Cells(1, 3).Value = "éƒ¨é–€"
-        .Cells(1, 4).Value = "å¹´æœˆ"
-        .Cells(1, 5).Value = "ç·æ®‹æ¥­æ™‚é–“"
-        .Cells(1, 6).Value = "ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹"
-        
-        ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-        .Range("A1:F1").Font.Bold = True
-        .Range("A1:F1").Interior.Color = RGB(200, 200, 200)
-    End With
-    
-    ' è¡Œã”ã¨ã«å‡¦ç†
-    Dim resultRow As Long
-    Dim violationRow As Long
-    Dim deliveryRow As Long
-    resultRow = 2
-    violationRow = 2
-    deliveryRow = 2
-    
-    ' æ¦‚è¦æƒ…å ±ç”¨ã®å¤‰æ•°
-    Dim totalCount As Long
-    Dim violationCount As Long
-    Dim deliveryCount As Long
-    Dim processedCount As Long ' å®Ÿåƒæ™‚é–“ãŒ0ä»¥å¤–ã®ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°
-    Dim overtimeCount As Long ' æ®‹æ¥­æ™‚é–“ãŒç™ºç”Ÿã—ãŸãƒ¬ã‚³ãƒ¼ãƒ‰æ•°
-    Dim holidayWorkCount As Long ' ä¼‘æ—¥å‡ºå‹¤ã®ä»¶æ•°
-    totalCount = 0
-    violationCount = 0
-    deliveryCount = 0
-    processedCount = 0
-    overtimeCount = 0
-    holidayWorkCount = 0
-    
-    ' æ®‹æ¥­é›†è¨ˆç”¨ã®é…åˆ—
-    Dim ç¤¾å“¡ç•ªå·Array() As String
-    Dim æ°åArray() As String
-    Dim éƒ¨é–€Array() As String
-    Dim å¹´æœˆArray() As String
-    Dim æ®‹æ¥­æ™‚é–“Array() As Double
-    Dim é›†è¨ˆæ•° As Long
-    é›†è¨ˆæ•° = 0
-    ReDim ç¤¾å“¡ç•ªå·Array(1000) ' ååˆ†ãªå¤§ãã•ã§åˆæœŸåŒ–
-    ReDim æ°åArray(1000)
-    ReDim éƒ¨é–€Array(1000)
-    ReDim å¹´æœˆArray(1000)
-    ReDim æ®‹æ¥­æ™‚é–“Array(1000)
-    
-    ' æ—¥ä»˜åˆ—ã®ç‰¹å®š
-    Dim æ—¥ä»˜Col As Integer
-    For i = 1 To ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-        If ws.Cells(1, i).Value = "æ—¥ä»˜" Then
-            æ—¥ä»˜Col = i
-            Exit For
-        End If
-    Next i
-    
-    If æ—¥ä»˜Col = 0 Then æ—¥ä»˜Col = 5  ' ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§5åˆ—ç›®ã‚’æ—¥ä»˜ã¨ä»®å®š
-    ' ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼åˆ—ã‚’ãƒã‚§ãƒƒã‚¯ã—ã¦æ³•å®šå¤–ä¼‘æ—¥ã®æ›¸å¼è¨­å®šã‚’è¡Œã†
-    Dim ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col As Integer
-    Dim æ›œæ—¥Col As Integer
-    ' ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼åˆ—ã¨æ›œæ—¥åˆ—ã‚’ç‰¹å®š
-    For i = 1 To ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-        Select Case ws.Cells(1, i).Value
-            Case "ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼"
-                ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col = i
-            Case "æ›œæ—¥"
-                æ›œæ—¥Col = i
-        End Select
-    Next i
-    ' ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼åˆ—ãŒè¦‹ã¤ã‹ã£ãŸå ´åˆã€æ³•å®šå¤–ä¼‘æ—¥ã®æ›¸å¼è¨­å®š
-    If ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col > 0 Then
-        For i = 2 To lastRow
-            Dim ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼å€¤ As String
-            ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼å€¤ = Trim(ws.Cells(i, ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col).Value)
-            
-            ' æ³•å®šå¤–ä¼‘æ—¥ï¼ˆã€Œæ³•å®šå¤–ã€ã¾ãŸã¯ã€Œä¼‘ã€ã¨ã„ã†æ–‡å­—ã‚’å«ã‚€ï¼‰ã‚’ãƒã‚§ãƒƒã‚¯
-            If InStr(1, ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼å€¤, "æ³•å®šå¤–", vbTextCompare) > 0 Or _
-               InStr(1, ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼å€¤, "ä¼‘", vbTextCompare) > 0 Then
-                
-                ' æ—¥ä»˜åˆ—ã¨æ›œæ—¥åˆ—ã‚’èµ¤æ–‡å­—ã«
-                If æ—¥ä»˜Col > 0 Then
-                    ws.Cells(i, æ—¥ä»˜Col).Font.Color = RGB(255, 0, 0)
-                End If
-                
-                If æ›œæ—¥Col > 0 Then
-                    ws.Cells(i, æ›œæ—¥Col).Font.Color = RGB(255, 0, 0)
-                End If
-                
-                ' è¡Œå…¨ä½“ã‚’è–„ã„ã‚°ãƒ¬ãƒ¼ã«
-                ws.Rows(i).Interior.Color = RGB(240, 240, 240)
-            End If
-        Next i
-    End If
-    For i = 2 To lastRow ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’ã‚¹ã‚­ãƒƒãƒ—
-        ' ç¤¾å“¡ç•ªå·ã‚’å–å¾—
-        Dim currentEmployeeID As String
-        currentEmployeeID = Trim(CStr(ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value))
-        
-        ' é™¤å¤–ç¤¾å“¡ç•ªå·ã®ãƒã‚§ãƒƒã‚¯
-        Dim isExcluded As Boolean
-        isExcluded = False
-        
-        For j = LBound(excludeIDs) To UBound(excludeIDs)
-            If excludeIDs(j) <> "" And currentEmployeeID = excludeIDs(j) Then
-                isExcluded = True
-                Exit For
-            End If
-        Next j
-        
-        ' é™¤å¤–ç¤¾å“¡ã®å ´åˆã¯ã‚¹ã‚­ãƒƒãƒ—
-        If isExcluded Then
-            GoTo NextIteration
-        End If
-        ' å®Ÿåƒæ™‚é–“ã¨ä¼‘æ†©æ™‚é–“ã‚’å–å¾—
-        å®Ÿåƒæ™‚é–“ = ConvertTimeToMinutes(ws.Cells(i, å®Ÿåƒæ™‚é–“Col).Value)
-        ä¼‘æ†©æ™‚é–“ = ConvertTimeToMinutes(ws.Cells(i, ä¼‘æ†©æ™‚é–“Col).Value)
-        
-        ' ç·ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°ã‚’ã‚«ã‚¦ãƒ³ãƒˆ
-        totalCount = totalCount + 1
-        
-        ' ä¼‘æ—¥å‡ºå‹¤ã®åˆ¤å®š
-        Dim ä¼‘æ—¥å‡ºå‹¤ãƒ•ãƒ©ã‚° As Boolean
-        Dim æ³•å®šå¤–ä¼‘å‡ºæ™‚é–“ As Double
-        
-        ä¼‘æ—¥å‡ºå‹¤ãƒ•ãƒ©ã‚° = False
-        æ³•å®šå¤–ä¼‘å‡ºæ™‚é–“ = 0
-        
-        ' æ³•å®šå¤–ä¼‘å‡ºæ™‚é–“ã®å–å¾—
-        If æ³•å®šå¤–ä¼‘å‡ºCol > 0 Then
-            æ³•å®šå¤–ä¼‘å‡ºæ™‚é–“ = ConvertTimeToMinutes(ws.Cells(i, æ³•å®šå¤–ä¼‘å‡ºCol).Value)
-            If æ³•å®šå¤–ä¼‘å‡ºæ™‚é–“ > 0 Then
-                ä¼‘æ—¥å‡ºå‹¤ãƒ•ãƒ©ã‚° = True
-            End If
-        End If
-        
-        ' å±Šå‡ºå†…å®¹ã‚’ç¢ºèª
-        Dim å±Šå‡ºå†…å®¹ As String
-        Dim çŠ¶æ³åŒºåˆ† As String
-        Dim å±Šå‡ºè¿½åŠ ãƒ•ãƒ©ã‚° As Boolean
-        
-        å±Šå‡ºè¿½åŠ ãƒ•ãƒ©ã‚° = False
-        å±Šå‡ºå†…å®¹ = ""
-        çŠ¶æ³åŒºåˆ† = ""
-        
-        If å±Šå‡ºCol > 0 Then
-            å±Šå‡ºå†…å®¹ = Trim(ws.Cells(i, å±Šå‡ºCol).Value)
-            If å±Šå‡ºå†…å®¹ <> "" Then
-                å±Šå‡ºè¿½åŠ ãƒ•ãƒ©ã‚° = True
-                
-                ' å±Šå‡ºå†…å®¹ã«ã€Œä¼‘æ—¥å‡ºå‹¤ã€ã€Œä¼‘å‡ºã€ãªã©ãŒå«ã¾ã‚Œã¦ã„ã‚‹å ´åˆã‚‚ä¼‘æ—¥å‡ºå‹¤ã¨ã¿ãªã™
-                If InStr(1, å±Šå‡ºå†…å®¹, "ä¼‘æ—¥å‡ºå‹¤", vbTextCompare) > 0 Or _
-                   InStr(1, å±Šå‡ºå†…å®¹, "ä¼‘å‡º", vbTextCompare) > 0 Then
-                    ä¼‘æ—¥å‡ºå‹¤ãƒ•ãƒ©ã‚° = True
-                End If
-            End If
-        End If
-        
-        If çŠ¶æ³åŒºåˆ†Col > 0 Then
-            çŠ¶æ³åŒºåˆ† = Trim(ws.Cells(i, çŠ¶æ³åŒºåˆ†Col).Value)
-            If çŠ¶æ³åŒºåˆ† <> "" Then
-                å±Šå‡ºè¿½åŠ ãƒ•ãƒ©ã‚° = True
-            End If
-        End If
-        
-        ' ä¼‘æ—¥å‡ºå‹¤ã‚’ã‚«ã‚¦ãƒ³ãƒˆ
-        If ä¼‘æ—¥å‡ºå‹¤ãƒ•ãƒ©ã‚° Then
-            holidayWorkCount = holidayWorkCount + 1
-        End If
-        
-        ' æ®‹æ¥­æ™‚é–“ã®è¨ˆç®—
-        Dim æ®‹æ¥­æ™‚é–“ As Double
-        If ä¼‘æ—¥å‡ºå‹¤ãƒ•ãƒ©ã‚° Then
-            ' ä¼‘æ—¥å‡ºå‹¤ã®å ´åˆã¯å®Ÿåƒæ™‚é–“ã™ã¹ã¦ã‚’æ®‹æ¥­æ™‚é–“ã¨ã™ã‚‹
-            æ®‹æ¥­æ™‚é–“ = å®Ÿåƒæ™‚é–“
-        ElseIf å®Ÿåƒæ™‚é–“ > 480 Then
-            ' é€šå¸¸å‹¤å‹™ã§8æ™‚é–“è¶…éåˆ†
-            æ®‹æ¥­æ™‚é–“ = å®Ÿåƒæ™‚é–“ - 480
-        Else
-            æ®‹æ¥­æ™‚é–“ = 0
-        End If
-        
-        ' æ®‹æ¥­æ™‚é–“ãŒã‚ã‚‹å ´åˆã¯æ®‹æ¥­ã‚«ã‚¦ãƒ³ãƒˆã‚’å¢—ã‚„ã™
-        If æ®‹æ¥­æ™‚é–“ > 0 Then
-            overtimeCount = overtimeCount + 1
-        End If
-        
-        ' æ®‹æ¥­é›†è¨ˆç”¨ã®ãƒ‡ãƒ¼ã‚¿ã‚’æº–å‚™
-        Dim å¹´æœˆ As String
-        Dim æ—¥ä»˜Value As String
-        
-        ' æ—¥ä»˜ã®å–å¾—ã¨å¹´æœˆå½¢å¼ã¸ã®å¤‰æ›
-        æ—¥ä»˜Value = ws.Cells(i, æ—¥ä»˜Col).Value
-        
-        ' æ—¥ä»˜ãŒæ­£ã—ã„å½¢å¼ã§ã‚ã‚‹ã“ã¨ã‚’ç¢ºèª
-        If IsDate(æ—¥ä»˜Value) Then
-            å¹´æœˆ = Format(CDate(æ—¥ä»˜Value), "yyyy/mm")
-        Else
-            ' æ—¥ä»˜å½¢å¼ã§ãªã„å ´åˆã¯ "ä¸æ˜" ã¨ã™ã‚‹
-            å¹´æœˆ = "ä¸æ˜"
-        End If
-        
-        ' æ®‹æ¥­æ™‚é–“ã‚’ç¤¾å“¡ã”ã¨æœˆã”ã¨ã«é›†è¨ˆ
-        Dim found As Boolean
-        found = False
-        
-        ' æ—¢å­˜ã®ã‚¨ãƒ³ãƒˆãƒªãŒã‚ã‚‹ã‹æ¤œç´¢
-        For j = 0 To é›†è¨ˆæ•° - 1
-            If ç¤¾å“¡ç•ªå·Array(j) = ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value And _
-               å¹´æœˆArray(j) = å¹´æœˆ Then
-                ' æ—¢å­˜ã‚¨ãƒ³ãƒˆãƒªã«åŠ ç®—
-                æ®‹æ¥­æ™‚é–“Array(j) = æ®‹æ¥­æ™‚é–“Array(j) + æ®‹æ¥­æ™‚é–“
-                found = True
-                Exit For
-            End If
-        Next j
-        
-        ' æ–°è¦ã‚¨ãƒ³ãƒˆãƒªã®è¿½åŠ 
-        If Not found And æ®‹æ¥­æ™‚é–“ > 0 Then
-            ç¤¾å“¡ç•ªå·Array(é›†è¨ˆæ•°) = ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value
-            æ°åArray(é›†è¨ˆæ•°) = ws.Cells(i, æ°åCol).Value
-            éƒ¨é–€Array(é›†è¨ˆæ•°) = ws.Cells(i, éƒ¨é–€Col).Value
-            å¹´æœˆArray(é›†è¨ˆæ•°) = å¹´æœˆ
-            æ®‹æ¥­æ™‚é–“Array(é›†è¨ˆæ•°) = æ®‹æ¥­æ™‚é–“
-            é›†è¨ˆæ•° = é›†è¨ˆæ•° + 1
-            
-            ' é…åˆ—ã‚µã‚¤ã‚ºã®ç¢ºèªã¨æ‹¡å¼µ
-            If é›†è¨ˆæ•° >= UBound(ç¤¾å“¡ç•ªå·Array) Then
-                ReDim Preserve ç¤¾å“¡ç•ªå·Array(UBound(ç¤¾å“¡ç•ªå·Array) + 1000)
-                ReDim Preserve æ°åArray(UBound(æ°åArray) + 1000)
-                ReDim Preserve éƒ¨é–€Array(UBound(éƒ¨é–€Array) + 1000)
-                ReDim Preserve å¹´æœˆArray(UBound(å¹´æœˆArray) + 1000)
-                ReDim Preserve æ®‹æ¥­æ™‚é–“Array(UBound(æ®‹æ¥­æ™‚é–“Array) + 1000)
-            End If
-        End If
-        
-        ' å±Šå‡ºä¸€è¦§ã«è¿½åŠ 
-        If å±Šå‡ºè¿½åŠ ãƒ•ãƒ©ã‚° Then
-            deliveryCount = deliveryCount + 1
-            
-            ' å±Šå‡ºä¸€è¦§ã‚·ãƒ¼ãƒˆã«è¿½åŠ 
-            With deliverySheet
-                ' ç¤¾å“¡ç•ªå·ã‚’æ–‡å­—åˆ—ã¨ã—ã¦ä¿æŒã™ã‚‹ãŸã‚ã«æ›¸å¼è¨­å®š
-                .Cells(deliveryRow, 1).NumberFormat = "@"
-                .Cells(deliveryRow, 1).Value = ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value
-                .Cells(deliveryRow, 2).Value = ws.Cells(i, æ°åCol).Value
-                .Cells(deliveryRow, 3).Value = ws.Cells(i, éƒ¨é–€Col).Value
-                .Cells(deliveryRow, 4).Value = ws.Cells(i, æ—¥ä»˜Col).Value
-                .Cells(deliveryRow, 5).Value = å±Šå‡ºå†…å®¹
-                .Cells(deliveryRow, 6).Value = çŠ¶æ³åŒºåˆ†
-                .Cells(deliveryRow, 7).Value = MinutesToTime(å®Ÿåƒæ™‚é–“)
-                .Cells(deliveryRow, 8).Value = MinutesToTime(ä¼‘æ†©æ™‚é–“)
-                
-                ' å¿…è¦ãªä¼‘æ†©æ™‚é–“ã‚’è¨ˆç®—
-                Dim å±Šå‡ºå¿…è¦ä¼‘æ†©æ™‚é–“ As Double
-                å±Šå‡ºå¿…è¦ä¼‘æ†©æ™‚é–“ = å¿…è¦ä¼‘æ†©æ™‚é–“è¨ˆç®—(å®Ÿåƒæ™‚é–“)
-                .Cells(deliveryRow, 9).Value = MinutesToTime(å±Šå‡ºå¿…è¦ä¼‘æ†©æ™‚é–“)
-                
-                ' ä¼‘æ†©ä¸è¶³æ™‚é–“ã‚’è¨ˆç®—
-                Dim å±Šå‡ºä¼‘æ†©ä¸è¶³ As Double
-                å±Šå‡ºä¼‘æ†©ä¸è¶³ = IIf(å±Šå‡ºå¿…è¦ä¼‘æ†©æ™‚é–“ > ä¼‘æ†©æ™‚é–“, å±Šå‡ºå¿…è¦ä¼‘æ†©æ™‚é–“ - ä¼‘æ†©æ™‚é–“, 0)
-                .Cells(deliveryRow, 10).Value = MinutesToTime(å±Šå‡ºä¼‘æ†©ä¸è¶³)
-                
-                ' æ®‹æ¥­æ™‚é–“ã‚’è¿½åŠ 
-                .Cells(deliveryRow, 11).Value = MinutesToTime(æ®‹æ¥­æ™‚é–“)
-                
-                ' ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ã‚’è¨­å®š
-                If å±Šå‡ºä¼‘æ†©ä¸è¶³ > 0 Then
-                    .Cells(deliveryRow, 12).Value = "é•å"
-                    ' é•åè¡Œã‚’èµ¤è‰²ã§ãƒã‚¤ãƒ©ã‚¤ãƒˆ
-                    .Range(.Cells(deliveryRow, 1), .Cells(deliveryRow, 13)).Interior.Color = RGB(255, 200, 200)
-                Else
-                    .Cells(deliveryRow, 12).Value = "é©æ­£"
-                End If
-                
-                ' å‚™è€ƒæ¬„ã‚’è¿½åŠ 
-                Dim å‚™è€ƒ As String
-                å‚™è€ƒ = Trim(ws.Cells(i, å‚™è€ƒCol).Value)
-                .Cells(deliveryRow, 13).Value = å‚™è€ƒ
-                
-        
-                ' å‚™è€ƒæ¬„ã®ãƒã‚§ãƒƒã‚¯ã¨ãƒã‚¤ãƒ©ã‚¤ãƒˆ
-                If å±Šå‡ºå†…å®¹ <> "æœ‰ä¼‘" Then ' æœ‰ä¼‘ä»¥å¤–ã®å ´åˆã®ã¿ãƒã‚§ãƒƒã‚¯
-                    If å‚™è€ƒ = "" Then
-                        .Cells(deliveryRow, 13).Interior.Color = RGB(255, 0, 0) ' èµ¤è‰²ã§ãƒã‚¤ãƒ©ã‚¤ãƒˆ
-                    Else
-                        .Cells(deliveryRow, 13).Interior.Color = xlNone ' è‰²ã‚’ã‚¯ãƒªã‚¢
-                    End If
-                Else
-                   .Cells(deliveryRow, 13).Interior.Color = xlNone ' æœ‰ä¼‘ã®å ´åˆã¯è‰²ã‚’ã‚¯ãƒªã‚¢
-                End If
-        
-            End With
-        
-            deliveryRow = deliveryRow + 1
-        End If
-        ' å®Ÿåƒæ™‚é–“ãŒ0ã®å ´åˆã¯ã‚¹ã‚­ãƒƒãƒ—ï¼ˆä¼‘æ—¥ã¨ã—ã¦å‡¦ç†ï¼‰
-        If å®Ÿåƒæ™‚é–“ <= 0 Then
-            GoTo NextIteration
-        End If
-        
-        ' å®Ÿåƒæ™‚é–“ãŒ0ã‚ˆã‚Šå¤§ãã„å ´åˆã®ã¿ã‚«ã‚¦ãƒ³ãƒˆ
-        processedCount = processedCount + 1
-        
-        ' å¿…è¦ãªä¼‘æ†©æ™‚é–“ã‚’è¨ˆç®—
-        å¿…è¦ä¼‘æ†©æ™‚é–“ = å¿…è¦ä¼‘æ†©æ™‚é–“è¨ˆç®—(å®Ÿåƒæ™‚é–“)
-        
-        ' ä¼‘æ†©ä¸è¶³æ™‚é–“ã‚’è¨ˆç®—
-        ä¼‘æ†©ä¸è¶³ = IIf(å¿…è¦ä¼‘æ†©æ™‚é–“ > ä¼‘æ†©æ™‚é–“, å¿…è¦ä¼‘æ†©æ™‚é–“ - ä¼‘æ†©æ™‚é–“, 0)
-        
-        ' å…¨ä½“åˆ†æã‚·ãƒ¼ãƒˆã«è¿½åŠ 
-        With resultSheet
-            ' ç¤¾å“¡ç•ªå·ã‚’æ–‡å­—åˆ—ã¨ã—ã¦ä¿æŒã™ã‚‹ãŸã‚ã«æ›¸å¼è¨­å®š
-            .Cells(resultRow, 1).NumberFormat = "@"
-            .Cells(resultRow, 1).Value = ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value
-            .Cells(resultRow, 2).Value = ws.Cells(i, æ°åCol).Value
-            .Cells(resultRow, 3).Value = ws.Cells(i, éƒ¨é–€Col).Value
-            .Cells(resultRow, 4).Value = ws.Cells(i, æ—¥ä»˜Col).Value
-            .Cells(resultRow, 5).Value = MinutesToTime(å®Ÿåƒæ™‚é–“)
-            .Cells(resultRow, 6).Value = MinutesToTime(ä¼‘æ†©æ™‚é–“)
-            .Cells(resultRow, 7).Value = MinutesToTime(å¿…è¦ä¼‘æ†©æ™‚é–“)
-            .Cells(resultRow, 8).Value = MinutesToTime(ä¼‘æ†©ä¸è¶³)
-            .Cells(resultRow, 9).Value = MinutesToTime(æ®‹æ¥­æ™‚é–“)
-            
-            If ä¼‘æ†©ä¸è¶³ > 0 Then
-                .Cells(resultRow, 10).Value = "é•å"
-                ' é•åè¡Œã‚’èµ¤è‰²ã§ãƒã‚¤ãƒ©ã‚¤ãƒˆ
-                .Range(.Cells(resultRow, 1), .Cells(resultRow, 10)).Interior.Color = RGB(255, 200, 200)
-                violationCount = violationCount + 1
-                
-                ' é•åè€…ã‚·ãƒ¼ãƒˆã«ã‚‚è¿½åŠ 
-                With violationSheet
-                    ' ç¤¾å“¡ç•ªå·ã‚’æ–‡å­—åˆ—ã¨ã—ã¦ä¿æŒã™ã‚‹ãŸã‚ã«æ›¸å¼è¨­å®š
-                    .Cells(violationRow, 1).NumberFormat = "@"
-                    .Cells(violationRow, 1).Value = ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value
-                    .Cells(violationRow, 2).Value = ws.Cells(i, æ°åCol).Value
-                    .Cells(violationRow, 3).Value = ws.Cells(i, éƒ¨é–€Col).Value
-                    .Cells(violationRow, 4).Value = ws.Cells(i, æ—¥ä»˜Col).Value
-                    .Cells(violationRow, 5).Value = MinutesToTime(å®Ÿåƒæ™‚é–“)
-                    .Cells(violationRow, 6).Value = MinutesToTime(ä¼‘æ†©æ™‚é–“)
-                    .Cells(violationRow, 7).Value = MinutesToTime(å¿…è¦ä¼‘æ†©æ™‚é–“)
-                    .Cells(violationRow, 8).Value = MinutesToTime(ä¼‘æ†©ä¸è¶³)
-                    .Cells(violationRow, 9).Value = MinutesToTime(æ®‹æ¥­æ™‚é–“)
-                    .Cells(violationRow, 10).Value = "é•å"
-                    ' å‚™è€ƒæ¬„ã®å€¤ã‚’è¿½åŠ 
-                    .Cells(violationRow, 11).Value = ws.Cells(i, å‚™è€ƒCol).Value
-                    ' è¡Œå…¨ä½“ã‚’èµ¤è‰²ã§ãƒã‚¤ãƒ©ã‚¤ãƒˆ
-                    .Range(.Cells(violationRow, 1), .Cells(violationRow, 11)).Interior.Color = RGB(255, 200, 200)
-                End With
-                violationRow = violationRow + 1
-            Else
-                .Cells(resultRow, 10).Value = "é©æ­£"
-            End If
-        End With
-        
-        resultRow = resultRow + 1
-NextIteration:
-    Next i
-    
-    ' æ®‹æ¥­ä¸€è¦§ã‚·ãƒ¼ãƒˆã«ãƒ‡ãƒ¼ã‚¿ã‚’å‡ºåŠ›
-    Dim overtimeRow As Long
-    overtimeRow = 2
-    
-    ' é›†è¨ˆã—ãŸæ®‹æ¥­æ™‚é–“ãƒ‡ãƒ¼ã‚¿ã‚’æ®‹æ¥­ä¸€è¦§ã‚·ãƒ¼ãƒˆã«æ›¸ãè¾¼ã‚€
-    For j = 0 To é›†è¨ˆæ•° - 1
-        ' ç¤¾å“¡æƒ…å ±ã‚’å–å¾—
-        Dim ç¤¾å“¡ç•ªå· As String
-        Dim æ°å As String
-        Dim éƒ¨é–€ As String
-        Dim é›†è¨ˆå¹´æœˆ As String
-        
-        ç¤¾å“¡ç•ªå· = ç¤¾å“¡ç•ªå·Array(j)
-        æ°å = æ°åArray(j)
-        éƒ¨é–€ = éƒ¨é–€Array(j)
-        é›†è¨ˆå¹´æœˆ = å¹´æœˆArray(j)
-        
-        ' ç·æ®‹æ¥­æ™‚é–“ã‚’å–å¾—
-        Dim ç·æ®‹æ¥­æ™‚é–“ As Double
-        ç·æ®‹æ¥­æ™‚é–“ = æ®‹æ¥­æ™‚é–“Array(j)
-        
-        ' ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ã‚’è¨­å®š
-        Dim æ®‹æ¥­ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ As String
-        
-        If ç·æ®‹æ¥­æ™‚é–“ >= 70 * 60 Then ' 70æ™‚é–“ä»¥ä¸Š
-            æ®‹æ¥­ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ = "è¦ªä¼šç¤¾å ±å‘Š"
-        ElseIf ç·æ®‹æ¥­æ™‚é–“ >= 60 * 60 Then ' 60æ™‚é–“ä»¥ä¸Š
-            æ®‹æ¥­ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ = "æ®‹æ¥­æŠ‘æ­¢è¦è«‹"
-        ElseIf ç·æ®‹æ¥­æ™‚é–“ >= 45 * 60 Then ' 45æ™‚é–“ä»¥ä¸Š
-            æ®‹æ¥­ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ = "å¹´6å›ã¾ã§"
-        Else
-            æ®‹æ¥­ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ = "é©æ­£"
-        End If
-        
-        ' æ®‹æ¥­ä¸€è¦§ã‚·ãƒ¼ãƒˆã«è¿½åŠ 
-        With overtimeSheet
-            ' ç¤¾å“¡ç•ªå·ã‚’æ–‡å­—åˆ—ã¨ã—ã¦ä¿æŒ
-            .Cells(overtimeRow, 1).NumberFormat = "@"
-            .Cells(overtimeRow, 1).Value = ç¤¾å“¡ç•ªå·
-            .Cells(overtimeRow, 2).Value = æ°å
-            .Cells(overtimeRow, 3).Value = éƒ¨é–€
-            .Cells(overtimeRow, 4).Value = é›†è¨ˆå¹´æœˆ
-            .Cells(overtimeRow, 5).Value = MinutesToTime(ç·æ®‹æ¥­æ™‚é–“)
-            .Cells(overtimeRow, 6).Value = æ®‹æ¥­ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹
-            
-            ' 45æ™‚é–“ä»¥ä¸Šã¯èµ¤èƒŒæ™¯ã€é»’å¤ªå­—
-            If ç·æ®‹æ¥­æ™‚é–“ >= 45 * 60 Then
-                .Range(.Cells(overtimeRow, 1), .Cells(overtimeRow, 6)).Interior.Color = RGB(255, 200, 200)
-                .Range(.Cells(overtimeRow, 6), .Cells(overtimeRow, 6)).Font.Bold = True
-                .Range(.Cells(overtimeRow, 6), .Cells(overtimeRow, 6)).Font.Color = RGB(0, 0, 0)
-            End If
-        End With
-        
-        overtimeRow = overtimeRow + 1
-    Next j
-    
-    ' æ¦‚è¦æƒ…å ±ã®ä½œæˆ
-    Dim summarySheet As Worksheet
-    On Error Resume Next
-    Set summarySheet = Worksheets("å‹¤æ€ æƒ…å ±åˆ†æçµæœ")
-    If summarySheet Is Nothing Then
-        Set summarySheet = Worksheets.Add(After:=overtimeSheet)
-        summarySheet.Name = "å‹¤æ€ æƒ…å ±åˆ†æçµæœ"
-    Else
-        summarySheet.Cells.Clear
-    End If
-    On Error GoTo 0
-    With summarySheet
-        .Cells(1, 1).Value = "é …ç›®"
-        .Cells(1, 2).Value = "æ•°å€¤"
-        .Cells(1, 1).Font.Bold = True
-        .Cells(1, 2).Font.Bold = True
-        
-        .Cells(2, 1).Value = "ç·ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°"
-        .Cells(2, 2).Value = totalCount
-        
-        .Cells(3, 1).Value = "å‡¦ç†å¯¾è±¡ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°ï¼ˆå®Ÿåƒæ™‚é–“>0ï¼‰"
-        .Cells(3, 2).Value = processedCount
-        
-        .Cells(4, 1).Value = "é©æ­£ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°"
-        .Cells(4, 2).Value = processedCount - violationCount
-        
-        .Cells(5, 1).Value = "é•åãƒ¬ã‚³ãƒ¼ãƒ‰æ•°"
-        .Cells(5, 2).Value = violationCount
-        
-        .Cells(6, 1).Value = "é•åç‡"
-        If processedCount > 0 Then
-            .Cells(6, 2).Value = Format(violationCount / processedCount, "0.0%")
-        Else
-            .Cells(6, 2).Value = "0%"
-        End If
-        
-        .Cells(7, 1).Value = "å±Šå‡ºãƒ¬ã‚³ãƒ¼ãƒ‰æ•°"
-        .Cells(7, 2).Value = deliveryCount
-        
-        .Cells(8, 1).Value = "æ®‹æ¥­ç™ºç”Ÿãƒ¬ã‚³ãƒ¼ãƒ‰æ•°"
-        .Cells(8, 2).Value = overtimeCount
-        
-        .Cells(9, 1).Value = "æ®‹æ¥­ç™ºç”Ÿç‡"
-        If processedCount > 0 Then
-            .Cells(9, 2).Value = Format(overtimeCount / processedCount, "0.0%")
-        Else
-            .Cells(9, 2).Value = "0%"
-        End If
-        
-        ' ä¼‘æ—¥å‡ºå‹¤æƒ…å ±ã‚’è¿½åŠ 
-        .Cells(10, 1).Value = "ä¼‘æ—¥å‡ºå‹¤ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°"
-        .Cells(10, 2).Value = holidayWorkCount
-        
-        .Cells(11, 1).Value = "ä¼‘æ—¥å‡ºå‹¤ç‡"
-        If processedCount > 0 Then
-            .Cells(11, 2).Value = Format(holidayWorkCount / processedCount, "0.0%")
-        Else
-            .Cells(11, 2).Value = "0%"
-        End If
-        
-        ' æ›¸å¼è¨­å®š
-        .Range("A1:B1").Interior.Color = RGB(200, 200, 200)
-        .Columns("B:D").AutoFit ' Båˆ—ã‹ã‚‰Dåˆ—ã¯AutoFit
-        .Columns("A").ColumnWidth = 32 ' Aåˆ—ã®ã¿å¹…ã‚’32ã«è¨­å®š
-    End With
-    
-    ' ç¤¾å“¡ç•ªå·åˆ—ã‚’æ–‡å­—åˆ—å½¢å¼ã«è¨­å®šï¼ˆå…¨ã¦ã®ã‚·ãƒ¼ãƒˆï¼‰
-    resultSheet.Columns("A").NumberFormat = "@"
-    violationSheet.Columns("A").NumberFormat = "@"
-    deliverySheet.Columns("A").NumberFormat = "@"
-    overtimeSheet.Columns("A").NumberFormat = "@"
-    
-    ' çµæœã‚·ãƒ¼ãƒˆã®æ™‚é–“é–¢é€£åˆ—ã®æ›¸å¼ã‚’è¨­å®š
-    FormatTimeColumns resultSheet, 5, 6, 7, 8, 9
-    FormatTimeColumns violationSheet, 5, 6, 7, 8, 9
-    FormatTimeColumns deliverySheet, 7, 8, 9, 10, 11
-    FormatTimeColumns overtimeSheet, 5
-    
-    ' çµæœã®åˆ—å¹…ã‚’è‡ªå‹•èª¿æ•´
-    resultSheet.Columns("B:J").AutoFit
-    violationSheet.Columns("B:K").AutoFit
-    deliverySheet.Columns("B:M").AutoFit
-    overtimeSheet.Columns("B:F").AutoFit
-    
-    ' é•åè€…ãŒã„ãªã„å ´åˆã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
-    If violationRow = 2 Then
-        violationSheet.Cells(2, 1).Value = "ä¼‘æ†©æ™‚é–“é•åã¯ã‚ã‚Šã¾ã›ã‚“ã€‚"
-        violationSheet.Range("A2:J2").Merge
-        violationSheet.Range("A2:J2").HorizontalAlignment = xlCenter
-    End If
-    
-    ' å±Šå‡ºãŒãªã„å ´åˆã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
-    If deliveryRow = 2 Then
-        deliverySheet.Cells(2, 1).Value = "å±Šå‡ºã®è¨˜éŒ²ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚"
-        deliverySheet.Range("A2:L2").Merge
-        deliverySheet.Range("A2:L2").HorizontalAlignment = xlCenter
-    End If
-    
-    ' æ®‹æ¥­ãŒãªã„å ´åˆã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
-    If overtimeRow = 2 Then
-        overtimeSheet.Cells(2, 1).Value = "æ®‹æ¥­æ™‚é–“ã®è¨˜éŒ²ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚"
-        overtimeSheet.Range("A2:F2").Merge
-        overtimeSheet.Range("A2:F2").HorizontalAlignment = xlCenter
-    End If
-    
-    ' æ¦‚è¦ã‚·ãƒ¼ãƒˆã‚’ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ã™ã‚‹
-    summarySheet.Activate
-    
-    ' æ®‹æ¥­ä¸€è¦§ã‚·ãƒ¼ãƒˆã‹ã‚‰éƒ¨é–€åˆ¥æ®‹æ¥­æ™‚é–“ã‚’é›†è¨ˆ
-    Call éƒ¨é–€åˆ¥æ®‹æ¥­é›†è¨ˆ
-    
-    ' â˜…â˜…â˜… LINEWORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆã«è¿½åŠ  â˜…â˜…â˜…
-    Call Add_LineWorks_Button_To_Summary
-    
-    MsgBox "ä¼‘æ†©æ™‚é–“ãƒ»æ®‹æ¥­æ™‚é–“ãƒã‚§ãƒƒã‚¯ãŒå®Œäº†ã—ã¾ã—ãŸã€‚" & vbCrLf & _
-           "ç·ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°: " & totalCount & vbCrLf & _
-           "å‡¦ç†å¯¾è±¡ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°: " & processedCount & vbCrLf & _
-           "é•åãƒ¬ã‚³ãƒ¼ãƒ‰æ•°: " & violationCount & vbCrLf & _
-           "é•åç‡: " & IIf(processedCount > 0, Format(violationCount / processedCount, "0.0%"), "0%") & vbCrLf & _
-           "å±Šå‡ºãƒ¬ã‚³ãƒ¼ãƒ‰æ•°: " & deliveryCount & vbCrLf & _
-           "æ®‹æ¥­ç™ºç”Ÿãƒ¬ã‚³ãƒ¼ãƒ‰æ•°: " & overtimeCount & vbCrLf & _
-           "ä¼‘æ—¥å‡ºå‹¤ãƒ¬ã‚³ãƒ¼ãƒ‰æ•°: " & holidayWorkCount & vbCrLf & vbCrLf & _
-           "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã‚’è¡Œã„ã€" & vbCrLf & _
-           "ç‰¹åˆ¥ä¼‘æš‡ç”³è«‹ãŒå‡ºã¦ã„ã‚‹å ´åˆã¯ãã®ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’è¡¨ç¤ºã—ã¾ã™ã€‚", _
-           vbInformation, "ä¼‘æ†©æ™‚é–“ãƒ»æ®‹æ¥­æ™‚é–“ãƒ»å±Šå‡ºãƒã‚§ãƒƒã‚¯çµæœ"
-       
-End Sub
-
-' æ™‚é–“æ–‡å­—åˆ—ï¼ˆHH:MMï¼‰ã‚’åˆ†ã«å¤‰æ›ã™ã‚‹é–¢æ•°
-Function ConvertTimeToMinutes(timeStr As Variant) As Double
-    If IsEmpty(timeStr) Or timeStr = "" Then
-        ConvertTimeToMinutes = 0
-        Exit Function
-    End If
-    
-    If IsNumeric(timeStr) Then
-        ' ã™ã§ã«æ™‚é–“å€¤ã¨ã—ã¦æ ¼ç´ã•ã‚Œã¦ã„ã‚‹å ´åˆï¼ˆExcelã®æ™‚é–“ã¯æ—¥ã®å‰²åˆã§æ ¼ç´ï¼‰
-        ConvertTimeToMinutes = timeStr * 24 * 60
-        Exit Function
-    End If
-    
-    Dim timeParts As Variant
-    Dim hours As Double, minutes As Double
-    
-    ' HH:MMå½¢å¼ã‚’æƒ³å®š
-    timeParts = Split(CStr(timeStr), ":")
-    
-    If UBound(timeParts) >= 1 Then
-        If IsNumeric(timeParts(0)) And IsNumeric(timeParts(1)) Then
-            hours = CDbl(timeParts(0))
-            minutes = CDbl(timeParts(1))
-            ConvertTimeToMinutes = hours * 60 + minutes
-        Else
-            ConvertTimeToMinutes = 0
-        End If
-    Else
-        ConvertTimeToMinutes = 0
-    End If
-End Function
-' åˆ†ã‚’æ™‚é–“æ–‡å­—åˆ—ï¼ˆHH:MMï¼‰ã«å¤‰æ›ã™ã‚‹é–¢æ•°
-Function MinutesToTime(minutes As Double) As String
-    Dim hours As Integer
-    Dim mins As Integer
-    
-    hours = Int(minutes / 60)
-    mins = minutes Mod 60
-    
-    ' å¿…ãš2æ¡è¡¨ç¤ºã«ãªã‚‹ã‚ˆã†ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆ
-    MinutesToTime = Format(hours, "00") & ":" & Format(mins, "00")
-End Function
-' å®Ÿåƒæ™‚é–“ã«åŸºã¥ã„ã¦å¿…è¦ãªä¼‘æ†©æ™‚é–“ï¼ˆåˆ†ï¼‰ã‚’è¨ˆç®—ã™ã‚‹é–¢æ•°
-Function å¿…è¦ä¼‘æ†©æ™‚é–“è¨ˆç®—(å®Ÿåƒæ™‚é–“åˆ† As Double) As Double
-    If å®Ÿåƒæ™‚é–“åˆ† < 360 Then
-        ' 6æ™‚é–“æœªæº€
-        å¿…è¦ä¼‘æ†©æ™‚é–“è¨ˆç®— = 0
-    ElseIf å®Ÿåƒæ™‚é–“åˆ† >= 360 And å®Ÿåƒæ™‚é–“åˆ† < 480 Then
-        ' 6æ™‚é–“ä»¥ä¸Š8æ™‚é–“æœªæº€
-        å¿…è¦ä¼‘æ†©æ™‚é–“è¨ˆç®— = 45
-    Else
-        ' 8æ™‚é–“ä»¥ä¸Š
-        å¿…è¦ä¼‘æ†©æ™‚é–“è¨ˆç®— = 60
-    End If
-End Function
-' CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚€é–¢æ•°
-Sub CSVãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿()
-    Dim filePath As Variant
-    Dim ws As Worksheet
-    Dim existingData As Boolean
-    
-    ' ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°ã®åˆæœŸåŒ–
-    g_HeaderCheckError = False
-    
-    ' CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆãŒæ—¢ã«å­˜åœ¨ã—ã€ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã‹ç¢ºèª
-    On Error Resume Next
-    Set ws = Worksheets("CSVãƒ‡ãƒ¼ã‚¿")
-    If Not ws Is Nothing Then
-        If ws.Cells(1, 1).Value <> "" Then
-            existingData = True
-        End If
-    End If
-    On Error GoTo 0
-    
-    ' æ—¢å­˜ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹å ´åˆã€ã‚µã‚¤ãƒ‰åˆ†æã®ç¢ºèª
-    If existingData Then
-        Dim response As Integer
-        response = MsgBox("æ—¢ã«CSVãƒ‡ãƒ¼ã‚¿ãŒå­˜åœ¨ã—ã¾ã™ã€‚ã“ã®ãƒ‡ãƒ¼ã‚¿ã‚’ä½¿ç”¨ã—ã¦åˆ†æã‚’å®Ÿè¡Œã—ã¾ã™ã‹ï¼Ÿ" & vbCrLf & _
-                          "ã€Œã¯ã„ã€ï¼šç¾åœ¨ã®ãƒ‡ãƒ¼ã‚¿ã§åˆ†æã‚’å®Ÿè¡Œ" & vbCrLf & _
-                          "ã€Œã„ã„ãˆã€ï¼šæ–°ã—ã„CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚€", _
-                          vbQuestion + vbYesNo, "ãƒ‡ãƒ¼ã‚¿åˆ†æç¢ºèª")
-        
-        If response = vbYes Then
-            ' ç¾åœ¨ã®ãƒ‡ãƒ¼ã‚¿ã§åˆ†æã‚’å®Ÿè¡Œ
-            Call çµ±åˆåˆ†æå®Ÿè¡Œ
-            Exit Sub
-        End If
-        
-        ' ã€Œã„ã„ãˆã€ã‚’é¸æŠã—ãŸå ´åˆã¯ã€æ–°ã—ã„CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚€å‡¦ç†ã‚’ç¶šè¡Œ
-    End If
-    
-    ' ãƒ•ã‚¡ã‚¤ãƒ«é¸æŠãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã‚’è¡¨ç¤º
-    filePath = Application.GetOpenFilename("CSVãƒ•ã‚¡ã‚¤ãƒ« (*.csv),*.csv", , "CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠã—ã¦ãã ã•ã„")
-    
-    If filePath = False Then
-        MsgBox "ãƒ•ã‚¡ã‚¤ãƒ«ãŒé¸æŠã•ã‚Œã¾ã›ã‚“ã§ã—ãŸã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' æ–°ã—ã„ã‚·ãƒ¼ãƒˆã‚’ä½œæˆ
-    On Error Resume Next
-    Application.DisplayAlerts = False
-    
-    ' æ—¢å­˜ã®ã‚·ãƒ¼ãƒˆã‚’å‰Šé™¤
-    Dim sheetNames As Variant
-    sheetNames = Array("CSVãƒ‡ãƒ¼ã‚¿", "æ™‚é–“ãƒã‚§ãƒƒã‚¯_å…¨ä½“", "ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯_é•åè€…", "å‹¤æ€ æƒ…å ±åˆ†æçµæœ", "ä¼‘æ†©æ™‚é–“ã€å‚™è€ƒä¸€è¦§", "æ®‹æ¥­ä¸€è¦§", "å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§", "ç”³è«‹è©³ç´°åˆ†æä¸€è¦§")
-    Dim i As Integer
-    For i = LBound(sheetNames) To UBound(sheetNames)
-        On Error Resume Next
-        Set ws = Worksheets(sheetNames(i))
-        If Not ws Is Nothing Then
-            ws.Delete
-        End If
-        On Error GoTo 0
-    Next i
-    
-    Application.DisplayAlerts = True
-    
-    ' CSVãƒ‡ãƒ¼ã‚¿ç”¨ã‚·ãƒ¼ãƒˆã‚’ä½œæˆ
-    Set ws = Worksheets.Add(After:=Worksheets(Worksheets.Count))
-    ws.Name = "CSVãƒ‡ãƒ¼ã‚¿"
-    On Error GoTo 0
-    
-    ' CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‹ã
-    With ws.QueryTables.Add(Connection:="TEXT;" & filePath, Destination:=ws.Range("A1"))
-        .Name = "CSVã‚¤ãƒ³ãƒãƒ¼ãƒˆ"
-        .FieldNames = True
-        .RowNumbers = False
-        .FillAdjacentFormulas = False
-        .PreserveFormatting = True
-        .RefreshOnFileOpen = False
-        .RefreshStyle = xlInsertDeleteCells
-        .SavePassword = False
-        .SaveData = True
-        .AdjustColumnWidth = True
-        .RefreshPeriod = 0
-        .TextFilePromptOnRefresh = False
-        .TextFilePlatform = 932 ' æ—¥æœ¬èªShift-JIS
-        .TextFileStartRow = 1
-        .TextFileParseType = xlDelimited
-        .TextFileTextQualifier = xlTextQualifierDoubleQuote
-        .TextFileConsecutiveDelimiter = False
-        .TextFileTabDelimiter = False
-        .TextFileSemicolonDelimiter = False
-        .TextFileCommaDelimiter = True
-        .TextFileSpaceDelimiter = False
-        
-        ' ç¤¾å“¡ç•ªå·åˆ—ã‚’æ–‡å­—åˆ—ã¨ã—ã¦æ‰±ã†ãŸã‚ã®è¨­å®š
-        Dim fieldTypes() As Integer
-        ReDim fieldTypes(1 To 100) ' æœ€å¤§100åˆ—ã‚’æƒ³å®š
-        For i = 1 To 100
-            fieldTypes(i) = 1 ' ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã¯Generalã¨ã—ã¦æ‰±ã†
-        Next i
-        
-        ' 1åˆ—ç›®ï¼ˆé€šå¸¸ã¯ç¤¾å“¡ç•ªå·ï¼‰ã‚’æ–‡å­—åˆ—ã¨ã—ã¦æ‰±ã†
-        fieldTypes(1) = 2 ' 2ã¯ãƒ†ã‚­ã‚¹ãƒˆå½¢å¼
-        
-        .TextFileColumnDataTypes = fieldTypes
-        .TextFileTrailingMinusNumbers = True
-        .Refresh BackgroundQuery:=False
-    End With
-    ' ç¤¾å“¡ç•ªå·åˆ—ã‚’æ–‡å­—åˆ—å½¢å¼ã«è¨­å®šï¼ˆå…ˆé ­ã®0ãŒå‰Šé™¤ã•ã‚Œã‚‹ã®ã‚’é˜²ãï¼‰
-    Dim ç¤¾å“¡ç•ªå·Col As Integer
-    For i = 1 To ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-        If ws.Cells(1, i).Value = "ç¤¾å“¡ç•ªå·" Then
-            ç¤¾å“¡ç•ªå·Col = i
-            Exit For
-        End If
-    Next i
-    If ç¤¾å“¡ç•ªå·Col > 0 Then
-        ws.Columns(ç¤¾å“¡ç•ªå·Col).NumberFormat = "@"
-        ' æ—¢å­˜ãƒ‡ãƒ¼ã‚¿ã‚’æ–‡å­—åˆ—ã¨ã—ã¦å†è¨­å®š
-        For i = 2 To ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
-            Dim ç¤¾å“¡ç•ªå· As String
-            ç¤¾å“¡ç•ªå· = Trim(CStr(ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value))
-            ' å…ˆé ­ã‚¼ãƒ­ãŒå¤±ã‚ã‚Œã¦ã„ã‚‹å ´åˆã€å¾©å…ƒã‚’è©¦ã¿ã‚‹
-            If Len(ç¤¾å“¡ç•ªå·) < 7 And IsNumeric(ç¤¾å“¡ç•ªå·) Then
-                ç¤¾å“¡ç•ªå· = Right("0000000" & ç¤¾å“¡ç•ªå·, 7)
-            End If
-            ws.Cells(i, ç¤¾å“¡ç•ªå·Col).Value = ç¤¾å“¡ç•ªå·
-        Next i
-    End If
-    
-    ' å¿…è¦ãªãƒ˜ãƒƒãƒ€ãƒ¼ãŒå­˜åœ¨ã™ã‚‹ã‹ãƒã‚§ãƒƒã‚¯ï¼ˆä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯ç”¨ï¼‰
-    Dim ä¼‘æ†©æ™‚é–“Col As Integer, å®Ÿåƒæ™‚é–“Col As Integer, å±Šå‡ºCol As Integer
-    ä¼‘æ†©æ™‚é–“Col = 0
-    å®Ÿåƒæ™‚é–“Col = 0
-    å±Šå‡ºCol = 0
-    
-    For i = 1 To ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-        Select Case ws.Cells(1, i).Value
-            Case "ä¼‘æ†©æ™‚é–“"
-                ä¼‘æ†©æ™‚é–“Col = i
-            Case "å®Ÿåƒæ™‚é–“"
-                å®Ÿåƒæ™‚é–“Col = i
-            Case "å±Šå‡ºå†…å®¹"
-                å±Šå‡ºCol = i
-        End Select
-    Next i
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼ãƒã‚§ãƒƒã‚¯ - ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯ç”¨ã®ãƒ˜ãƒƒãƒ€ãƒ¼ãŒãªã„å ´åˆã¯ãƒ•ãƒ©ã‚°ã‚’è¨­å®š
-    If ä¼‘æ†©æ™‚é–“Col = 0 Or å®Ÿåƒæ™‚é–“Col = 0 Then
-        g_HeaderCheckError = True
-        MsgBox "ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯ã«å¿…è¦ãªãƒ˜ãƒƒãƒ€ãƒ¼ï¼ˆä¼‘æ†©æ™‚é–“ã€å®Ÿåƒæ™‚é–“ï¼‰ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & _
-               "ä¼‘æ†©æ™‚é–“ãƒ»å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã¯ã‚¹ã‚­ãƒƒãƒ—ã—ã¦ç”³è«‹åˆ†æã®ã¿å®Ÿè¡Œå¯èƒ½ã§ã™ã€‚", vbExclamation
-    End If
-    
-    ' åˆ†æå®Ÿè¡Œã®ç¢ºèª
-    Dim analysisResponse As Integer
-    If g_HeaderCheckError Then
-        ' ãƒ˜ãƒƒãƒ€ãƒ¼ã‚¨ãƒ©ãƒ¼ãŒã‚ã‚‹å ´åˆã¯ã€ç”³è«‹åˆ†æã®ã¿å®Ÿè¡Œã™ã‚‹ã‹ç¢ºèª
-        Dim applicationAnalysisResponse As Integer
-        applicationAnalysisResponse = MsgBox("ç”³è«‹åˆ†æã‚’è¡Œã„ã¾ã™ã‹ï¼Ÿ" & vbCrLf & _
-                                           "ç”³è«‹åˆ†æã¯ç”³è«‹æ±ºè£ç”»é¢ã‹ã‚‰å…¨ç”³è«‹ã‚’å¯¾è±¡ã¨ã—ã¦ä¿å­˜ã—ãŸcsvãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", _
-                                           vbQuestion + vbYesNo, "ç”³è«‹åˆ†æç¢ºèª")
-        
-        If applicationAnalysisResponse = vbYes Then
-            ' ç”³è«‹åˆ†æã‚’å®Ÿè¡Œ
-            On Error Resume Next
-            Call ç”³è«‹è©³ç´°åˆ†æå®Ÿè¡Œ
-            If Err.Number <> 0 Then
-                MsgBox "ç”³è«‹åˆ†æã®å®Ÿè¡Œä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbExclamation
-                Err.Clear
-            End If
-            On Error GoTo 0
-        Else
-            MsgBox "CSVãƒ•ã‚¡ã‚¤ãƒ«ã®èª­ã¿è¾¼ã¿ãŒå®Œäº†ã—ã¾ã—ãŸã€‚å¿…è¦ã«å¿œã˜ã¦å„åˆ†æãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ã¦ãã ã•ã„ã€‚", vbInformation
-        End If
-    Else
-        ' é€šå¸¸ã®åˆ†æå®Ÿè¡Œç¢ºèª
-        analysisResponse = MsgBox("CSVãƒ•ã‚¡ã‚¤ãƒ«ã®èª­ã¿è¾¼ã¿ãŒå®Œäº†ã—ã¾ã—ãŸã€‚åˆ†æã‚’å®Ÿè¡Œã—ã¾ã™ã‹ï¼Ÿ", _
-                                vbQuestion + vbYesNo, "åˆ†æå®Ÿè¡Œç¢ºèª")
-                                
-        If analysisResponse = vbYes Then
-            Call çµ±åˆåˆ†æå®Ÿè¡Œ
-        Else
-            MsgBox "CSVãƒ•ã‚¡ã‚¤ãƒ«ã®èª­ã¿è¾¼ã¿ãŒå®Œäº†ã—ã¾ã—ãŸã€‚å¿…è¦ã«å¿œã˜ã¦å„åˆ†æãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ã¦ãã ã•ã„ã€‚", vbInformation
-        End If
-    End If
-End Sub
-' ã™ã¹ã¦ã®åˆ†æã‚’çµ±åˆã—ã¦å®Ÿè¡Œã™ã‚‹é–¢æ•°
-Public Sub çµ±åˆåˆ†æå®Ÿè¡Œ()
-    On Error Resume Next
-    
-    ' CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã®å­˜åœ¨ç¢ºèª
-    Dim dataSheet As Worksheet
-    Set dataSheet = ThisWorkbook.Worksheets("CSVãƒ‡ãƒ¼ã‚¿")
-    
-    If dataSheet Is Nothing Then
-        MsgBox "CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚å…ˆã«CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚“ã§ãã ã•ã„ã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' ãƒ‡ãƒ¼ã‚¿ã®å­˜åœ¨ç¢ºèªï¼ˆæœ€ä½é™ã®æ¤œè¨¼ï¼‰
-    If dataSheet.Cells(1, 1).Value = "" Then
-        MsgBox "CSVãƒ‡ãƒ¼ã‚¿ãŒç©ºã§ã™ã€‚å…ˆã«CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚“ã§ãã ã•ã„ã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼ã‚¨ãƒ©ãƒ¼ãŒã‚ã‚‹å ´åˆã¯ä¼‘æ†©æ™‚é–“ãƒ»å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã‚’ã‚¹ã‚­ãƒƒãƒ—
-    If g_HeaderCheckError Then
-        ' ç”³è«‹åˆ†æã®ã¿å®Ÿè¡Œã™ã‚‹ã‹ç¢ºèª
-        Dim applicationAnalysisResponse As Integer
-        applicationAnalysisResponse = MsgBox("ç”³è«‹åˆ†æã‚’è¡Œã„ã¾ã™ã‹ï¼Ÿ" & vbCrLf & _
-                                           "ç”³è«‹åˆ†æã¯ç”³è«‹æ±ºè£ç”»é¢ã‹ã‚‰å…¨ç”³è«‹ã‚’å¯¾è±¡ã¨ã—ã¦ä¿å­˜ã—ãŸcsvãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", _
-                                           vbQuestion + vbYesNo, "ç”³è«‹åˆ†æç¢ºèª")
-        
-        If applicationAnalysisResponse = vbYes Then
-            ' ç”³è«‹åˆ†æã‚’å®Ÿè¡Œ
-            On Error Resume Next
-            Call ç”³è«‹è©³ç´°åˆ†æå®Ÿè¡Œ
-            If Err.Number <> 0 Then
-                MsgBox "ç”³è«‹åˆ†æã®å®Ÿè¡Œä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbExclamation
-                Err.Clear
-            End If
-            On Error GoTo 0
-        End If
-        Exit Sub
-    End If
-    
-    ' é€²è¡ŒçŠ¶æ³è¡¨ç¤º
-    Application.StatusBar = "åˆ†æã‚’å®Ÿè¡Œã—ã¦ã„ã¾ã™..."
-    
-    ' é‡è¦ãªä¿®æ­£: ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã‚·ãƒ¼ãƒˆã‚’ç¢ºå®Ÿã«CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã«è¨­å®š
-    dataSheet.Activate
-    
-    ' ã‚¨ãƒ©ãƒ¼ç™ºç”Ÿãƒ•ãƒ©ã‚°ã¨å®Ÿè¡ŒæˆåŠŸãƒ•ãƒ©ã‚°
-    Dim hasError As Boolean
-    Dim breakTimeSuccess As Boolean
-    Dim attendanceSuccess As Boolean
-    
-    hasError = False
-    breakTimeSuccess = False
-    attendanceSuccess = False
-    
-    ' ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯å®Ÿè¡Œ
-    On Error Resume Next
-    Err.Clear ' ã‚¨ãƒ©ãƒ¼çŠ¶æ…‹ã‚’ã‚¯ãƒªã‚¢
-    Call ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯
-    If Err.Number <> 0 Then
-        ' ã‚¨ãƒ©ãƒ¼ã®è©³ç´°ã‚’è¨˜éŒ²ï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
-        Debug.Print "ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯ã§ã‚¨ãƒ©ãƒ¼ç™ºç”Ÿ: " & Err.Number & " - " & Err.Description
-        ' ã‚¨ãƒ©ãƒ¼ãŒã‚ã£ã¦ã‚‚ç¶šè¡Œã™ã‚‹ï¼ˆã‚µã‚¤ãƒ¬ãƒ³ãƒˆã«å¤±æ•—ï¼‰
-        Err.Clear
-    Else
-        breakTimeSuccess = True
-    End If
-    
-    ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯å®Ÿè¡Œ
-    On Error Resume Next
-    Err.Clear ' ã‚¨ãƒ©ãƒ¼çŠ¶æ…‹ã‚’ã‚¯ãƒªã‚¢
-    Call å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯
-    If Err.Number <> 0 Then
-        ' ã‚¨ãƒ©ãƒ¼ã®è©³ç´°ã‚’è¨˜éŒ²ï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
-        Debug.Print "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ã§ã‚¨ãƒ©ãƒ¼ç™ºç”Ÿ: " & Err.Number & " - " & Err.Description
-        ' ã‚¨ãƒ©ãƒ¼ãŒã‚ã£ã¦ã‚‚ç¶šè¡Œã™ã‚‹ï¼ˆã‚µã‚¤ãƒ¬ãƒ³ãƒˆã«å¤±æ•—ï¼‰
-        Err.Clear
-    Else
-        attendanceSuccess = True
-    End If
-    On Error GoTo 0
-    
-    Application.StatusBar = False
-    
-    ' ã„ãšã‚Œã‹ã®ãƒã‚§ãƒƒã‚¯ãŒæˆåŠŸã—ã¦ã„ã‚Œã°æ¦‚è¦ã‚·ãƒ¼ãƒˆã‚’è¡¨ç¤º
-    If breakTimeSuccess Then
-        ' å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆã‚’ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ã™ã‚‹
-        Dim summarySheet As Worksheet
-        On Error Resume Next
-        Set summarySheet = ThisWorkbook.Worksheets("å‹¤æ€ æƒ…å ±åˆ†æçµæœ")
-        If Not summarySheet Is Nothing Then
-            summarySheet.Activate
-        End If
-        On Error GoTo 0
-    ElseIf attendanceSuccess Then
-        ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã‚·ãƒ¼ãƒˆã‚’ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ã™ã‚‹
-        Dim missingEntriesSheet As Worksheet
-        On Error Resume Next
-        Set missingEntriesSheet = ThisWorkbook.Worksheets("å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§")
-        If Not missingEntriesSheet Is Nothing Then
-            missingEntriesSheet.Activate
-        End If
-        On Error GoTo 0
-    End If
-    ' åˆ†æçµæœã‚µãƒãƒªãƒ¼ã‚’è¡¨ç¤ºï¼ˆå¼•æ•°ã‚’æ¸¡ã™ï¼‰
-    Call DisplayAnalysisSummary(breakTimeSuccess, attendanceSuccess)
-End Sub
-' åˆ†æçµæœã®ã‚µãƒãƒªãƒ¼ã‚’è¡¨ç¤ºã™ã‚‹é–¢æ•°
-Private Sub DisplayAnalysisSummary(ByVal breakTimeSuccess As Boolean, ByVal attendanceSuccess As Boolean)
-    ' å„ã‚·ãƒ¼ãƒˆã‹ã‚‰æƒ…å ±ã‚’åé›†
-    Dim breakViolationCount As Long
-    Dim attendanceViolationCount As Long
-    Dim overtimeCount As Long
-    Dim sheetsCreated As String
-    Dim activatedSheet As String
-    
-    sheetsCreated = ""
-    activatedSheet = ""  ' åˆæœŸåŒ–
-    
-    ' ä¼‘æ†©æ™‚é–“é•åæ•°
-    On Error Resume Next
-    Dim violationSheet As Worksheet
-    Set violationSheet = ThisWorkbook.Worksheets("ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯_é•åè€…")
-    If Not violationSheet Is Nothing Then
-        ' 2è¡Œç›®ä»¥é™ã«ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
-        If Not IsEmpty(violationSheet.Cells(2, 1).Value) And violationSheet.Cells(2, 1).Value <> "ä¼‘æ†©æ™‚é–“é•åã¯ã‚ã‚Šã¾ã›ã‚“ã€‚" Then
-            ' æœ€çµ‚è¡Œã‚’å–å¾—ã—ã¦ã‚«ã‚¦ãƒ³ãƒˆ
-            breakViolationCount = violationSheet.Cells(violationSheet.Rows.Count, "A").End(xlUp).Row - 1
-        End If
-    End If
-    On Error GoTo 0
-    
-    ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œæ•°
-    On Error Resume Next
-    Dim missingEntriesSheet As Worksheet
-    Set missingEntriesSheet = ThisWorkbook.Worksheets("å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§")
-    If Not missingEntriesSheet Is Nothing Then
-        ' 2è¡Œç›®ä»¥é™ã«ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
-        If Not IsEmpty(missingEntriesSheet.Cells(2, 1).Value) And missingEntriesSheet.Cells(2, 1).Value <> "å‹¤æ€ å…¥åŠ›æ¼ã‚Œã¯æ¤œå‡ºã•ã‚Œã¾ã›ã‚“ã§ã—ãŸã€‚" Then
-            ' æœ€çµ‚è¡Œã‚’å–å¾—ã—ã¦ã‚«ã‚¦ãƒ³ãƒˆ
-            attendanceViolationCount = missingEntriesSheet.Cells(missingEntriesSheet.Rows.Count, "A").End(xlUp).Row - 1
-        End If
-    End If
-    On Error GoTo 0
-    
-    ' æ®‹æ¥­ç™ºç”Ÿæ•°
-    On Error Resume Next
-    Dim overtimeSheet As Worksheet
-    Set overtimeSheet = ThisWorkbook.Worksheets("æ®‹æ¥­ä¸€è¦§")
-    If Not overtimeSheet Is Nothing Then
-        ' 2è¡Œç›®ä»¥é™ã«ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
-        If Not IsEmpty(overtimeSheet.Cells(2, 1).Value) And overtimeSheet.Cells(2, 1).Value <> "æ®‹æ¥­æ™‚é–“ã®è¨˜éŒ²ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚" Then
-            ' æœ€çµ‚è¡Œã‚’å–å¾—ã—ã¦ã‚«ã‚¦ãƒ³ãƒˆ
-            overtimeCount = overtimeSheet.Cells(overtimeSheet.Rows.Count, "A").End(xlUp).Row - 1
-        End If
-    End If
-    On Error GoTo 0
-    
-    If breakTimeSuccess Then
-        sheetsCreated = sheetsCreated & "ãƒ»ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯" & vbCrLf
-        activatedSheet = "ã€Œå‹¤æ€ æƒ…å ±åˆ†æçµæœã€ã‚·ãƒ¼ãƒˆ"
-    End If
-    If attendanceSuccess Then
-        sheetsCreated = sheetsCreated & "ãƒ»å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯" & vbCrLf
-        If breakTimeSuccess = False Then
-            activatedSheet = "ã€Œå‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã€ã‚·ãƒ¼ãƒˆ"
-        End If
-    End If
-    
-    ' ã‚µãƒãƒªãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®ä½œæˆ
-    Dim message As String
-    
-    If breakTimeSuccess Or attendanceSuccess Then
-        message = "åˆ†æãŒå®Œäº†ã—ã¾ã—ãŸã€‚" & vbCrLf & vbCrLf
-        message = message & "ã€å®Ÿè¡Œã—ãŸåˆ†æã€‘" & vbCrLf & sheetsCreated & vbCrLf
-        message = message & "ã€åˆ†æçµæœã‚µãƒãƒªãƒ¼ã€‘" & vbCrLf
-        
-        If breakTimeSuccess Then
-            message = message & "ãƒ»ä¼‘æ†©æ™‚é–“é•å: " & breakViolationCount & "ä»¶" & vbCrLf
-            message = message & "ãƒ»æ®‹æ¥­ç™ºç”Ÿ: " & overtimeCount & "ä»¶" & vbCrLf
-        End If
-        
-        If attendanceSuccess Then
-            message = message & "ãƒ»å‹¤æ€ å…¥åŠ›æ¼ã‚Œ: " & attendanceViolationCount & "ä»¶" & vbCrLf
-        End If
-        
-        message = message & vbCrLf & "è©³ç´°ã¯å„ã‚·ãƒ¼ãƒˆã‚’ã”ç¢ºèªãã ã•ã„ã€‚" & vbCrLf
-        If activatedSheet <> "" Then
-            message = message & "ç¾åœ¨ã€" & activatedSheet & "ã‚’è¡¨ç¤ºã—ã¦ã„ã¾ã™ã€‚"
-        End If
-    Else
-        message = "å¿…è¦ãªãƒ‡ãƒ¼ã‚¿åˆ—ãŒä¸è¶³ã—ã¦ã„ã‚‹ãŸã‚ã€åˆ†æã‚’å®Ÿè¡Œã§ãã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & vbCrLf
-        message = message & "CSVãƒ‡ãƒ¼ã‚¿ãŒæ­£ã—ããƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆã•ã‚Œã¦ã„ã‚‹ã“ã¨ã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚" & vbCrLf
-        message = message & "å¿…è¦ãªåˆ—ï¼šç¤¾å“¡ç•ªå·ã€æ°åã€æ—¥ä»˜ã€ï¼ˆå‹¤æ€ å†…å®¹ã«å¿œã˜ã¦ï¼‰ä¼‘æ†©æ™‚é–“ã€å®Ÿåƒæ™‚é–“ãªã©"
-    End If
-    
-    ' ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤º
-    MsgBox message, vbInformation, "åˆ†æå®Œäº†"
-    
-    ' ç”³è«‹åˆ†æã®å®Ÿè¡Œç¢ºèª
-    Dim applicationAnalysisResponse As Integer
-    applicationAnalysisResponse = MsgBox("ç”³è«‹åˆ†æã‚’è¡Œã„ã¾ã™ã‹ï¼Ÿ" & vbCrLf & _
-                                       "ç”³è«‹åˆ†æã¯ç”³è«‹æ±ºè£ç”»é¢ã‹ã‚‰å…¨ç”³è«‹ã‚’å¯¾è±¡ã¨ã—ã¦ä¿å­˜ã—ãŸcsvãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠã—ã¦ãã ã•ã„ã€‚", _
-                                       vbQuestion + vbYesNo, "ç”³è«‹åˆ†æç¢ºèª")
-    
-    If applicationAnalysisResponse = vbYes Then
-        ' ç”³è«‹åˆ†æã‚’å®Ÿè¡Œ
-        On Error Resume Next
-        Call ç”³è«‹è©³ç´°åˆ†æå®Ÿè¡Œ
-        If Err.Number <> 0 Then
-            MsgBox "ç”³è«‹åˆ†æã®å®Ÿè¡Œä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbExclamation
-            Err.Clear
-        End If
-        On Error GoTo 0
-    Else
-        ' ä½•ã‚‚ã›ãšçµ‚äº†
-        MsgBox "ã™ã¹ã¦ã®åˆ†æãŒå®Œäº†ã—ã¾ã—ãŸã€‚", vbInformation, "åˆ†æçµ‚äº†"
-        ' åˆ†æãŒå®Œäº†ã—ãŸã®ã§å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆã‚’ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ã™ã‚‹
-        On Error Resume Next
-        Dim finalSummarySheet As Worksheet
-        Set finalSummarySheet = ThisWorkbook.Worksheets("å‹¤æ€ æƒ…å ±åˆ†æçµæœ")
-        If Not finalSummarySheet Is Nothing Then
-            finalSummarySheet.Activate
-        End If
-        On Error GoTo 0
-    End If
-End Sub
-' ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆã‚’è¡¨ç¤ºã™ã‚‹é–¢æ•°
-Private Sub AddSpecialLeaveList(summarySheet As Worksheet, NextRow As Long)
-    ' CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã‚’å–å¾—
-    Dim wsCSVData As Worksheet
-    On Error Resume Next
-    Set wsCSVData = ThisWorkbook.Worksheets("CSVãƒ‡ãƒ¼ã‚¿")
-    If wsCSVData Is Nothing Then Exit Sub
-    
-    ' æœ€çµ‚è¡Œã‚’å–å¾—
-    Dim lastRow As Long
-    lastRow = wsCSVData.Cells(wsCSVData.Rows.Count, "A").End(xlUp).Row
-    
-    ' åˆ—ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ç‰¹å®š
-    Dim ç¤¾å“¡ç•ªå·Col As Integer, æ°åCol As Integer, éƒ¨é–€Col As Integer
-    Dim å½¹è·Col As Integer, æ—¥ä»˜Col As Integer, æ›œæ—¥Col As Integer
-    Dim ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col As Integer, å±Šå‡ºCol As Integer, å‚™è€ƒCol As Integer
-    
-    ' å„åˆ—ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ç‰¹å®š
-    Dim i As Long
-    For i = 1 To wsCSVData.Cells(1, wsCSVData.Columns.Count).End(xlToLeft).Column
-        Select Case wsCSVData.Cells(1, i).Value
-            Case "ç¤¾å“¡ç•ªå·": ç¤¾å“¡ç•ªå·Col = i
-            Case "æ°å": æ°åCol = i
-            Case "éƒ¨é–€": éƒ¨é–€Col = i
-            Case "å½¹è·": å½¹è·Col = i
-            Case "æ—¥ä»˜": æ—¥ä»˜Col = i
-            Case "æ›œæ—¥": æ›œæ—¥Col = i
-            Case "ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼": ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col = i
-            Case "å±Šå‡ºå†…å®¹": å±Šå‡ºCol = i
-            Case "å‚™è€ƒ": å‚™è€ƒCol = i
-        End Select
-    Next i
-    
-    ' å¿…è¦ãªåˆ—ãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã¯ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã‚’è¨­å®š
-    If ç¤¾å“¡ç•ªå·Col = 0 Then ç¤¾å“¡ç•ªå·Col = 1
-    If æ°åCol = 0 Then æ°åCol = 2
-    If éƒ¨é–€Col = 0 Then éƒ¨é–€Col = 3
-    If å½¹è·Col = 0 Then å½¹è·Col = 4
-    If æ—¥ä»˜Col = 0 Then æ—¥ä»˜Col = 5
-    If æ›œæ—¥Col = 0 Then æ›œæ—¥Col = 6
-    If ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col = 0 Then ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col = 7
-    If å±Šå‡ºCol = 0 Then å±Šå‡ºCol = 8
-    If å‚™è€ƒCol = 0 Then å‚™è€ƒCol = 60 ' ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§BHåˆ—
-    
-    ' ç‰¹åˆ¥ä¼‘æš‡ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’åé›†
-    Dim specialLeaves As New Collection
-    Dim leaveRecord As Object
-    
-    ' CSVå„è¡Œã‚’ãƒã‚§ãƒƒã‚¯
-    For i = 2 To lastRow
-        ' å±Šå‡ºå†…å®¹ãŒã€Œç‰¹åˆ¥ä¼‘æš‡ã€ã®ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’æŠ½å‡º
-        If Trim(wsCSVData.Cells(i, å±Šå‡ºCol).Value) = "ç‰¹åˆ¥ä¼‘æš‡" Then
-            Set leaveRecord = CreateObject("Scripting.Dictionary")
-            leaveRecord.Add "ç¤¾å“¡ç•ªå·", wsCSVData.Cells(i, ç¤¾å“¡ç•ªå·Col).Value
-            leaveRecord.Add "æ°å", wsCSVData.Cells(i, æ°åCol).Value
-            leaveRecord.Add "éƒ¨é–€", wsCSVData.Cells(i, éƒ¨é–€Col).Value
-            leaveRecord.Add "å½¹è·", wsCSVData.Cells(i, å½¹è·Col).Value
-            leaveRecord.Add "æ—¥ä»˜", wsCSVData.Cells(i, æ—¥ä»˜Col).Value
-            leaveRecord.Add "æ›œæ—¥", wsCSVData.Cells(i, æ›œæ—¥Col).Value
-            leaveRecord.Add "ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼", wsCSVData.Cells(i, ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col).Value
-            leaveRecord.Add "å±Šå‡ºå†…å®¹", wsCSVData.Cells(i, å±Šå‡ºCol).Value
-            leaveRecord.Add "å‚™è€ƒ", wsCSVData.Cells(i, å‚™è€ƒCol).Value
-            leaveRecord.Add "å‚™è€ƒç©ºæ¬„", (Trim(wsCSVData.Cells(i, å‚™è€ƒCol).Value) = "")
-            
-            ' ã‚³ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ã«è¿½åŠ 
-            specialLeaves.Add leaveRecord
-        End If
-    Next i
-    
-    ' ç‰¹åˆ¥ä¼‘æš‡ãŒãªã‘ã‚Œã°çµ‚äº†
-    If specialLeaves.Count = 0 Then Exit Sub
-    
-    ' ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆã®è¡¨ç¤ºä½ç½®ï¼ˆå‹¤æ€ å…¥åŠ›æ¼ã‚Œæ¦‚è¦ã®2è¡Œä¸‹ï¼‰
-    Dim listRow As Long
-    listRow = NextRow + 8
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’è¨­å®š
-    With summarySheet
-        .Cells(listRow, 1).Value = "ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆ"
-        .Cells(listRow, 1).Font.Bold = True
-        .Cells(listRow, 1).Interior.Color = RGB(200, 200, 200)
-        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Merge
-        
-        listRow = listRow + 1
-        
-        ' ã‚«ãƒ©ãƒ ãƒ˜ãƒƒãƒ€ãƒ¼
-        .Cells(listRow, 1).Value = "ç¤¾å“¡ç•ªå·"
-        .Cells(listRow, 2).Value = "æ°å"
-        .Cells(listRow, 3).Value = "éƒ¨é–€"
-        .Cells(listRow, 4).Value = "å½¹è·"
-        .Cells(listRow, 5).Value = "æ—¥ä»˜"
-        .Cells(listRow, 6).Value = "æ›œæ—¥"
-        .Cells(listRow, 7).Value = "ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼"
-        .Cells(listRow, 8).Value = "å±Šå‡ºå†…å®¹"
-        .Cells(listRow, 9).Value = "å‚™è€ƒ"
-        
-        ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Font.Bold = True
-        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Interior.Color = RGB(200, 200, 200)
-        
-        listRow = listRow + 1
-        
-        ' ç‰¹åˆ¥ä¼‘æš‡ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’è¡¨ç¤º
-        Dim hasEmptyRemarks As Boolean
-        hasEmptyRemarks = False
-        
-        Dim leaveItem As Object
-        For Each leaveItem In specialLeaves
-            .Cells(listRow, 1).NumberFormat = "@"
-            .Cells(listRow, 1).Value = leaveItem("ç¤¾å“¡ç•ªå·")
-            .Cells(listRow, 2).Value = leaveItem("æ°å")
-            .Cells(listRow, 3).Value = leaveItem("éƒ¨é–€")
-            .Cells(listRow, 4).Value = leaveItem("å½¹è·")
-            .Cells(listRow, 5).Value = leaveItem("æ—¥ä»˜")
-            .Cells(listRow, 6).Value = leaveItem("æ›œæ—¥")
-            .Cells(listRow, 7).Value = leaveItem("ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼")
-            .Cells(listRow, 8).Value = leaveItem("å±Šå‡ºå†…å®¹")
-            .Cells(listRow, 9).Value = leaveItem("å‚™è€ƒ")
-            
-            ' å‚™è€ƒæ¬„ãŒç©ºæ¬„ã®å ´åˆã¯å„ªã—ã„é»„è‰²ã§ãƒã‚¤ãƒ©ã‚¤ãƒˆ
-            If leaveItem("å‚™è€ƒç©ºæ¬„") Then
-                .Cells(listRow, 9).Interior.Color = RGB(255, 255, 200)  ' ã‚ˆã‚Šå„ªã—ã„é»„è‰²
-                hasEmptyRemarks = True
-            End If
-            
-            listRow = listRow + 1
-        Next leaveItem
-        
-        ' ã‚³ãƒ¡ãƒ³ãƒˆã‚’è¿½åŠ 
-        .Cells(listRow + 1, 1).Value = "å±Šå‡ºå†…å®¹ãŒæ˜ç¢ºã€ã‹ã¤ç¢ºå®Ÿã«å‚™è€ƒæ¬„ã§èª¬æ˜ãŒãªã•ã‚Œã¦ã„ã‚‹ã“ã¨ã€‚"
-        .Cells(listRow + 2, 1).Value = "å‚™è€ƒæ¬„ã®è¨˜è¼‰ä¸å‚™ã¯ä¿®æ­£ãŒå¿…è¦ã§ã™ã€‚"
-        
-        If hasEmptyRemarks Then
-            .Range(.Cells(listRow + 1, 1), .Cells(listRow + 2, 9)).Font.Color = RGB(255, 0, 0)
-            .Range(.Cells(listRow + 1, 1), .Cells(listRow + 2, 9)).Font.Bold = True
-        End If
-        
-        ' è¡¨ã®ãƒœãƒ¼ãƒ€ãƒ¼ã‚’è¨­å®š
-        Dim tableRange As Range
-        Set tableRange = .Range(.Cells(listRow - specialLeaves.Count, 1), .Cells(listRow - 1, 9))
-        tableRange.Borders.LineStyle = xlContinuous
-        tableRange.Borders.Weight = xlThin
-        
-        ' åˆ—å¹…ã®è‡ªå‹•èª¿æ•´
-        .Columns("A:I").AutoFit
-    End With
-End Sub
-' ãƒ¡ã‚¤ãƒ³å‡¦ç†ï¼ˆCSVãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿ãƒœã‚¿ãƒ³ã‹ã‚‰å‘¼ã³å‡ºã•ã‚Œã‚‹é–¢æ•°ï¼‰ã‚’çµ±åˆ
-Sub ãƒ¡ã‚¤ãƒ³å‡¦ç†()
-    Call CSVãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿
-End Sub
-' ã‚·ãƒ¼ãƒˆã‚¯ãƒªã‚¢å‡¦ç†ï¼ˆæ‹¡å¼µç‰ˆï¼‰
-Sub ã‚·ãƒ¼ãƒˆã‚¯ãƒªã‚¢()
-    Dim sheetNames As Variant
-    Dim i As Integer
-    Dim ws As Worksheet
-    
-    ' å‰Šé™¤å¯¾è±¡ã®ã‚·ãƒ¼ãƒˆåã‚’é…åˆ—ã§å®šç¾©ï¼ˆæ–°ã—ã„ã‚·ãƒ¼ãƒˆåã‚‚å«ã‚€ï¼‰
-    sheetNames = Array("CSVãƒ‡ãƒ¼ã‚¿", "æ™‚é–“ãƒã‚§ãƒƒã‚¯_å…¨ä½“", "ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯_é•åè€…", "å‹¤æ€ æƒ…å ±åˆ†æçµæœ", "ä¼‘æ†©æ™‚é–“ã€å‚™è€ƒä¸€è¦§", "æ®‹æ¥­ä¸€è¦§", "å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§", "ç”³è«‹è©³ç´°åˆ†æä¸€è¦§")
-    Application.DisplayAlerts = False
-    
-    ' å„ã‚·ãƒ¼ãƒˆã‚’ç¢ºèªã—ã€å­˜åœ¨ã™ã‚Œã°å‰Šé™¤
-    For i = LBound(sheetNames) To UBound(sheetNames)
-        On Error Resume Next
-        Set ws = ThisWorkbook.Worksheets(sheetNames(i))
-        If Not ws Is Nothing Then
-            ws.Delete
-        End If
-        On Error GoTo 0
-    Next i
-    
-    Application.DisplayAlerts = True
-    
-    MsgBox "ã™ã¹ã¦ã®åˆ†æã‚·ãƒ¼ãƒˆãŒã‚¯ãƒªã‚¢ã•ã‚Œã¾ã—ãŸã€‚", vbInformation
-End Sub
-' CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆä½œæˆæ™‚ã«ãƒœã‚¿ãƒ³ã‚’è¿½åŠ ã™ã‚‹å‡¦ç†ï¼ˆçµ±åˆç‰ˆï¼‰
-Public Sub CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆä½œæˆçµ±åˆ()
-    ' CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆä½œæˆ
-    Call CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆä½œæˆ
-    
-    ' ãƒ¡ã‚¤ãƒ³ã‚·ãƒ¼ãƒˆã‚’å–å¾—
-    Dim mainSheet As Worksheet
-    On Error Resume Next
-    Set mainSheet = Worksheets("CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆ")
-    If mainSheet Is Nothing Then
-        MsgBox "CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯ãƒœã‚¿ãƒ³ã‚’é…ç½®
-    With mainSheet.Buttons.Add(528, 60, 150, 30)
-        .OnAction = "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯"
-        .Caption = "å‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒã‚§ãƒƒã‚¯"
-    End With
-    
-    ' ç”³è«‹åˆ†æãƒœã‚¿ãƒ³ã‚’é…ç½®
-    With mainSheet.Buttons.Add(528, 100, 150, 30)
-        .OnAction = "ç”³è«‹è©³ç´°åˆ†æå®Ÿè¡Œ"
-        .Caption = "ç”³è«‹åˆ†æ"
-    End With
-    
-    MsgBox "ãƒœã‚¿ãƒ³ãŒè¿½åŠ ã•ã‚Œã¾ã—ãŸã€‚", vbInformation
-End Sub
-' æ™‚é–“åˆ—ã®æ›¸å¼ã‚’è¨­å®šã™ã‚‹ãƒ˜ãƒ«ãƒ‘ãƒ¼é–¢æ•°
-Sub FormatTimeColumns(ws As Worksheet, ParamArray columnIndexes() As Variant)
-    Dim lastRow As Long
-    Dim i As Long, j As Long
-    
-    ' ã‚·ãƒ¼ãƒˆã®æœ€çµ‚è¡Œã‚’å–å¾—
-    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
-    
-    If lastRow < 2 Then Exit Sub ' ãƒ‡ãƒ¼ã‚¿ãŒãªã„å ´åˆã¯çµ‚äº†
-    
-    ' æŒ‡å®šã•ã‚ŒãŸåˆ—ã®æ›¸å¼ã‚’è¨­å®š
-    For i = 0 To UBound(columnIndexes)
-        For j = 2 To lastRow ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’ã‚¹ã‚­ãƒƒãƒ—
-            ' æ™‚é–“å½¢å¼ã‚’ HH:MM ã«è¨­å®š
-            ws.Cells(j, columnIndexes(i)).NumberFormat = "[hh]:mm"
-        Next j
-    Next i
-End Sub
-' åˆ¥åã§ä¿å­˜ã™ã‚‹é–¢æ•°
-Sub åˆ¥åä¿å­˜()
-    Dim filePath As Variant
-    
-    ' ä¿å­˜ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã‚’è¡¨ç¤ºï¼ˆãƒã‚¯ãƒ­æœ‰åŠ¹ãƒ–ãƒƒã‚¯å½¢å¼ï¼‰
-    filePath = Application.GetSaveAsFilename( _
-        InitialFileName:="å‹¤ä¹‹åŠ©æ˜ç´°ãƒã‚§ãƒƒã‚¯_" & Format(Date, "yyyymmdd") & ".xlsm", _
-        FileFilter:="ãƒã‚¯ãƒ­æœ‰åŠ¹ãƒ–ãƒƒã‚¯ (*.xlsm),*.xlsm", _
-        Title:="åˆ¥åã§ä¿å­˜")
-    If filePath = False Then
-        MsgBox "ä¿å­˜ãŒã‚­ãƒ£ãƒ³ã‚»ãƒ«ã•ã‚Œã¾ã—ãŸã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' ç¾åœ¨ã®ãƒ–ãƒƒã‚¯ã‚’ä¿å­˜
-    On Error Resume Next
-    ThisWorkbook.SaveAs filePath, xlOpenXMLWorkbookMacroEnabled
-    
-    If Err.Number <> 0 Then
-        MsgBox "ä¿å­˜ä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbCritical
-    Else
-        MsgBox "ãƒ•ã‚¡ã‚¤ãƒ«ãŒæ­£å¸¸ã«ä¿å­˜ã•ã‚Œã¾ã—ãŸ: " & filePath, vbInformation
-    End If
-    On Error GoTo 0
-End Sub
-
-' *************************************************************
-' ä¿®æ­£ç‰ˆ: CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆä½œæˆ
-' ä¿®æ­£æ—¥: 2025-10-20
-' ä¿®æ­£å†…å®¹: è¨­å®šã‚·ãƒ¼ãƒˆã‚’å‰Šé™¤å¯¾è±¡ã‹ã‚‰é™¤å¤–
-' *************************************************************
-Sub CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆä½œæˆ()
-    Dim ws As Worksheet
-    Dim mainSheet As Worksheet
-    Dim initSheet As Worksheet
-    Dim configSheet As Worksheet  ' â˜…â˜…â˜… è¿½åŠ : è¨­å®šã‚·ãƒ¼ãƒˆã®å‚ç…§ â˜…â˜…â˜…
-    Dim btn As Button
-    Dim sh As Worksheet
-    
-    Application.DisplayAlerts = False
-    
-    ' â˜…â˜…â˜… ä¿®æ­£: åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆã€CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆã€è¨­å®šã‚·ãƒ¼ãƒˆä»¥å¤–ã®ã‚·ãƒ¼ãƒˆã‚’å‰Šé™¤ â˜…â˜…â˜…
-    For Each sh In ThisWorkbook.Worksheets
-        ' å‰Šé™¤å¯¾è±¡å¤–ã®ã‚·ãƒ¼ãƒˆåã‚’æŒ‡å®š
-        If sh.Name <> "åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆ" And _
-           sh.Name <> "CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆ" And _
-           sh.Name <> "è¨­å®š" Then
-            sh.Delete
-        End If
-    Next sh
-    
-    Application.DisplayAlerts = True
-    
-    ' åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆãŒå­˜åœ¨ã™ã‚‹ã‹ç¢ºèª
-    On Error Resume Next
-    Set initSheet = Worksheets("åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆ")
-    If initSheet Is Nothing Then
-        Set initSheet = Worksheets.Add(Before:=Worksheets(1))
-        initSheet.Name = "åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆ"
-    End If
-    On Error GoTo 0
-    
-    ' CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆãŒå­˜åœ¨ã™ã‚‹ã‹ç¢ºèª
-    On Error Resume Next
-    Set mainSheet = Worksheets("CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆ")
-    If mainSheet Is Nothing Then
-        Set mainSheet = Worksheets.Add(After:=initSheet)
-        mainSheet.Name = "CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆ"
-    End If
-    On Error GoTo 0
-    
-    ' â˜…â˜…â˜… è¿½åŠ : è¨­å®šã‚·ãƒ¼ãƒˆãŒå­˜åœ¨ã™ã‚‹ã‹ç¢ºèªï¼ˆå‰Šé™¤ã•ã‚Œã¦ã„ãŸå ´åˆã¯å†ä½œæˆï¼‰ â˜…â˜…â˜…
-    On Error Resume Next
-    Set configSheet = Worksheets("è¨­å®š")
-    If configSheet Is Nothing Then
-        Debug.Print "[è­¦å‘Š] è¨­å®šã‚·ãƒ¼ãƒˆãŒå‰Šé™¤ã•ã‚Œã¦ã„ãŸãŸã‚å†ä½œæˆã—ã¾ã™"
-        ' è¨­å®šã‚·ãƒ¼ãƒˆã‚’å†ä½œæˆ
-        Set configSheet = Worksheets.Add(After:=Worksheets(Worksheets.Count))
-        configSheet.Name = "è¨­å®š"
-        
-        ' è¨­å®šã‚·ãƒ¼ãƒˆã®ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’å†è¨­å®š
-        With configSheet
-            .Cells(1, 1).Value = "Webhook URL"
-            .Cells(1, 2).Value = "[ã“ã“ã«Webhook URLã‚’è²¼ã‚Šä»˜ã‘ã¦ãã ã•ã„]"
-            .Cells(2, 1).Value = "Channel ID"
-            .Cells(2, 2).Value = "[ã“ã“ã«Channel IDã‚’è²¼ã‚Šä»˜ã‘ã¦ãã ã•ã„]"
-            .Columns("A:B").AutoFit
-        End With
-        
-        ' éè¡¨ç¤ºåŒ–
-        configSheet.Visible = xlSheetVeryHidden
-    End If
-    On Error GoTo 0
-    
-    ' ãƒ¡ã‚¤ãƒ³ã‚·ãƒ¼ãƒˆã‚’ã‚¯ãƒªã‚¢
-    mainSheet.Cells.Clear
-    
-    ' ã‚¿ã‚¤ãƒˆãƒ«ã‚’è¨­å®š
-    With mainSheet
-        .Range("A1").Value = "ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯ãƒ„ãƒ¼ãƒ«ï¼ˆSI1éƒ¨å°‚ç”¨ï¼‰"
-        .Range("A1").Font.Size = 16
-        .Range("A1").Font.Bold = True
-        .Range("A1").Font.Color = RGB(0, 102, 204)
-    End With
-    
-    ' èª¬æ˜æ–‡ã‚’8è¡Œç›®ä»¥é™ã«é…ç½®
-    With mainSheet
-        .Range("A8").Value = "èª¬æ˜ï¼š"
-        .Range("A8").Font.Bold = True
-        
-        .Range("A9").Value = "å®Ÿåƒæ™‚é–“ã«å¯¾ã—ã¦é©åˆ‡ãªä¼‘æ†©æ™‚é–“ãŒã¨ã‚‰ã‚Œã¦ã„ã‚‹ã‹ã‚’ãƒã‚§ãƒƒã‚¯ã—ã¾ã™ã€‚"
-        .Range("A10").Value = "æ®‹æ¥­æ™‚é–“ã«ã¤ã„ã¦æ­£ç¢ºã«ç®—å‡ºã—ã¾ã™ã€‚"
-        .Range("A11").Value = "å‹¤æ€ ã®å…¥åŠ›æ¼ã‚Œã«ã¤ã„ã¦ãƒã‚§ãƒƒã‚¯ã—ã¾ã™ã€‚"
-        .Range("A12").Value = "ç”³è«‹ã®åˆ†æã‚’è¡Œã„ã€ç¤¾å“¡ã”ã¨ã®æœ‰ä¼‘æ—¥æ•°ãªã©ã‚’é›†è¨ˆã—ã¾ã™ã€‚"
-        
-        ' åŒºåˆ‡ã‚Šç·š
-        .Range("A13").Value = "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
-        .Range("A13").Font.Color = RGB(128, 128, 128)
-        
-        ' LINEWORKSé€šçŸ¥æ©Ÿèƒ½ã®èª¬æ˜
-        .Range("A14").Value = "ã€LINEWORKSé€šçŸ¥æ©Ÿèƒ½ã€‘"
-        .Range("A14").Font.Bold = True
-        .Range("A14").Font.Size = 11
-        .Range("A14").Font.Color = RGB(0, 153, 0)
-        
-        .Range("A15").Value = "ãƒ»å‹¤æ€ æœªå…¥åŠ›è€…ã®æƒ…å ±ã‚’LINE WORKSã€ŒSI1éƒ¨ãƒªãƒ¼ãƒ€ãƒ¼ãƒãƒ£ãƒ³ãƒãƒ«ã€ã«é€šçŸ¥ã™ã‚‹æ©Ÿèƒ½ã‚’å®Ÿè£…"
-        .Range("A16").Value = "ãƒ»å‹¤ä¹‹åŠ©æ˜ç´°åˆ†æå¾Œã€å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã‚·ãƒ¼ãƒˆã«LINEWORKSé€šçŸ¥ãƒœã‚¿ãƒ³ãŒç”Ÿæˆã•ã‚Œã‚‹"
-        .Range("A17").Value = "ãƒ»LINEWORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’æŠ¼ä¸‹ã™ã‚‹ã¨ã€å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã‚·ãƒ¼ãƒˆã®å†…å®¹ãŒå°‚ç”¨ãƒãƒ£ãƒ³ãƒãƒ«ã«é€šçŸ¥ã•ã‚Œã‚‹"
-        .Range("A18").Value = "ãƒ»æœªå…¥åŠ›æ—¥æ•°ã«å¿œã˜ã¦ä»¥ä¸‹ã®ã‚ˆã†ã«åˆ†é¡ã—ã¦è¡¨ç¤ºã•ã‚Œã¾ã™ï¼š"
-        .Range("A19").Value = "  [ç·Šæ€¥] 5æ—¥ä»¥ä¸Šæœªå…¥åŠ› / [è¦æ³¨æ„] 3-4æ—¥æœªå…¥åŠ› / [ç¢ºèª] 1-2æ—¥æœªå…¥åŠ›"
-        
-        ' åŒºåˆ‡ã‚Šç·š
-        .Range("A20").Value = "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
-        .Range("A20").Font.Color = RGB(128, 128, 128)
-        
-        ' é€£çµ¡å…ˆæƒ…å ±
-        .Range("A21").Value = "ã€æ©Ÿèƒ½è¿½åŠ ãƒ»ä¿®æ­£ã®ã”ä¾é ¼ã€‘"
-        .Range("A21").Font.Bold = True
-        .Range("A21").Font.Size = 11
-        .Range("A21").Font.Color = RGB(0, 102, 204)
-        
-        .Range("A22").Value = "æ©Ÿèƒ½è¿½åŠ ã‚„ä¸å…·åˆä¿®æ­£ã®ã”è¦æœ›ã¯ä¸‹è¨˜ã¾ã§ã”é€£çµ¡ãã ã•ã„ï¼š"
-        .Range("A23").Value = "  é€£çµ¡å…ˆ: suzuki.shunpei@altx.co.jp"
-        .Range("A23").Font.Bold = True
-        .Range("A23").Font.Size = 11
-        .Range("A23").Font.Color = RGB(0, 102, 204)
-        
-        .Range("A24").Value = "â€»ã”é€£çµ¡ã®éš›ã¯ã€å…·ä½“çš„ãªå†…å®¹ã‚„å‹•ä½œç’°å¢ƒã‚’ãŠçŸ¥ã‚‰ã›ãã ã•ã„"
-        .Range("A24").Font.Size = 9
-        .Range("A24").Font.Color = RGB(128, 128, 128)
-        
-        ' ä»¥ä¸‹ã€æ—¢å­˜ã®èª¬æ˜æ–‡ã‚’ç¶™ç¶š...
-        ' (æ—¢å­˜ã®ã‚³ãƒ¼ãƒ‰ã‚’ãã®ã¾ã¾ç¶šã‘ã‚‹)
-        
-    End With
-    
-    Debug.Print "[INFO] CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆä½œæˆå®Œäº†ï¼ˆè¨­å®šã‚·ãƒ¼ãƒˆä¿è­·å¯¾å¿œæ¸ˆã¿ï¼‰"
-    
-End Sub
-
-' â˜…â˜…â˜… é™¤å¤–ç¤¾å“¡ç•ªå·å–å¾—é–¢æ•°ã‚’ä¿®æ­£ï¼ˆA63 â†’ A58ã«å¤‰æ›´ï¼‰â˜…â˜…â˜…
-Function é™¤å¤–ç¤¾å“¡ç•ªå·å–å¾—() As Variant
-    Dim mainSheet As Worksheet
-    Dim excludeNumbersStr As String
-    Dim excludeNumbers As Variant
-    Dim i As Long
-    
-    On Error Resume Next
-    Set mainSheet = ThisWorkbook.Worksheets("CSVèª­ã¿è¾¼ã¿ã‚·ãƒ¼ãƒˆ")
-    If mainSheet Is Nothing Then
-        ' ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã¯ç©ºã®é…åˆ—ã‚’è¿”ã™
-        ReDim excludeNumbers(0)
-        excludeNumbers(0) = ""
-        é™¤å¤–ç¤¾å“¡ç•ªå·å–å¾— = excludeNumbers
-        Exit Function
-    End If
-    
-    ' â˜…â˜…â˜… é™¤å¤–ç¤¾å“¡ç•ªå·æ¬„ã®å€¤ã‚’å–å¾—ï¼ˆA63 â†’ A58ã«å¤‰æ›´ï¼‰â˜…â˜…â˜…
-    excludeNumbersStr = Trim(mainSheet.Range("A58").Value)
-    
-    ' ãƒ‡ãƒãƒƒã‚°å‡ºåŠ›
-    Debug.Print "é™¤å¤–ç¤¾å“¡ç•ªå·æ–‡å­—åˆ—: [" & excludeNumbersStr & "]"
-    
-    If excludeNumbersStr = "" Then
-        ' å…¥åŠ›ãŒãªã„å ´åˆã¯ç©ºã®é…åˆ—ã‚’è¿”ã™
-        ReDim excludeNumbers(0)
-        excludeNumbers(0) = ""
-    Else
-        ' ã‚«ãƒ³ãƒåŒºåˆ‡ã‚Šã§åˆ†å‰²
-        excludeNumbers = Split(excludeNumbersStr, ",")
-        
-        ' å„ç•ªå·ã‹ã‚‰ã‚¹ãƒšãƒ¼ã‚¹ã‚’å‰Šé™¤ã—ã€æ–‡å­—åˆ—ã¨ã—ã¦æ•´å½¢
-        For i = LBound(excludeNumbers) To UBound(excludeNumbers)
-            excludeNumbers(i) = Trim(CStr(excludeNumbers(i)))
-            ' ãƒ‡ãƒãƒƒã‚°å‡ºåŠ›
-            Debug.Print "é™¤å¤–ç¤¾å“¡ç•ªå·[" & i & "]: [" & excludeNumbers(i) & "]"
-        Next i
-    End If
-    
-    é™¤å¤–ç¤¾å“¡ç•ªå·å–å¾— = excludeNumbers
-End Function
-
-' åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆã‚’è¡¨ç¤ºã™ã‚‹ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£ï¼ˆé–‹ç™ºè€…ãƒ¢ãƒ¼ãƒ‰ç”¨ï¼‰
-Sub åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆè¡¨ç¤º()
-    Dim initSheet As Worksheet
-    
-    On Error Resume Next
-    Set initSheet = Worksheets("åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆ")
-    
-    If Not initSheet Is Nothing Then
-        initSheet.Visible = xlSheetVisible
-        initSheet.Activate
-    Else
-        MsgBox "åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation
-    End If
-    On Error GoTo 0
-End Sub
-' åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆã‚’éè¡¨ç¤ºã«ã™ã‚‹ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£
-Sub åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆéè¡¨ç¤º()
-    Dim initSheet As Worksheet
-    
-    On Error Resume Next
-    Set initSheet = Worksheets("åˆæœŸåŒ–ã‚·ãƒ¼ãƒˆ")
-    
-    If Not initSheet Is Nothing Then
-        initSheet.Visible = xlSheetVeryHidden
-    End If
-    On Error GoTo 0
-End Sub
-' éƒ¨é–€åˆ¥æ®‹æ¥­æ™‚é–“ã‚’é›†è¨ˆã™ã‚‹æ”¹è‰¯ç‰ˆé–¢æ•°
-Sub éƒ¨é–€åˆ¥æ®‹æ¥­é›†è¨ˆ()
-    Dim wsCSVData As Worksheet
-    Dim wsSummary As Worksheet
-    Dim lastRow As Long
-    Dim i As Long
-    Dim summaryRow As Long
-    Dim dict As Object
-    Dim dept As Variant
-    Dim deptCode As String
-    Dim deptName As String
-    Dim employeeDict As Object
-    Dim empID As String
-    Dim empName As String
-    Dim emp As Variant ' For Each ãƒ«ãƒ¼ãƒ—ã®ãŸã‚ã®å¤‰æ•°è¿½åŠ 
-    
-    ' å¿…è¦ãªã‚·ãƒ¼ãƒˆã®å–å¾—
-    On Error Resume Next
-    Set wsCSVData = ThisWorkbook.Worksheets("CSVãƒ‡ãƒ¼ã‚¿")
-    Set wsSummary = ThisWorkbook.Worksheets("å‹¤æ€ æƒ…å ±åˆ†æçµæœ")
-    
-    If wsCSVData Is Nothing Then
-        MsgBox "CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    If wsSummary Is Nothing Then
-        Set wsSummary = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-        wsSummary.Name = "å‹¤æ€ æƒ…å ±åˆ†æçµæœ"
-    End If
-    On Error GoTo 0
-    
-    ' CSVãƒ‡ãƒ¼ã‚¿ã®æœ€çµ‚è¡Œã‚’å–å¾—
-    lastRow = wsCSVData.Cells(wsCSVData.Rows.Count, "A").End(xlUp).Row
-    
-    If lastRow <= 1 Then
-        MsgBox "CSVãƒ‡ãƒ¼ã‚¿ãŒå­˜åœ¨ã—ã¾ã›ã‚“ã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' åˆ—ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ç‰¹å®š
-    Dim ç¤¾å“¡ç•ªå·Col As Integer
-    Dim æ°åCol As Integer
-    Dim éƒ¨é–€Col As Integer
-    Dim å±Šå‡ºå†…å®¹Col As Integer
-    Dim å®Ÿåƒæ™‚é–“Col As Integer
-    
-    ' å„åˆ—ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ç‰¹å®šï¼ˆãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‹ã‚‰ï¼‰
-    For i = 1 To wsCSVData.Cells(1, wsCSVData.Columns.Count).End(xlToLeft).Column
-        Select Case wsCSVData.Cells(1, i).Value
-            Case "ç¤¾å“¡ç•ªå·"
-                ç¤¾å“¡ç•ªå·Col = i
-            Case "æ°å"
-                æ°åCol = i
-            Case "éƒ¨é–€"
-                éƒ¨é–€Col = i
-            Case "å±Šå‡ºå†…å®¹"
-                å±Šå‡ºå†…å®¹Col = i
-            Case "å®Ÿåƒæ™‚é–“"
-                å®Ÿåƒæ™‚é–“Col = i
-        End Select
-    Next i
-    
-    ' å¿…è¦ãªåˆ—ãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã¯ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã‚’è¨­å®š
-    If ç¤¾å“¡ç•ªå·Col = 0 Then ç¤¾å“¡ç•ªå·Col = 1
-    If æ°åCol = 0 Then æ°åCol = 2
-    If éƒ¨é–€Col = 0 Then éƒ¨é–€Col = 3
-    If å±Šå‡ºå†…å®¹Col = 0 Then å±Šå‡ºå†…å®¹Col = 9
-    If å®Ÿåƒæ™‚é–“Col = 0 Then å®Ÿåƒæ™‚é–“Col = 41
-    
-    ' ãƒ‡ãƒãƒƒã‚°ç”¨ï¼šåˆ—æƒ…å ±ã‚’è¡¨ç¤º
-    Debug.Print "ç¤¾å“¡ç•ªå·Col: " & ç¤¾å“¡ç•ªå·Col & ", æ°åCol: " & æ°åCol & ", éƒ¨é–€Col: " & éƒ¨é–€Col & ", å±Šå‡ºå†…å®¹Col: " & å±Šå‡ºå†…å®¹Col & ", å®Ÿåƒæ™‚é–“Col: " & å®Ÿåƒæ™‚é–“Col
-    
-    ' éƒ¨é–€ãƒ‡ãƒ¼ã‚¿é›†è¨ˆç”¨ã®è¾æ›¸ã‚’ä½œæˆ
-    Set dict = CreateObject("Scripting.Dictionary")
-    
-    ' CSVãƒ‡ãƒ¼ã‚¿ã®å„è¡Œã‚’å‡¦ç†
-    For i = 3 To lastRow ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’ã‚¹ã‚­ãƒƒãƒ—
-        deptCode = Trim(wsCSVData.Cells(i, éƒ¨é–€Col).Value)
-        empID = Trim(wsCSVData.Cells(i, ç¤¾å“¡ç•ªå·Col).Value)
-        empName = Trim(wsCSVData.Cells(i, æ°åCol).Value)
-        
-        ' ç©ºã®éƒ¨é–€ã‚³ãƒ¼ãƒ‰ã‚’ã‚¹ã‚­ãƒƒãƒ—
-        If deptCode <> "" And empID <> "" Then  ' â† empIDã‚‚ç©ºã§ãªã„ã“ã¨ã‚’ç¢ºèª
-            ' ã“ã®éƒ¨é–€ãŒè¾æ›¸ã«ãªã„å ´åˆã¯è¿½åŠ 
-            If Not dict.Exists(deptCode) Then
-                Set dict(deptCode) = CreateObject("Scripting.Dictionary")
-                dict(deptCode)("TotalOvertime") = 0        ' åˆè¨ˆæ®‹æ¥­æ™‚é–“ï¼ˆåˆ†ï¼‰
-                dict(deptCode)("OccurrenceCount") = 0      ' æ®‹æ¥­ç™ºç”Ÿä»¶æ•°
-                dict(deptCode)("HolidayWorkCount") = 0     ' ä¼‘æ—¥å‡ºå‹¤ä»¶æ•°
-                Set dict(deptCode)("Employees") = CreateObject("Scripting.Dictionary") ' ç¤¾å“¡ãƒªã‚¹ãƒˆ
-                dict(deptCode)("DepartmentName") = deptCode ' éƒ¨é–€å
-            End If
-            
-            ' â˜…ä¿®æ­£ç®‡æ‰€: CSVã«å­˜åœ¨ã™ã‚‹ã™ã¹ã¦ã®ç¤¾å“¡ã‚’è¿½åŠ ï¼ˆé‡è¤‡ãƒã‚§ãƒƒã‚¯ã‚ã‚Šï¼‰
-            ' ç¤¾å“¡ç•ªå·ãŒå­˜åœ¨ã—ã€ã¾ã è¿½åŠ ã•ã‚Œã¦ã„ãªã„å ´åˆã®ã¿è¿½åŠ 
-            If Not dict(deptCode)("Employees").Exists(empID) Then
-                dict(deptCode)("Employees").Add empID, empName
-            End If
-            
-            ' ä»¥ä¸‹ã€æ®‹æ¥­æ™‚é–“ã®è¨ˆç®—å‡¦ç†ã¯å¾“æ¥é€šã‚Š
-            ' ä¼‘æ—¥å‡ºå‹¤ã‹ã©ã†ã‹ã‚’åˆ¤å®š
-            Dim isHolidayWork As Boolean
-            Dim deliveryContent As String
-            
-            deliveryContent = Trim(wsCSVData.Cells(i, å±Šå‡ºå†…å®¹Col).Value)
-            
-            ' å±Šå‡ºå†…å®¹ã§ä¼‘æ—¥å‡ºå‹¤åˆ¤å®š
-            isHolidayWork = (InStr(1, deliveryContent, "ä¼‘æ—¥å‡ºå‹¤", vbTextCompare) > 0) Or _
-                           (InStr(1, deliveryContent, "ä¼‘å‡º", vbTextCompare) > 0)
-            
-            ' å®Ÿåƒæ™‚é–“ã‚’å–å¾—ã—ã¦åˆ†ã«å¤‰æ›
-            Dim workingMinutes As Double
-            Dim overtimeMinutes As Double
-            Dim rawWorkingTime As Variant
-            
-            rawWorkingTime = wsCSVData.Cells(i, å®Ÿåƒæ™‚é–“Col).Value
-            
-            ' å®Ÿåƒæ™‚é–“ã‚’é©åˆ‡ã«å¤‰æ›
-            If IsNumeric(rawWorkingTime) Then
-                If rawWorkingTime < 1 Then
-                    workingMinutes = rawWorkingTime * 24 * 60
-                Else
-                    workingMinutes = 0
-                End If
-            Else
-                workingMinutes = ConvertTimeToMinutes(rawWorkingTime)
-            End If
-            
-            ' æ®‹æ¥­æ™‚é–“ã‚’è¨ˆç®—
-            If isHolidayWork Then
-                overtimeMinutes = workingMinutes
-            ElseIf workingMinutes > 480 Then
-                overtimeMinutes = workingMinutes - 480
-            Else
-                overtimeMinutes = 0
-            End If
-            
-            ' æ®‹æ¥­æ™‚é–“ãŒã‚ã‚‹å ´åˆã®ã¿æ®‹æ¥­é–¢é€£ã®é›†è¨ˆ
-            If overtimeMinutes > 0 Then
-                dict(deptCode)("TotalOvertime") = dict(deptCode)("TotalOvertime") + overtimeMinutes
-                dict(deptCode)("OccurrenceCount") = dict(deptCode)("OccurrenceCount") + 1
-                
-                If isHolidayWork Then
-                    dict(deptCode)("HolidayWorkCount") = dict(deptCode)("HolidayWorkCount") + 1
-                End If
-            End If
-        End If
-    Next i
-
-    ' æ¦‚è¦ã‚·ãƒ¼ãƒˆã®æ®‹æ¥­é›†è¨ˆéƒ¨åˆ†ã‚’ã‚¯ãƒªã‚¢
-    wsSummary.Range("A14:F100").ClearContents
-    ' æœ€å¾Œã®è¡Œç•ªå·ã‚’å–å¾—ï¼ˆæœ€ä½ã§ã‚‚13è¡Œç›®ã‹ã‚‰å§‹ã‚ã‚‹ï¼‰
-    Dim headerRow As Long
-    headerRow = 13
-    For i = 1 To 30
-        If IsEmpty(wsSummary.Cells(i, 1).Value) Then
-            headerRow = i + 2  ' ç©ºã®è¡Œã‚’è¦‹ã¤ã‘ãŸã‚‰2è¡Œç©ºã‘ã¦é…ç½®
-            Exit For
-        End If
-    Next i
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’è¨­å®š
-    wsSummary.Cells(headerRow, 1).Value = "éƒ¨ç½²"
-    wsSummary.Cells(headerRow, 2).Value = "åˆè¨ˆæ®‹æ¥­æ™‚é–“"
-    wsSummary.Cells(headerRow, 3).Value = "å¹³å‡æ®‹æ¥­æ™‚é–“/å›"
-    wsSummary.Cells(headerRow, 4).Value = "å¹³å‡æœˆæ®‹æ¥­æ™‚é–“/äºº"
-    wsSummary.Cells(headerRow, 5).Value = "ä¼‘æ—¥å‡ºå‹¤å›æ•°"
-    wsSummary.Cells(headerRow, 6).Value = "äººæ•°"
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-    With wsSummary.Range("A" & headerRow & ":F" & headerRow)
-        .Font.Bold = True
-        .HorizontalAlignment = xlCenter
-        .Interior.Color = RGB(200, 200, 200)
-    End With
-    ' éƒ¨é–€ã”ã¨ã®ãƒ‡ãƒ¼ã‚¿ã‚’å‡ºåŠ›
-    summaryRow = headerRow + 1  ' ãƒ˜ãƒƒãƒ€ãƒ¼ã®æ¬¡ã®è¡Œã‹ã‚‰
-    ' é›†è¨ˆç”¨ã®å¤‰æ•°
-    Dim totalOvertimeAll As Double
-    Dim totalOccurrencesAll As Long
-    Dim totalPersonsAll As Long
-    Dim totalHolidayWorkAll As Long
-    Dim allEmployees As Object
-    
-    totalOvertimeAll = 0
-    totalOccurrencesAll = 0
-    totalHolidayWorkAll = 0
-    Set allEmployees = CreateObject("Scripting.Dictionary")
-    
-    ' å„éƒ¨é–€ã®é›†è¨ˆã‚’å‡ºåŠ›
-    For Each dept In dict.keys
-        Dim totalOvertime As Double
-        Dim occurrenceCount As Long
-        Dim holidayWorkCount As Long
-        Dim personCount As Long
-        
-        totalOvertime = dict(dept)("TotalOvertime")
-        occurrenceCount = dict(dept)("OccurrenceCount")
-        holidayWorkCount = dict(dept)("HolidayWorkCount")
-        personCount = dict(dept)("Employees").Count
-        
-        ' åˆè¨ˆå€¤ã«åŠ ç®—
-        totalOvertimeAll = totalOvertimeAll + totalOvertime
-        totalOccurrencesAll = totalOccurrencesAll + occurrenceCount
-        totalHolidayWorkAll = totalHolidayWorkAll + holidayWorkCount
-        
-        ' å…¨ç¤¾å“¡ãƒªã‚¹ãƒˆã«è¿½åŠ 
-        For Each emp In dict(dept)("Employees").keys
-            If Not allEmployees.Exists(emp) Then
-                allEmployees.Add emp, dict(dept)("Employees")(emp)
-            End If
-        Next emp
-        
-        ' éƒ¨é–€å
-        wsSummary.Cells(summaryRow, 1).Value = dict(dept)("DepartmentName")
-        
-        ' åˆè¨ˆæ®‹æ¥­æ™‚é–“
-        wsSummary.Cells(summaryRow, 2).Value = MinutesToTime(totalOvertime)
-        
-        ' å¹³å‡æ®‹æ¥­æ™‚é–“/å›
-        If occurrenceCount > 0 Then
-            wsSummary.Cells(summaryRow, 3).Value = MinutesToTime(totalOvertime / occurrenceCount)
-        Else
-            wsSummary.Cells(summaryRow, 3).Value = "0:00"
-        End If
-        
-        ' å¹³å‡æ®‹æ¥­æ™‚é–“/äºº
-        If personCount > 0 Then
-            wsSummary.Cells(summaryRow, 4).Value = MinutesToTime(totalOvertime / personCount)
-        Else
-            wsSummary.Cells(summaryRow, 4).Value = "0:00"
-        End If
-        
-        ' ä¼‘æ—¥å‡ºå‹¤å›æ•°
-        wsSummary.Cells(summaryRow, 5).Value = holidayWorkCount
-        
-        ' äººæ•°
-        wsSummary.Cells(summaryRow, 6).Value = personCount
-        
-        summaryRow = summaryRow + 1
-    Next dept
-    
-    ' å…¨ç¤¾ã®åˆè¨ˆè¡Œ
-    totalPersonsAll = allEmployees.Count
-    
-    wsSummary.Cells(summaryRow, 1).Value = "åˆè¨ˆ"
-    wsSummary.Cells(summaryRow, 1).Font.Bold = True
-    
-    ' åˆè¨ˆæ®‹æ¥­æ™‚é–“
-    wsSummary.Cells(summaryRow, 2).Value = MinutesToTime(totalOvertimeAll)
-    
-    ' å…¨ä½“å¹³å‡æ®‹æ¥­æ™‚é–“/å›
-    If totalOccurrencesAll > 0 Then
-        wsSummary.Cells(summaryRow, 3).Value = MinutesToTime(totalOvertimeAll / totalOccurrencesAll)
-    Else
-        wsSummary.Cells(summaryRow, 3).Value = "0:00"
-    End If
-    
-    ' å…¨ä½“å¹³å‡æ®‹æ¥­æ™‚é–“/äºº
-    If totalPersonsAll > 0 Then
-        wsSummary.Cells(summaryRow, 4).Value = MinutesToTime(totalOvertimeAll / totalPersonsAll)
-    Else
-        wsSummary.Cells(summaryRow, 4).Value = "0:00"
-    End If
-    
-    ' å…¨ä½“ä¼‘æ—¥å‡ºå‹¤å›æ•°
-    wsSummary.Cells(summaryRow, 5).Value = totalHolidayWorkAll
-    
-    ' å…¨ä½“äººæ•°
-    wsSummary.Cells(summaryRow, 6).Value = totalPersonsAll
-    
-    ' åˆè¨ˆè¡Œã®æ›¸å¼è¨­å®š
-    With wsSummary.Range(wsSummary.Cells(summaryRow, 1), wsSummary.Cells(summaryRow, 6))
-        .Font.Bold = True
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
-        .Borders(xlEdgeBottom).Weight = xlMedium
-        .Interior.Color = RGB(240, 240, 240)
-    End With
-    
-    ' çµæœã®æ›¸å¼è¨­å®š
-    With wsSummary.Range("A" & headerRow + 1 & ":F" & summaryRow)
-        .Borders.LineStyle = xlContinuous
-        .Borders.Weight = xlThin
-        .HorizontalAlignment = xlCenter
-    End With
-    
-    ' åˆ—å¹…ã®è‡ªå‹•èª¿æ•´
-    wsSummary.Columns("A:F").AutoFit
-' =====================================================
-    ' å®šæ™‚é€€ç¤¾ç‡è¨ˆç®—æ©Ÿèƒ½ã‚’å‘¼ã³å‡ºã—ï¼ˆ2025/08/20è¿½åŠ ï¼‰
-    ' =====================================================
-    On Error Resume Next  ' ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¦ã‚‚å‡¦ç†ã‚’ç¶™ç¶š
-    
-    Debug.Print "å®šæ™‚é€€ç¤¾ç‡è¨ˆç®—ã‚’é–‹å§‹ã—ã¾ã™..."
-    
-    ' ç›´æ¥å‘¼ã³å‡ºã—ï¼ˆãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«åãªã—ã§ï¼‰
-    Application.Run "CalculateAndOutputRate"
-    
-    ' ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ãŸå ´åˆã®å‡¦ç†
-    If Err.Number <> 0 Then
-        Debug.Print "å®šæ™‚é€€ç¤¾ç‡è¨ˆç®—ã§ã‚¨ãƒ©ãƒ¼: " & Err.Description
-        Err.Clear
-    Else
-        Debug.Print "å®šæ™‚é€€ç¤¾ç‡è¨ˆç®—ãŒæ­£å¸¸ã«å®Œäº†ã—ã¾ã—ãŸ"
-    End If
-    On Error GoTo 0
-    
-    MsgBox "éƒ¨é–€åˆ¥æ®‹æ¥­æ™‚é–“ã®é›†è¨ˆãŒå®Œäº†ã—ã¾ã—ãŸã€‚" & vbCrLf & _
-    "ä¼‘æ†©æ™‚é–“ãƒ»æ®‹æ¥­æ™‚é–“ãƒã‚§ãƒƒã‚¯çµæœã‚’è¡¨ç¤ºã—ã¾ã™ã€‚", vbInformation, "é›†è¨ˆå®Œäº†"
-End Sub
-
-' *************************************************************
-' é–¢æ•°å: Add_LineWorks_Button_To_Summary
-' ç›®çš„: å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆã«LINEWORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’è¿½åŠ 
-' å‘¼ã³å‡ºã—å…ƒ: ä¼‘æ†©æ™‚é–“ãƒã‚§ãƒƒã‚¯å‡¦ç†ã®æœ€å¾Œ
-' ä½œæˆæ—¥: 2025-10-19
-' å‚™è€ƒ: D25ã‚»ãƒ«ä»˜è¿‘ã«é…ç½®
-' *************************************************************
-Public Sub Add_LineWorks_Button_To_Summary()
-    On Error GoTo ErrorHandler
-    
-    Dim summarySheet As Worksheet
-    
-    ' å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆã‚’å–å¾—
-    On Error Resume Next
-    Set summarySheet = ThisWorkbook.Worksheets("å‹¤æ€ æƒ…å ±åˆ†æçµæœ")
-    On Error GoTo ErrorHandler
-    
-    If summarySheet Is Nothing Then
-        Debug.Print "[INFO] å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“"
-        Exit Sub
-    End If
-    
-    ' æ—¢å­˜ã®LINEWORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’å‰Šé™¤ï¼ˆé‡è¤‡é˜²æ­¢ï¼‰
-    Dim btn As Button
-    On Error Resume Next
-    For Each btn In summarySheet.Buttons
-        If InStr(btn.Caption, "LINEWORKS") > 0 Then
-            btn.Delete
-        End If
-    Next btn
-    On Error GoTo ErrorHandler
-    
-    ' D25ã‚»ãƒ«ã®ä½ç½®ã‚’åŸºæº–ã«ãƒœã‚¿ãƒ³ã‚’é…ç½®
-    Dim buttonLeft As Double
-    Dim buttonTop As Double
-    Dim buttonWidth As Double
-    Dim buttonHeight As Double
-    
-    With summarySheet
-        ' D25ã‚»ãƒ«ã®å·¦ä¸Šåº§æ¨™ã‚’å–å¾—
-        buttonLeft = .Range("D25").Left
-        buttonTop = .Range("D25").Top
-        buttonWidth = 150  ' ãƒœã‚¿ãƒ³ã®å¹…ï¼ˆãƒ”ã‚¯ã‚»ãƒ«ï¼‰
-        buttonHeight = 30  ' ãƒœã‚¿ãƒ³ã®é«˜ã•ï¼ˆãƒ”ã‚¯ã‚»ãƒ«ï¼‰
-        
-        ' ãƒœã‚¿ãƒ³ã‚’è¿½åŠ 
-        Dim newButton As Button
-        Set newButton = .Buttons.Add(buttonLeft, buttonTop, buttonWidth, buttonHeight)
-        
-        With newButton
-            .OnAction = "SendNotificationToLineWorks"  ' Module8_Notification.bas ã®é–¢æ•°
-            .Caption = "LINEWORKSé€šçŸ¥"
-            .Font.Size = 11
-            .Font.Bold = True
-        End With
-    End With
-    
-    Debug.Print "[INFO] å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆã«LINEWORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’è¿½åŠ ã—ã¾ã—ãŸï¼ˆD25ï¼‰"
-    
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "[ERROR] LINEWORKSé€šçŸ¥ãƒœã‚¿ãƒ³è¿½åŠ ã‚¨ãƒ©ãƒ¼: " & Err.Description
+Attribute VB_Name = "Module1"
+Option Explicit
+' *************************************************************
+' ƒ‚ƒWƒ…[ƒ‹F‹xŒeŠÔƒ`ƒFƒbƒN
+' –Ú“IFÀ“­ŠÔ‚É‰‚¶‚½‹xŒeŠÔ‚Ìæ“¾Šm”F‚¨‚æ‚Ñc‹ÆŠÔ‚ğŒvZ‚·‚é
+' Copyright (c) 2025 SI1 shunpei.suzuki
+' ì¬“úF2025”N3Œ3“ú
+'
+' ‰ü”Å—š—ğF
+' 2025/03/01 ‰”Åì¬_v1.0
+' 2025/03/03 ‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN‚Æ“‡_v1.5
+' 2025/03/07 “Ío\¿‚Ì”õl—“Šm”F‚ğ’Ç‰Á‡@
+' 2025/03/11 “Ío\¿‚Ì”õl—“Šm”F‚ğ’Ç‰Á‡A_v1.7
+' 2025/03/16 ƒV[ƒg–¼‚ğ•ÏX_v1.8
+' 2025/03/21 œŠOĞˆõ‹@”\EĞˆõ”ƒJƒEƒ“ƒgC³EƒpƒtƒH[ƒ}ƒ“ƒXÅ“K‰»_v2.0
+' 2025/08/20 ’è‘ŞĞ—¦ŒvZ‹@”\‚ğ“‡_v2.1
+' *************************************************************
+' ƒOƒ[ƒoƒ‹•Ï”
+Public g_HeaderCheckError As Boolean
+Sub ‹xŒeŠÔƒ`ƒFƒbƒN()
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim i As Long, j As Long
+    Dim À“­ŠÔ As Double
+    Dim ‹xŒeŠÔ As Double
+    Dim •K—v‹xŒeŠÔ As Double
+    Dim ‹xŒe•s‘« As Double
+    Dim resultSheet As Worksheet
+    Dim violationSheet As Worksheet
+    Dim deliverySheet As Worksheet
+    Dim overtimeSheet As Worksheet
+    
+    ' œŠOĞˆõ”Ô†‚ğæ“¾
+    Dim excludeIDs As Variant
+    excludeIDs = œŠOĞˆõ”Ô†æ“¾()
+    
+    ' ƒAƒNƒeƒBƒuƒV[ƒg‚ğg—p
+    Set ws = ActiveSheet
+    
+    ' ÅIs‚ğæ“¾
+    lastRow = ws.Cells(ws.Rows.count, "A").End(xlUp).Row
+    
+    ' ƒwƒbƒ_[s‚ğŠm”F
+    Dim Ğˆõ”Ô†Col As Integer
+    Dim –¼Col As Integer
+    Dim •”–åCol As Integer
+    Dim ‹xŒeŠÔCol As Integer
+    Dim À“­ŠÔCol As Integer
+    Dim “ÍoCol As Integer
+    Dim ó‹µ‹æ•ªCol As Integer
+    Dim –@’èŠO‹xoCol As Integer  ' ’Ç‰Á
+    
+    ' Še—ñ‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ“Á’è
+    Dim ”õlCol As Integer
+    ”õlCol = 0
+    
+    For i = 1 To ws.Cells(1, ws.Columns.count).End(xlToLeft).Column
+        Select Case ws.Cells(1, i).Value
+            Case "Ğˆõ”Ô†"
+                Ğˆõ”Ô†Col = i
+            ' ‘¼‚Ì—ñi—ªj
+            Case "”õl"
+                ”õlCol = i
+            Case "–¼"
+                –¼Col = i
+            Case "•”–å"
+                •”–åCol = i
+            Case "‹xŒeŠÔ"
+                ‹xŒeŠÔCol = i
+            Case "À“­ŠÔ"
+                À“­ŠÔCol = i
+            Case "“Ío“à—e"
+                “ÍoCol = i
+            Case "ó‹µ‹æ•ª"
+                ó‹µ‹æ•ªCol = i
+            Case "–@’èŠO‹xo"
+                –@’èŠO‹xoCol = i  ' ’Ç‰Á
+        End Select
+    Next i
+    
+    ' ”õl—ñ‚ªƒwƒbƒ_[‚ÅŒ©‚Â‚©‚ç‚È‚¢ê‡AƒfƒtƒHƒ‹ƒg‚ÅBH—ñi’Êí‚Í60—ñ–Új‚ğg—p
+    If ”õlCol = 0 Then
+        ”õlCol = 60  ' BH—ñ
+    End If
+    ' •K—v‚È—ñ‚ª‘¶İ‚·‚é‚©Šm”F
+    If Ğˆõ”Ô†Col = 0 Or –¼Col = 0 Or •”–åCol = 0 Or ‹xŒeŠÔCol = 0 Or À“­ŠÔCol = 0 Then
+        MsgBox "•K—v‚È—ñiĞˆõ”Ô†A–¼A•”–åA‹xŒeŠÔAÀ“­ŠÔj‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Œ‹‰Ê—p‚Ì‘S‘Ì•ªÍƒV[ƒg‚ğì¬
+    On Error Resume Next
+    Set resultSheet = Worksheets("ŠÔƒ`ƒFƒbƒN_‘S‘Ì")
+    If resultSheet Is Nothing Then
+        Set resultSheet = Worksheets.Add(After:=Worksheets(Worksheets.count))
+        resultSheet.Name = "ŠÔƒ`ƒFƒbƒN_‘S‘Ì"
+    Else
+        resultSheet.Cells.Clear
+    End If
+    
+    ' ˆá”½Ò—p‚ÌƒV[ƒg‚ğì¬
+    Set violationSheet = Worksheets("‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½Ò")
+    If violationSheet Is Nothing Then
+        Set violationSheet = Worksheets.Add(After:=resultSheet)
+        violationSheet.Name = "‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½Ò"
+    Else
+        violationSheet.Cells.Clear
+    End If
+    
+    ' “Íoˆê———p‚ÌƒV[ƒg‚ğì¬ - –¼‘O•ÏX
+    Set deliverySheet = Worksheets("‹xŒeŠÔA”õlˆê——")
+    If deliverySheet Is Nothing Then
+        Set deliverySheet = Worksheets.Add(After:=violationSheet)
+        deliverySheet.Name = "‹xŒeŠÔA”õlˆê——"
+    Else
+        deliverySheet.Cells.Clear
+    End If
+    ' c‹Æˆê———p‚ÌƒV[ƒg‚ğì¬
+    Set overtimeSheet = Worksheets("c‹Æˆê——")
+    If overtimeSheet Is Nothing Then
+        Set overtimeSheet = Worksheets.Add(After:=deliverySheet)
+        overtimeSheet.Name = "c‹Æˆê——"
+    Else
+        overtimeSheet.Cells.Clear
+    End If
+    On Error GoTo 0
+    
+    ' Œ‹‰ÊƒV[ƒg‚Ìƒwƒbƒ_[‚ğİ’è
+    With resultSheet
+        .Cells(1, 1).Value = "Ğˆõ”Ô†"
+        .Cells(1, 2).Value = "–¼"
+        .Cells(1, 3).Value = "•”–å"
+        .Cells(1, 4).Value = "“ú•t"
+        .Cells(1, 5).Value = "À“­ŠÔ"
+        .Cells(1, 6).Value = "‹xŒeŠÔ"
+        .Cells(1, 7).Value = "•K—v‹xŒeŠÔ"
+        .Cells(1, 8).Value = "‹xŒe•s‘«ŠÔ"
+        .Cells(1, 9).Value = "c‹ÆŠÔ"
+        .Cells(1, 10).Value = "ƒXƒe[ƒ^ƒX"
+        
+        ' ƒwƒbƒ_[s‚Ì‘®İ’è
+        .Range("A1:J1").Font.Bold = True
+        .Range("A1:J1").Interior.Color = RGB(200, 200, 200)
+    End With
+    
+    ' ˆá”½ÒƒV[ƒg‚Ìƒwƒbƒ_[‚ğİ’è
+    With violationSheet
+        .Cells(1, 1).Value = "Ğˆõ”Ô†"
+        .Cells(1, 2).Value = "–¼"
+        .Cells(1, 3).Value = "•”–å"
+        .Cells(1, 4).Value = "“ú•t"
+        .Cells(1, 5).Value = "À“­ŠÔ"
+        .Cells(1, 6).Value = "‹xŒeŠÔ"
+        .Cells(1, 7).Value = "•K—v‹xŒeŠÔ"
+        .Cells(1, 8).Value = "‹xŒe•s‘«ŠÔ"
+        .Cells(1, 9).Value = "c‹ÆŠÔ"
+        .Cells(1, 10).Value = "ƒXƒe[ƒ^ƒX"
+        .Cells(1, 11).Value = "”õl"    ' ”õl—“‚ğ’Ç‰Á
+        
+        ' ƒwƒbƒ_[s‚Ì‘®İ’è
+        .Range("A1:K1").Font.Bold = True
+        .Range("A1:K1").Interior.Color = RGB(200, 200, 200)
+    End With
+    
+    ' “Íoˆê——ƒV[ƒg‚Ìƒwƒbƒ_[‚ğİ’è
+    With deliverySheet
+        .Cells(1, 1).Value = "Ğˆõ”Ô†"
+        .Cells(1, 2).Value = "–¼"
+        .Cells(1, 3).Value = "•”–å"
+        .Cells(1, 4).Value = "“ú•t"
+        .Cells(1, 5).Value = "“Ío"
+        .Cells(1, 6).Value = "ó‹µ‹æ•ª"
+        .Cells(1, 7).Value = "À“­ŠÔ"
+        .Cells(1, 8).Value = "‹xŒeŠÔ"
+        .Cells(1, 9).Value = "•K—v‹xŒeŠÔ"
+        .Cells(1, 10).Value = "‹xŒe•s‘«ŠÔ"
+        .Cells(1, 11).Value = "c‹ÆŠÔ"
+        .Cells(1, 12).Value = "ƒXƒe[ƒ^ƒX"
+        .Cells(1, 13).Value = "”õl"  ' ”õl—“‚ğ’Ç‰Á
+        ' ƒwƒbƒ_[s‚Ì‘®İ’è
+        .Range("A1:M1").Font.Bold = True
+        .Range("A1:M1").Interior.Color = RGB(200, 200, 200)
+    End With
+    
+    ' c‹Æˆê——ƒV[ƒg‚Ìƒwƒbƒ_[‚ğİ’è
+    With overtimeSheet
+        .Cells(1, 1).Value = "Ğˆõ”Ô†"
+        .Cells(1, 2).Value = "–¼"
+        .Cells(1, 3).Value = "•”–å"
+        .Cells(1, 4).Value = "”NŒ"
+        .Cells(1, 5).Value = "‘c‹ÆŠÔ"
+        .Cells(1, 6).Value = "ƒXƒe[ƒ^ƒX"
+        
+        ' ƒwƒbƒ_[s‚Ì‘®İ’è
+        .Range("A1:F1").Font.Bold = True
+        .Range("A1:F1").Interior.Color = RGB(200, 200, 200)
+    End With
+    
+    ' s‚²‚Æ‚Éˆ—
+    Dim resultRow As Long
+    Dim violationRow As Long
+    Dim deliveryRow As Long
+    resultRow = 2
+    violationRow = 2
+    deliveryRow = 2
+    
+    ' ŠT—vî•ñ—p‚Ì•Ï”
+    Dim totalCount As Long
+    Dim violationCount As Long
+    Dim deliveryCount As Long
+    Dim processedCount As Long ' À“­ŠÔ‚ª0ˆÈŠO‚ÌƒŒƒR[ƒh”
+    Dim overtimeCount As Long ' c‹ÆŠÔ‚ª”­¶‚µ‚½ƒŒƒR[ƒh”
+    Dim holidayWorkCount As Long ' ‹x“úo‹Î‚ÌŒ”
+    totalCount = 0
+    violationCount = 0
+    deliveryCount = 0
+    processedCount = 0
+    overtimeCount = 0
+    holidayWorkCount = 0
+    
+    ' c‹ÆWŒv—p‚Ì”z—ñ
+    Dim Ğˆõ”Ô†Array() As String
+    Dim –¼Array() As String
+    Dim •”–åArray() As String
+    Dim ”NŒArray() As String
+    Dim c‹ÆŠÔArray() As Double
+    Dim WŒv” As Long
+    WŒv” = 0
+    ReDim Ğˆõ”Ô†Array(1000) ' \•ª‚È‘å‚«‚³‚Å‰Šú‰»
+    ReDim –¼Array(1000)
+    ReDim •”–åArray(1000)
+    ReDim ”NŒArray(1000)
+    ReDim c‹ÆŠÔArray(1000)
+    
+    ' “ú•t—ñ‚Ì“Á’è
+    Dim “ú•tCol As Integer
+    For i = 1 To ws.Cells(1, ws.Columns.count).End(xlToLeft).Column
+        If ws.Cells(1, i).Value = "“ú•t" Then
+            “ú•tCol = i
+            Exit For
+        End If
+    Next i
+    
+    If “ú•tCol = 0 Then “ú•tCol = 5  ' ƒfƒtƒHƒ‹ƒg‚Å5—ñ–Ú‚ğ“ú•t‚Æ‰¼’è
+    ' ƒJƒŒƒ“ƒ_[—ñ‚ğƒ`ƒFƒbƒN‚µ‚Ä–@’èŠO‹x“ú‚Ì‘®İ’è‚ğs‚¤
+    Dim ƒJƒŒƒ“ƒ_[Col As Integer
+    Dim —j“úCol As Integer
+    ' ƒJƒŒƒ“ƒ_[—ñ‚Æ—j“ú—ñ‚ğ“Á’è
+    For i = 1 To ws.Cells(1, ws.Columns.count).End(xlToLeft).Column
+        Select Case ws.Cells(1, i).Value
+            Case "ƒJƒŒƒ“ƒ_["
+                ƒJƒŒƒ“ƒ_[Col = i
+            Case "—j“ú"
+                —j“úCol = i
+        End Select
+    Next i
+    ' ƒJƒŒƒ“ƒ_[—ñ‚ªŒ©‚Â‚©‚Á‚½ê‡A–@’èŠO‹x“ú‚Ì‘®İ’è
+    If ƒJƒŒƒ“ƒ_[Col > 0 Then
+        For i = 2 To lastRow
+            Dim ƒJƒŒƒ“ƒ_[’l As String
+            ƒJƒŒƒ“ƒ_[’l = Trim(ws.Cells(i, ƒJƒŒƒ“ƒ_[Col).Value)
+            
+            ' –@’èŠO‹x“úiu–@’èŠOv‚Ü‚½‚Íu‹xv‚Æ‚¢‚¤•¶š‚ğŠÜ‚Şj‚ğƒ`ƒFƒbƒN
+            If InStr(1, ƒJƒŒƒ“ƒ_[’l, "–@’èŠO", vbTextCompare) > 0 Or _
+               InStr(1, ƒJƒŒƒ“ƒ_[’l, "‹x", vbTextCompare) > 0 Then
+                
+                ' “ú•t—ñ‚Æ—j“ú—ñ‚ğÔ•¶š‚É
+                If “ú•tCol > 0 Then
+                    ws.Cells(i, “ú•tCol).Font.Color = RGB(255, 0, 0)
+                End If
+                
+                If —j“úCol > 0 Then
+                    ws.Cells(i, —j“úCol).Font.Color = RGB(255, 0, 0)
+                End If
+                
+                ' s‘S‘Ì‚ğ”–‚¢ƒOƒŒ[‚É
+                ws.Rows(i).Interior.Color = RGB(240, 240, 240)
+            End If
+        Next i
+    End If
+    For i = 2 To lastRow ' ƒwƒbƒ_[s‚ğƒXƒLƒbƒv
+        ' Ğˆõ”Ô†‚ğæ“¾
+        Dim currentEmployeeID As String
+        currentEmployeeID = Trim(CStr(ws.Cells(i, Ğˆõ”Ô†Col).Value))
+        
+        ' œŠOĞˆõ”Ô†‚Ìƒ`ƒFƒbƒN
+        Dim isExcluded As Boolean
+        isExcluded = False
+        
+        For j = LBound(excludeIDs) To UBound(excludeIDs)
+            If excludeIDs(j) <> "" And currentEmployeeID = excludeIDs(j) Then
+                isExcluded = True
+                Exit For
+            End If
+        Next j
+        
+        ' œŠOĞˆõ‚Ìê‡‚ÍƒXƒLƒbƒv
+        If isExcluded Then
+            GoTo NextIteration
+        End If
+        ' À“­ŠÔ‚Æ‹xŒeŠÔ‚ğæ“¾
+        À“­ŠÔ = ConvertTimeToMinutes(ws.Cells(i, À“­ŠÔCol).Value)
+        ‹xŒeŠÔ = ConvertTimeToMinutes(ws.Cells(i, ‹xŒeŠÔCol).Value)
+        
+        ' ‘ƒŒƒR[ƒh”‚ğƒJƒEƒ“ƒg
+        totalCount = totalCount + 1
+        
+        ' ‹x“úo‹Î‚Ì”»’è
+        Dim ‹x“úo‹Îƒtƒ‰ƒO As Boolean
+        Dim –@’èŠO‹xoŠÔ As Double
+        
+        ‹x“úo‹Îƒtƒ‰ƒO = False
+        –@’èŠO‹xoŠÔ = 0
+        
+        ' –@’èŠO‹xoŠÔ‚Ìæ“¾
+        If –@’èŠO‹xoCol > 0 Then
+            –@’èŠO‹xoŠÔ = ConvertTimeToMinutes(ws.Cells(i, –@’èŠO‹xoCol).Value)
+            If –@’èŠO‹xoŠÔ > 0 Then
+                ‹x“úo‹Îƒtƒ‰ƒO = True
+            End If
+        End If
+        
+        ' “Ío“à—e‚ğŠm”F
+        Dim “Ío“à—e As String
+        Dim ó‹µ‹æ•ª As String
+        Dim “Ío’Ç‰Áƒtƒ‰ƒO As Boolean
+        
+        “Ío’Ç‰Áƒtƒ‰ƒO = False
+        “Ío“à—e = ""
+        ó‹µ‹æ•ª = ""
+        
+        If “ÍoCol > 0 Then
+            “Ío“à—e = Trim(ws.Cells(i, “ÍoCol).Value)
+            If “Ío“à—e <> "" Then
+                “Ío’Ç‰Áƒtƒ‰ƒO = True
+                
+                ' “Ío“à—e‚Éu‹x“úo‹Îvu‹xov‚È‚Ç‚ªŠÜ‚Ü‚ê‚Ä‚¢‚éê‡‚à‹x“úo‹Î‚Æ‚İ‚È‚·
+                If InStr(1, “Ío“à—e, "‹x“úo‹Î", vbTextCompare) > 0 Or _
+                   InStr(1, “Ío“à—e, "‹xo", vbTextCompare) > 0 Then
+                    ‹x“úo‹Îƒtƒ‰ƒO = True
+                End If
+            End If
+        End If
+        
+        If ó‹µ‹æ•ªCol > 0 Then
+            ó‹µ‹æ•ª = Trim(ws.Cells(i, ó‹µ‹æ•ªCol).Value)
+            If ó‹µ‹æ•ª <> "" Then
+                “Ío’Ç‰Áƒtƒ‰ƒO = True
+            End If
+        End If
+        
+        ' ‹x“úo‹Î‚ğƒJƒEƒ“ƒg
+        If ‹x“úo‹Îƒtƒ‰ƒO Then
+            holidayWorkCount = holidayWorkCount + 1
+        End If
+        
+        ' c‹ÆŠÔ‚ÌŒvZ
+        Dim c‹ÆŠÔ As Double
+        If ‹x“úo‹Îƒtƒ‰ƒO Then
+            ' ‹x“úo‹Î‚Ìê‡‚ÍÀ“­ŠÔ‚·‚×‚Ä‚ğc‹ÆŠÔ‚Æ‚·‚é
+            c‹ÆŠÔ = À“­ŠÔ
+        ElseIf À“­ŠÔ > 480 Then
+            ' ’Êí‹Î–±‚Å8ŠÔ’´‰ß•ª
+            c‹ÆŠÔ = À“­ŠÔ - 480
+        Else
+            c‹ÆŠÔ = 0
+        End If
+        
+        ' c‹ÆŠÔ‚ª‚ ‚éê‡‚Íc‹ÆƒJƒEƒ“ƒg‚ğ‘‚â‚·
+        If c‹ÆŠÔ > 0 Then
+            overtimeCount = overtimeCount + 1
+        End If
+        
+        ' c‹ÆWŒv—p‚Ìƒf[ƒ^‚ğ€”õ
+        Dim ”NŒ As String
+        Dim “ú•tValue As String
+        
+        ' “ú•t‚Ìæ“¾‚Æ”NŒŒ`®‚Ö‚Ì•ÏŠ·
+        “ú•tValue = ws.Cells(i, “ú•tCol).Value
+        
+        ' “ú•t‚ª³‚µ‚¢Œ`®‚Å‚ ‚é‚±‚Æ‚ğŠm”F
+        If IsDate(“ú•tValue) Then
+            ”NŒ = Format(CDate(“ú•tValue), "yyyy/mm")
+        Else
+            ' “ú•tŒ`®‚Å‚È‚¢ê‡‚Í "•s–¾" ‚Æ‚·‚é
+            ”NŒ = "•s–¾"
+        End If
+        
+        ' c‹ÆŠÔ‚ğĞˆõ‚²‚ÆŒ‚²‚Æ‚ÉWŒv
+        Dim found As Boolean
+        found = False
+        
+        ' Šù‘¶‚ÌƒGƒ“ƒgƒŠ‚ª‚ ‚é‚©ŒŸõ
+        For j = 0 To WŒv” - 1
+            If Ğˆõ”Ô†Array(j) = ws.Cells(i, Ğˆõ”Ô†Col).Value And _
+               ”NŒArray(j) = ”NŒ Then
+                ' Šù‘¶ƒGƒ“ƒgƒŠ‚É‰ÁZ
+                c‹ÆŠÔArray(j) = c‹ÆŠÔArray(j) + c‹ÆŠÔ
+                found = True
+                Exit For
+            End If
+        Next j
+        
+        ' V‹KƒGƒ“ƒgƒŠ‚Ì’Ç‰Á
+        If Not found And c‹ÆŠÔ > 0 Then
+            Ğˆõ”Ô†Array(WŒv”) = ws.Cells(i, Ğˆõ”Ô†Col).Value
+            –¼Array(WŒv”) = ws.Cells(i, –¼Col).Value
+            •”–åArray(WŒv”) = ws.Cells(i, •”–åCol).Value
+            ”NŒArray(WŒv”) = ”NŒ
+            c‹ÆŠÔArray(WŒv”) = c‹ÆŠÔ
+            WŒv” = WŒv” + 1
+            
+            ' ”z—ñƒTƒCƒY‚ÌŠm”F‚ÆŠg’£
+            If WŒv” >= UBound(Ğˆõ”Ô†Array) Then
+                ReDim Preserve Ğˆõ”Ô†Array(UBound(Ğˆõ”Ô†Array) + 1000)
+                ReDim Preserve –¼Array(UBound(–¼Array) + 1000)
+                ReDim Preserve •”–åArray(UBound(•”–åArray) + 1000)
+                ReDim Preserve ”NŒArray(UBound(”NŒArray) + 1000)
+                ReDim Preserve c‹ÆŠÔArray(UBound(c‹ÆŠÔArray) + 1000)
+            End If
+        End If
+        
+        ' “Íoˆê——‚É’Ç‰Á
+        If “Ío’Ç‰Áƒtƒ‰ƒO Then
+            deliveryCount = deliveryCount + 1
+            
+            ' “Íoˆê——ƒV[ƒg‚É’Ç‰Á
+            With deliverySheet
+                ' Ğˆõ”Ô†‚ğ•¶š—ñ‚Æ‚µ‚Ä•Û‚·‚é‚½‚ß‚É‘®İ’è
+                .Cells(deliveryRow, 1).NumberFormat = "@"
+                .Cells(deliveryRow, 1).Value = ws.Cells(i, Ğˆõ”Ô†Col).Value
+                .Cells(deliveryRow, 2).Value = ws.Cells(i, –¼Col).Value
+                .Cells(deliveryRow, 3).Value = ws.Cells(i, •”–åCol).Value
+                .Cells(deliveryRow, 4).Value = ws.Cells(i, “ú•tCol).Value
+                .Cells(deliveryRow, 5).Value = “Ío“à—e
+                .Cells(deliveryRow, 6).Value = ó‹µ‹æ•ª
+                .Cells(deliveryRow, 7).Value = MinutesToTime(À“­ŠÔ)
+                .Cells(deliveryRow, 8).Value = MinutesToTime(‹xŒeŠÔ)
+                
+                ' •K—v‚È‹xŒeŠÔ‚ğŒvZ
+                Dim “Ío•K—v‹xŒeŠÔ As Double
+                “Ío•K—v‹xŒeŠÔ = •K—v‹xŒeŠÔŒvZ(À“­ŠÔ)
+                .Cells(deliveryRow, 9).Value = MinutesToTime(“Ío•K—v‹xŒeŠÔ)
+                
+                ' ‹xŒe•s‘«ŠÔ‚ğŒvZ
+                Dim “Ío‹xŒe•s‘« As Double
+                “Ío‹xŒe•s‘« = IIf(“Ío•K—v‹xŒeŠÔ > ‹xŒeŠÔ, “Ío•K—v‹xŒeŠÔ - ‹xŒeŠÔ, 0)
+                .Cells(deliveryRow, 10).Value = MinutesToTime(“Ío‹xŒe•s‘«)
+                
+                ' c‹ÆŠÔ‚ğ’Ç‰Á
+                .Cells(deliveryRow, 11).Value = MinutesToTime(c‹ÆŠÔ)
+                
+                ' ƒXƒe[ƒ^ƒX‚ğİ’è
+                If “Ío‹xŒe•s‘« > 0 Then
+                    .Cells(deliveryRow, 12).Value = "ˆá”½"
+                    ' ˆá”½s‚ğÔF‚ÅƒnƒCƒ‰ƒCƒg
+                    .Range(.Cells(deliveryRow, 1), .Cells(deliveryRow, 13)).Interior.Color = RGB(255, 200, 200)
+                Else
+                    .Cells(deliveryRow, 12).Value = "“K³"
+                End If
+                
+                ' ”õl—“‚ğ’Ç‰Á
+                Dim ”õl As String
+                ”õl = Trim(ws.Cells(i, ”õlCol).Value)
+                .Cells(deliveryRow, 13).Value = ”õl
+                
+        
+                ' ”õl—“‚Ìƒ`ƒFƒbƒN‚ÆƒnƒCƒ‰ƒCƒg
+                If “Ío“à—e <> "—L‹x" Then ' —L‹xˆÈŠO‚Ìê‡‚Ì‚İƒ`ƒFƒbƒN
+                    If ”õl = "" Then
+                        .Cells(deliveryRow, 13).Interior.Color = RGB(255, 0, 0) ' ÔF‚ÅƒnƒCƒ‰ƒCƒg
+                    Else
+                        .Cells(deliveryRow, 13).Interior.Color = xlNone ' F‚ğƒNƒŠƒA
+                    End If
+                Else
+                   .Cells(deliveryRow, 13).Interior.Color = xlNone ' —L‹x‚Ìê‡‚ÍF‚ğƒNƒŠƒA
+                End If
+        
+            End With
+        
+            deliveryRow = deliveryRow + 1
+        End If
+        ' À“­ŠÔ‚ª0‚Ìê‡‚ÍƒXƒLƒbƒvi‹x“ú‚Æ‚µ‚Äˆ—j
+        If À“­ŠÔ <= 0 Then
+            GoTo NextIteration
+        End If
+        
+        ' À“­ŠÔ‚ª0‚æ‚è‘å‚«‚¢ê‡‚Ì‚İƒJƒEƒ“ƒg
+        processedCount = processedCount + 1
+        
+        ' •K—v‚È‹xŒeŠÔ‚ğŒvZ
+        •K—v‹xŒeŠÔ = •K—v‹xŒeŠÔŒvZ(À“­ŠÔ)
+        
+        ' ‹xŒe•s‘«ŠÔ‚ğŒvZ
+        ‹xŒe•s‘« = IIf(•K—v‹xŒeŠÔ > ‹xŒeŠÔ, •K—v‹xŒeŠÔ - ‹xŒeŠÔ, 0)
+        
+        ' ‘S‘Ì•ªÍƒV[ƒg‚É’Ç‰Á
+        With resultSheet
+            ' Ğˆõ”Ô†‚ğ•¶š—ñ‚Æ‚µ‚Ä•Û‚·‚é‚½‚ß‚É‘®İ’è
+            .Cells(resultRow, 1).NumberFormat = "@"
+            .Cells(resultRow, 1).Value = ws.Cells(i, Ğˆõ”Ô†Col).Value
+            .Cells(resultRow, 2).Value = ws.Cells(i, –¼Col).Value
+            .Cells(resultRow, 3).Value = ws.Cells(i, •”–åCol).Value
+            .Cells(resultRow, 4).Value = ws.Cells(i, “ú•tCol).Value
+            .Cells(resultRow, 5).Value = MinutesToTime(À“­ŠÔ)
+            .Cells(resultRow, 6).Value = MinutesToTime(‹xŒeŠÔ)
+            .Cells(resultRow, 7).Value = MinutesToTime(•K—v‹xŒeŠÔ)
+            .Cells(resultRow, 8).Value = MinutesToTime(‹xŒe•s‘«)
+            .Cells(resultRow, 9).Value = MinutesToTime(c‹ÆŠÔ)
+            
+            If ‹xŒe•s‘« > 0 Then
+                .Cells(resultRow, 10).Value = "ˆá”½"
+                ' ˆá”½s‚ğÔF‚ÅƒnƒCƒ‰ƒCƒg
+                .Range(.Cells(resultRow, 1), .Cells(resultRow, 10)).Interior.Color = RGB(255, 200, 200)
+                violationCount = violationCount + 1
+                
+                ' ˆá”½ÒƒV[ƒg‚É‚à’Ç‰Á
+                With violationSheet
+                    ' Ğˆõ”Ô†‚ğ•¶š—ñ‚Æ‚µ‚Ä•Û‚·‚é‚½‚ß‚É‘®İ’è
+                    .Cells(violationRow, 1).NumberFormat = "@"
+                    .Cells(violationRow, 1).Value = ws.Cells(i, Ğˆõ”Ô†Col).Value
+                    .Cells(violationRow, 2).Value = ws.Cells(i, –¼Col).Value
+                    .Cells(violationRow, 3).Value = ws.Cells(i, •”–åCol).Value
+                    .Cells(violationRow, 4).Value = ws.Cells(i, “ú•tCol).Value
+                    .Cells(violationRow, 5).Value = MinutesToTime(À“­ŠÔ)
+                    .Cells(violationRow, 6).Value = MinutesToTime(‹xŒeŠÔ)
+                    .Cells(violationRow, 7).Value = MinutesToTime(•K—v‹xŒeŠÔ)
+                    .Cells(violationRow, 8).Value = MinutesToTime(‹xŒe•s‘«)
+                    .Cells(violationRow, 9).Value = MinutesToTime(c‹ÆŠÔ)
+                    .Cells(violationRow, 10).Value = "ˆá”½"
+                    ' ”õl—“‚Ì’l‚ğ’Ç‰Á
+                    .Cells(violationRow, 11).Value = ws.Cells(i, ”õlCol).Value
+                    ' s‘S‘Ì‚ğÔF‚ÅƒnƒCƒ‰ƒCƒg
+                    .Range(.Cells(violationRow, 1), .Cells(violationRow, 11)).Interior.Color = RGB(255, 200, 200)
+                End With
+                violationRow = violationRow + 1
+            Else
+                .Cells(resultRow, 10).Value = "“K³"
+            End If
+        End With
+        
+        resultRow = resultRow + 1
+NextIteration:
+    Next i
+    
+    ' c‹Æˆê——ƒV[ƒg‚Éƒf[ƒ^‚ğo—Í
+    Dim overtimeRow As Long
+    overtimeRow = 2
+    
+    ' WŒv‚µ‚½c‹ÆŠÔƒf[ƒ^‚ğc‹Æˆê——ƒV[ƒg‚É‘‚«‚Ş
+    For j = 0 To WŒv” - 1
+        ' Ğˆõî•ñ‚ğæ“¾
+        Dim Ğˆõ”Ô† As String
+        Dim –¼ As String
+        Dim •”–å As String
+        Dim WŒv”NŒ As String
+        
+        Ğˆõ”Ô† = Ğˆõ”Ô†Array(j)
+        –¼ = –¼Array(j)
+        •”–å = •”–åArray(j)
+        WŒv”NŒ = ”NŒArray(j)
+        
+        ' ‘c‹ÆŠÔ‚ğæ“¾
+        Dim ‘c‹ÆŠÔ As Double
+        ‘c‹ÆŠÔ = c‹ÆŠÔArray(j)
+        
+        ' ƒXƒe[ƒ^ƒX‚ğİ’è
+        Dim c‹ÆƒXƒe[ƒ^ƒX As String
+        
+        If ‘c‹ÆŠÔ >= 70 * 60 Then ' 70ŠÔˆÈã
+            c‹ÆƒXƒe[ƒ^ƒX = "e‰ïĞ•ñ"
+        ElseIf ‘c‹ÆŠÔ >= 60 * 60 Then ' 60ŠÔˆÈã
+            c‹ÆƒXƒe[ƒ^ƒX = "c‹Æ—}~—v¿"
+        ElseIf ‘c‹ÆŠÔ >= 45 * 60 Then ' 45ŠÔˆÈã
+            c‹ÆƒXƒe[ƒ^ƒX = "”N6‰ñ‚Ü‚Å"
+        Else
+            c‹ÆƒXƒe[ƒ^ƒX = "“K³"
+        End If
+        
+        ' c‹Æˆê——ƒV[ƒg‚É’Ç‰Á
+        With overtimeSheet
+            ' Ğˆõ”Ô†‚ğ•¶š—ñ‚Æ‚µ‚Ä•Û
+            .Cells(overtimeRow, 1).NumberFormat = "@"
+            .Cells(overtimeRow, 1).Value = Ğˆõ”Ô†
+            .Cells(overtimeRow, 2).Value = –¼
+            .Cells(overtimeRow, 3).Value = •”–å
+            .Cells(overtimeRow, 4).Value = WŒv”NŒ
+            .Cells(overtimeRow, 5).Value = MinutesToTime(‘c‹ÆŠÔ)
+            .Cells(overtimeRow, 6).Value = c‹ÆƒXƒe[ƒ^ƒX
+            
+            ' 45ŠÔˆÈã‚ÍÔ”wŒiA•‘¾š
+            If ‘c‹ÆŠÔ >= 45 * 60 Then
+                .Range(.Cells(overtimeRow, 1), .Cells(overtimeRow, 6)).Interior.Color = RGB(255, 200, 200)
+                .Range(.Cells(overtimeRow, 6), .Cells(overtimeRow, 6)).Font.Bold = True
+                .Range(.Cells(overtimeRow, 6), .Cells(overtimeRow, 6)).Font.Color = RGB(0, 0, 0)
+            End If
+        End With
+        
+        overtimeRow = overtimeRow + 1
+    Next j
+    
+    ' ŠT—vî•ñ‚Ìì¬
+    Dim summarySheet As Worksheet
+    On Error Resume Next
+    Set summarySheet = Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+    If summarySheet Is Nothing Then
+        Set summarySheet = Worksheets.Add(After:=overtimeSheet)
+        summarySheet.Name = "‹Î‘Óî•ñ•ªÍŒ‹‰Ê"
+    Else
+        summarySheet.Cells.Clear
+    End If
+    On Error GoTo 0
+    With summarySheet
+        .Cells(1, 1).Value = "€–Ú"
+        .Cells(1, 2).Value = "”’l"
+        .Cells(1, 1).Font.Bold = True
+        .Cells(1, 2).Font.Bold = True
+        
+        .Cells(2, 1).Value = "‘ƒŒƒR[ƒh”"
+        .Cells(2, 2).Value = totalCount
+        
+        .Cells(3, 1).Value = "ˆ—‘ÎÛƒŒƒR[ƒh”iÀ“­ŠÔ>0j"
+        .Cells(3, 2).Value = processedCount
+        
+        .Cells(4, 1).Value = "“K³ƒŒƒR[ƒh”"
+        .Cells(4, 2).Value = processedCount - violationCount
+        
+        .Cells(5, 1).Value = "ˆá”½ƒŒƒR[ƒh”"
+        .Cells(5, 2).Value = violationCount
+        
+        .Cells(6, 1).Value = "ˆá”½—¦"
+        If processedCount > 0 Then
+            .Cells(6, 2).Value = Format(violationCount / processedCount, "0.0%")
+        Else
+            .Cells(6, 2).Value = "0%"
+        End If
+        
+        .Cells(7, 1).Value = "“ÍoƒŒƒR[ƒh”"
+        .Cells(7, 2).Value = deliveryCount
+        
+        .Cells(8, 1).Value = "c‹Æ”­¶ƒŒƒR[ƒh”"
+        .Cells(8, 2).Value = overtimeCount
+        
+        .Cells(9, 1).Value = "c‹Æ”­¶—¦"
+        If processedCount > 0 Then
+            .Cells(9, 2).Value = Format(overtimeCount / processedCount, "0.0%")
+        Else
+            .Cells(9, 2).Value = "0%"
+        End If
+        
+        ' ‹x“úo‹Îî•ñ‚ğ’Ç‰Á
+        .Cells(10, 1).Value = "‹x“úo‹ÎƒŒƒR[ƒh”"
+        .Cells(10, 2).Value = holidayWorkCount
+        
+        .Cells(11, 1).Value = "‹x“úo‹Î—¦"
+        If processedCount > 0 Then
+            .Cells(11, 2).Value = Format(holidayWorkCount / processedCount, "0.0%")
+        Else
+            .Cells(11, 2).Value = "0%"
+        End If
+        
+        ' ‘®İ’è
+        .Range("A1:B1").Interior.Color = RGB(200, 200, 200)
+        .Columns("B:D").AutoFit ' B—ñ‚©‚çD—ñ‚ÍAutoFit
+        .Columns("A").ColumnWidth = 32 ' A—ñ‚Ì‚İ•‚ğ32‚Éİ’è
+    End With
+    
+    ' Ğˆõ”Ô†—ñ‚ğ•¶š—ñŒ`®‚Éİ’èi‘S‚Ä‚ÌƒV[ƒgj
+    resultSheet.Columns("A").NumberFormat = "@"
+    violationSheet.Columns("A").NumberFormat = "@"
+    deliverySheet.Columns("A").NumberFormat = "@"
+    overtimeSheet.Columns("A").NumberFormat = "@"
+    
+    ' Œ‹‰ÊƒV[ƒg‚ÌŠÔŠÖ˜A—ñ‚Ì‘®‚ğİ’è
+    FormatTimeColumns resultSheet, 5, 6, 7, 8, 9
+    FormatTimeColumns violationSheet, 5, 6, 7, 8, 9
+    FormatTimeColumns deliverySheet, 7, 8, 9, 10, 11
+    FormatTimeColumns overtimeSheet, 5
+    
+    ' Œ‹‰Ê‚Ì—ñ•‚ğ©“®’²®
+    resultSheet.Columns("B:J").AutoFit
+    violationSheet.Columns("B:K").AutoFit
+    deliverySheet.Columns("B:M").AutoFit
+    overtimeSheet.Columns("B:F").AutoFit
+    
+    ' ˆá”½Ò‚ª‚¢‚È‚¢ê‡‚ÌƒƒbƒZ[ƒW
+    If violationRow = 2 Then
+        violationSheet.Cells(2, 1).Value = "‹xŒeŠÔˆá”½‚Í‚ ‚è‚Ü‚¹‚ñB"
+        violationSheet.Range("A2:J2").Merge
+        violationSheet.Range("A2:J2").HorizontalAlignment = xlCenter
+    End If
+    
+    ' “Ío‚ª‚È‚¢ê‡‚ÌƒƒbƒZ[ƒW
+    If deliveryRow = 2 Then
+        deliverySheet.Cells(2, 1).Value = "“Ío‚Ì‹L˜^‚Í‚ ‚è‚Ü‚¹‚ñB"
+        deliverySheet.Range("A2:L2").Merge
+        deliverySheet.Range("A2:L2").HorizontalAlignment = xlCenter
+    End If
+    
+    ' c‹Æ‚ª‚È‚¢ê‡‚ÌƒƒbƒZ[ƒW
+    If overtimeRow = 2 Then
+        overtimeSheet.Cells(2, 1).Value = "c‹ÆŠÔ‚Ì‹L˜^‚Í‚ ‚è‚Ü‚¹‚ñB"
+        overtimeSheet.Range("A2:F2").Merge
+        overtimeSheet.Range("A2:F2").HorizontalAlignment = xlCenter
+    End If
+    
+    ' ŠT—vƒV[ƒg‚ğƒAƒNƒeƒBƒu‚É‚·‚é
+    summarySheet.Activate
+    
+' c‹Æˆê——ƒV[ƒg‚©‚ç•”–å•Êc‹ÆŠÔ‚ğWŒv
+    Call •”–å•Êc‹ÆWŒv
+    
+    ' ššš LINEWORKS’Ê’mƒ{ƒ^ƒ“‚ğ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚É’Ç‰Á ššš
+    Call Add_LineWorks_Button_To_Summary
+    
+    ' ššš –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡ ššš
+    Dim contradictionCount As Long
+    contradictionCount = –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡()
+    
+' ššš ‹Î‘Ó“ü—Í˜R‚êˆê——‚©‚çƒˆ‚È˜R‚êŒ”‚ğæ“¾i–µ‚‚ğœ‚­j ššš
+    Dim missingSheet As Worksheet
+    Dim pureMissingCount As Long
+    pureMissingCount = 0
+    
+    On Error Resume Next
+    Set missingSheet = ThisWorkbook.Worksheets("‹Î‘Ó“ü—Í˜R‚êˆê——")
+    On Error GoTo 0
+    
+    If Not missingSheet Is Nothing Then
+        ' J—ñ‚©‚ç“Œvî•ñ‚ğæ“¾
+        Dim totalMissingFromSheet As Long
+        Dim contradictionFromSheet As Long
+        
+        totalMissingFromSheet = missingSheet.Range("J2").Value  ' ‘Œ”
+        contradictionFromSheet = missingSheet.Range("J7").Value  ' –µ‚Œ”
+        
+        ' ƒˆ‚È‹Î‘Ó“ü—Í˜R‚ê = ‘Œ” - –µ‚Œ”
+        pureMissingCount = totalMissingFromSheet - contradictionFromSheet
+        
+        Debug.Print "[DEBUG] ƒˆ‚È‹Î‘Ó“ü—Í˜R‚ê: " & pureMissingCount
+    End If
+    
+    ' ššš ƒˆ‚È‹xŒeŠÔˆá”½”i–µ‚‚ğœ‚­j ššš
+    Dim pureViolationCount As Long
+    pureViolationCount = violationCount  ' Œ³‚Ì‹xŒeŠÔˆá”½”i–µ‚“‡‘Oj
+    
+    ' ššš ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚Ì“Œv‚ğÅIXV ššš
+    On Error Resume Next
+    Set summarySheet = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+    On Error GoTo 0
+    
+    If Not summarySheet Is Nothing Then
+        ' ‘ˆá”½ƒŒƒR[ƒh” = ‹xŒeŠÔˆá”½ + –µ‚ + ‹Î‘Ó“ü—Í˜R‚ê
+        Dim totalViolationCount As Long
+        totalViolationCount = pureViolationCount + contradictionCount + pureMissingCount
+        
+        ' ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ğXV
+        summarySheet.Cells(5, 2).Value = totalViolationCount
+        
+        ' ˆá”½—¦‚ğÄŒvZ
+        If processedCount > 0 Then
+            summarySheet.Cells(6, 2).Value = Format(totalViolationCount / processedCount, "0.0%")
+        End If
+        
+        Debug.Print "[INFO] ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚Ì“Œv‚ğÅIXV‚µ‚Ü‚µ‚½: ‘ˆá”½=" & totalViolationCount
+    End If
+    
+    MsgBox "‹xŒeŠÔEc‹ÆŠÔƒ`ƒFƒbƒN‚ªŠ®—¹‚µ‚Ü‚µ‚½B" & vbCrLf & _
+           "‘ƒŒƒR[ƒh”: " & totalCount & vbCrLf & _
+           "ˆ—‘ÎÛƒŒƒR[ƒh”: " & processedCount & vbCrLf & _
+           "‹xŒeŠÔˆá”½: " & pureViolationCount & "Œ" & vbCrLf & _
+           "“Íoˆá”½i”¼‹x–µ‚j: " & contradictionCount & "Œ" & vbCrLf & _
+           "‹Î‘Ó“ü—Í˜R‚ê: " & pureMissingCount & "Œ" & vbCrLf & _
+           "“ÍoƒŒƒR[ƒh”: " & deliveryCount & vbCrLf & _
+           "c‹Æ”­¶ƒŒƒR[ƒh”: " & overtimeCount & vbCrLf & _
+           "‹x“úo‹ÎƒŒƒR[ƒh”: " & holidayWorkCount & vbCrLf & vbCrLf & _
+           "‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN‚ğs‚¢A" & vbCrLf & _
+           "“Á•Ê‹x‰É\¿‚ªo‚Ä‚¢‚éê‡‚Í‚»‚ÌƒŒƒR[ƒh‚ğ•\¦‚µ‚Ü‚·B", _
+           vbInformation, "‹xŒeŠÔEc‹ÆŠÔE“Íoƒ`ƒFƒbƒNŒ‹‰Ê"
+       
 End Sub
+
+' ŠÔ•¶š—ñiHH:MMj‚ğ•ª‚É•ÏŠ·‚·‚éŠÖ”
+Function ConvertTimeToMinutes(timeStr As Variant) As Double
+    If IsEmpty(timeStr) Or timeStr = "" Then
+        ConvertTimeToMinutes = 0
+        Exit Function
+    End If
+    
+    If IsNumeric(timeStr) Then
+        ' ‚·‚Å‚ÉŠÔ’l‚Æ‚µ‚ÄŠi”[‚³‚ê‚Ä‚¢‚éê‡iExcel‚ÌŠÔ‚Í“ú‚ÌŠ„‡‚ÅŠi”[j
+        ConvertTimeToMinutes = timeStr * 24 * 60
+        Exit Function
+    End If
+    
+    Dim timeParts As Variant
+    Dim hours As Double, minutes As Double
+    
+    ' HH:MMŒ`®‚ğ‘z’è
+    timeParts = Split(CStr(timeStr), ":")
+    
+    If UBound(timeParts) >= 1 Then
+        If IsNumeric(timeParts(0)) And IsNumeric(timeParts(1)) Then
+            hours = CDbl(timeParts(0))
+            minutes = CDbl(timeParts(1))
+            ConvertTimeToMinutes = hours * 60 + minutes
+        Else
+            ConvertTimeToMinutes = 0
+        End If
+    Else
+        ConvertTimeToMinutes = 0
+    End If
+End Function
+' •ª‚ğŠÔ•¶š—ñiHH:MMj‚É•ÏŠ·‚·‚éŠÖ”
+Function MinutesToTime(minutes As Double) As String
+    Dim hours As Integer
+    Dim mins As Integer
+    
+    hours = Int(minutes / 60)
+    mins = minutes Mod 60
+    
+    ' •K‚¸2Œ…•\¦‚É‚È‚é‚æ‚¤ƒtƒH[ƒ}ƒbƒg
+    MinutesToTime = Format(hours, "00") & ":" & Format(mins, "00")
+End Function
+' À“­ŠÔ‚ÉŠî‚Ã‚¢‚Ä•K—v‚È‹xŒeŠÔi•ªj‚ğŒvZ‚·‚éŠÖ”
+Function •K—v‹xŒeŠÔŒvZ(À“­ŠÔ•ª As Double) As Double
+    If À“­ŠÔ•ª < 360 Then
+        ' 6ŠÔ–¢–
+        •K—v‹xŒeŠÔŒvZ = 0
+    ElseIf À“­ŠÔ•ª >= 360 And À“­ŠÔ•ª < 480 Then
+        ' 6ŠÔˆÈã8ŠÔ–¢–
+        •K—v‹xŒeŠÔŒvZ = 45
+    Else
+        ' 8ŠÔˆÈã
+        •K—v‹xŒeŠÔŒvZ = 60
+    End If
+End Function
+' CSVƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚ŞŠÖ”
+Sub CSVƒtƒ@ƒCƒ‹“Ç‚İ‚İ()
+    Dim filePath As Variant
+    Dim ws As Worksheet
+    Dim existingData As Boolean
+    
+    ' ƒOƒ[ƒoƒ‹•Ï”‚Ì‰Šú‰»
+    g_HeaderCheckError = False
+    
+    ' CSVƒf[ƒ^ƒV[ƒg‚ªŠù‚É‘¶İ‚µAƒf[ƒ^‚ª‚ ‚é‚©Šm”F
+    On Error Resume Next
+    Set ws = Worksheets("CSVƒf[ƒ^")
+    If Not ws Is Nothing Then
+        If ws.Cells(1, 1).Value <> "" Then
+            existingData = True
+        End If
+    End If
+    On Error GoTo 0
+    
+    ' Šù‘¶ƒf[ƒ^‚ª‚ ‚éê‡AƒTƒCƒh•ªÍ‚ÌŠm”F
+    If existingData Then
+        Dim response As Integer
+        response = MsgBox("Šù‚ÉCSVƒf[ƒ^‚ª‘¶İ‚µ‚Ü‚·B‚±‚Ìƒf[ƒ^‚ğg—p‚µ‚Ä•ªÍ‚ğÀs‚µ‚Ü‚·‚©H" & vbCrLf & _
+                          "u‚Í‚¢vFŒ»İ‚Ìƒf[ƒ^‚Å•ªÍ‚ğÀs" & vbCrLf & _
+                          "u‚¢‚¢‚¦vFV‚µ‚¢CSVƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚Ş", _
+                          vbQuestion + vbYesNo, "ƒf[ƒ^•ªÍŠm”F")
+        
+        If response = vbYes Then
+            ' Œ»İ‚Ìƒf[ƒ^‚Å•ªÍ‚ğÀs
+            Call “‡•ªÍÀs
+            Exit Sub
+        End If
+        
+        ' u‚¢‚¢‚¦v‚ğ‘I‘ğ‚µ‚½ê‡‚ÍAV‚µ‚¢CSVƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚Şˆ—‚ğ‘±s
+    End If
+    
+    ' ƒtƒ@ƒCƒ‹‘I‘ğƒ_ƒCƒAƒƒO‚ğ•\¦
+    filePath = Application.GetOpenFilename("CSVƒtƒ@ƒCƒ‹ (*.csv),*.csv", , "CSVƒtƒ@ƒCƒ‹‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢")
+    
+    If filePath = False Then
+        MsgBox "ƒtƒ@ƒCƒ‹‚ª‘I‘ğ‚³‚ê‚Ü‚¹‚ñ‚Å‚µ‚½B", vbExclamation
+        Exit Sub
+    End If
+    
+    ' V‚µ‚¢ƒV[ƒg‚ğì¬
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    
+    ' Šù‘¶‚ÌƒV[ƒg‚ğíœ
+    Dim sheetNames As Variant
+    sheetNames = Array("CSVƒf[ƒ^", "ŠÔƒ`ƒFƒbƒN_‘S‘Ì", "‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½Ò", "‹Î‘Óî•ñ•ªÍŒ‹‰Ê", "‹xŒeŠÔA”õlˆê——", "c‹Æˆê——", "‹Î‘Ó“ü—Í˜R‚êˆê——", "\¿Ú×•ªÍˆê——")
+    Dim i As Integer
+    For i = LBound(sheetNames) To UBound(sheetNames)
+        On Error Resume Next
+        Set ws = Worksheets(sheetNames(i))
+        If Not ws Is Nothing Then
+            ws.Delete
+        End If
+        On Error GoTo 0
+    Next i
+    
+    Application.DisplayAlerts = True
+    
+    ' CSVƒf[ƒ^—pƒV[ƒg‚ğì¬
+    Set ws = Worksheets.Add(After:=Worksheets(Worksheets.count))
+    ws.Name = "CSVƒf[ƒ^"
+    On Error GoTo 0
+    
+    ' CSVƒtƒ@ƒCƒ‹‚ğŠJ‚­
+    With ws.QueryTables.Add(Connection:="TEXT;" & filePath, Destination:=ws.Range("A1"))
+        .Name = "CSVƒCƒ“ƒ|[ƒg"
+        .FieldNames = True
+        .RowNumbers = False
+        .FillAdjacentFormulas = False
+        .PreserveFormatting = True
+        .RefreshOnFileOpen = False
+        .RefreshStyle = xlInsertDeleteCells
+        .SavePassword = False
+        .SaveData = True
+        .AdjustColumnWidth = True
+        .RefreshPeriod = 0
+        .TextFilePromptOnRefresh = False
+        .TextFilePlatform = 932 ' “ú–{ŒêShift-JIS
+        .TextFileStartRow = 1
+        .TextFileParseType = xlDelimited
+        .TextFileTextQualifier = xlTextQualifierDoubleQuote
+        .TextFileConsecutiveDelimiter = False
+        .TextFileTabDelimiter = False
+        .TextFileSemicolonDelimiter = False
+        .TextFileCommaDelimiter = True
+        .TextFileSpaceDelimiter = False
+        
+        ' Ğˆõ”Ô†—ñ‚ğ•¶š—ñ‚Æ‚µ‚Äˆµ‚¤‚½‚ß‚Ìİ’è
+        Dim fieldTypes() As Integer
+        ReDim fieldTypes(1 To 100) ' Å‘å100—ñ‚ğ‘z’è
+        For i = 1 To 100
+            fieldTypes(i) = 1 ' ƒfƒtƒHƒ‹ƒg‚ÍGeneral‚Æ‚µ‚Äˆµ‚¤
+        Next i
+        
+        ' 1—ñ–Úi’Êí‚ÍĞˆõ”Ô†j‚ğ•¶š—ñ‚Æ‚µ‚Äˆµ‚¤
+        fieldTypes(1) = 2 ' 2‚ÍƒeƒLƒXƒgŒ`®
+        
+        .TextFileColumnDataTypes = fieldTypes
+        .TextFileTrailingMinusNumbers = True
+        .Refresh BackgroundQuery:=False
+    End With
+    ' Ğˆõ”Ô†—ñ‚ğ•¶š—ñŒ`®‚Éİ’èiæ“ª‚Ì0‚ªíœ‚³‚ê‚é‚Ì‚ğ–h‚®j
+    Dim Ğˆõ”Ô†Col As Integer
+    For i = 1 To ws.Cells(1, ws.Columns.count).End(xlToLeft).Column
+        If ws.Cells(1, i).Value = "Ğˆõ”Ô†" Then
+            Ğˆõ”Ô†Col = i
+            Exit For
+        End If
+    Next i
+    If Ğˆõ”Ô†Col > 0 Then
+        ws.Columns(Ğˆõ”Ô†Col).NumberFormat = "@"
+        ' Šù‘¶ƒf[ƒ^‚ğ•¶š—ñ‚Æ‚µ‚ÄÄİ’è
+        For i = 2 To ws.Cells(ws.Rows.count, "A").End(xlUp).Row
+            Dim Ğˆõ”Ô† As String
+            Ğˆõ”Ô† = Trim(CStr(ws.Cells(i, Ğˆõ”Ô†Col).Value))
+            ' æ“ªƒ[ƒ‚ª¸‚í‚ê‚Ä‚¢‚éê‡A•œŒ³‚ğ‚İ‚é
+            If Len(Ğˆõ”Ô†) < 7 And IsNumeric(Ğˆõ”Ô†) Then
+                Ğˆõ”Ô† = Right("0000000" & Ğˆõ”Ô†, 7)
+            End If
+            ws.Cells(i, Ğˆõ”Ô†Col).Value = Ğˆõ”Ô†
+        Next i
+    End If
+    
+    ' •K—v‚Èƒwƒbƒ_[‚ª‘¶İ‚·‚é‚©ƒ`ƒFƒbƒNi‹xŒeŠÔƒ`ƒFƒbƒN—pj
+    Dim ‹xŒeŠÔCol As Integer, À“­ŠÔCol As Integer, “ÍoCol As Integer
+    ‹xŒeŠÔCol = 0
+    À“­ŠÔCol = 0
+    “ÍoCol = 0
+    
+    For i = 1 To ws.Cells(1, ws.Columns.count).End(xlToLeft).Column
+        Select Case ws.Cells(1, i).Value
+            Case "‹xŒeŠÔ"
+                ‹xŒeŠÔCol = i
+            Case "À“­ŠÔ"
+                À“­ŠÔCol = i
+            Case "“Ío“à—e"
+                “ÍoCol = i
+        End Select
+    Next i
+    
+    ' ƒwƒbƒ_[ƒ`ƒFƒbƒN - ‹xŒeŠÔƒ`ƒFƒbƒN—p‚Ìƒwƒbƒ_[‚ª‚È‚¢ê‡‚Íƒtƒ‰ƒO‚ğİ’è
+    If ‹xŒeŠÔCol = 0 Or À“­ŠÔCol = 0 Then
+        g_HeaderCheckError = True
+        MsgBox "‹xŒeŠÔƒ`ƒFƒbƒN‚É•K—v‚Èƒwƒbƒ_[i‹xŒeŠÔAÀ“­ŠÔj‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
+               "‹xŒeŠÔE‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN‚ÍƒXƒLƒbƒv‚µ‚Ä\¿•ªÍ‚Ì‚İÀs‰Â”\‚Å‚·B", vbExclamation
+    End If
+    
+    ' •ªÍÀs‚ÌŠm”F
+    Dim analysisResponse As Integer
+    If g_HeaderCheckError Then
+        ' ƒwƒbƒ_[ƒGƒ‰[‚ª‚ ‚éê‡‚ÍA\¿•ªÍ‚Ì‚İÀs‚·‚é‚©Šm”F
+        Dim applicationAnalysisResponse As Integer
+        applicationAnalysisResponse = MsgBox("\¿•ªÍ‚ğs‚¢‚Ü‚·‚©H" & vbCrLf & _
+                                           "\¿•ªÍ‚Í\¿ŒˆÙ‰æ–Ê‚©‚ç‘S\¿‚ğ‘ÎÛ‚Æ‚µ‚Ä•Û‘¶‚µ‚½csvƒtƒ@ƒCƒ‹‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", _
+                                           vbQuestion + vbYesNo, "\¿•ªÍŠm”F")
+        
+        If applicationAnalysisResponse = vbYes Then
+            ' \¿•ªÍ‚ğÀs
+            On Error Resume Next
+            Call \¿Ú×•ªÍÀs
+            If Err.Number <> 0 Then
+                MsgBox "\¿•ªÍ‚ÌÀs’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbExclamation
+                Err.Clear
+            End If
+            On Error GoTo 0
+        Else
+            MsgBox "CSVƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İ‚ªŠ®—¹‚µ‚Ü‚µ‚½B•K—v‚É‰‚¶‚ÄŠe•ªÍƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚Ä‚­‚¾‚³‚¢B", vbInformation
+        End If
+    Else
+        ' ’Êí‚Ì•ªÍÀsŠm”F
+        analysisResponse = MsgBox("CSVƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İ‚ªŠ®—¹‚µ‚Ü‚µ‚½B•ªÍ‚ğÀs‚µ‚Ü‚·‚©H", _
+                                vbQuestion + vbYesNo, "•ªÍÀsŠm”F")
+                                
+        If analysisResponse = vbYes Then
+            Call “‡•ªÍÀs
+        Else
+            MsgBox "CSVƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İ‚ªŠ®—¹‚µ‚Ü‚µ‚½B•K—v‚É‰‚¶‚ÄŠe•ªÍƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚Ä‚­‚¾‚³‚¢B", vbInformation
+        End If
+    End If
+End Sub
+' ‚·‚×‚Ä‚Ì•ªÍ‚ğ“‡‚µ‚ÄÀs‚·‚éŠÖ”
+Public Sub “‡•ªÍÀs()
+    On Error Resume Next
+    
+    ' CSVƒf[ƒ^ƒV[ƒg‚Ì‘¶İŠm”F
+    Dim dataSheet As Worksheet
+    Set dataSheet = ThisWorkbook.Worksheets("CSVƒf[ƒ^")
+    
+    If dataSheet Is Nothing Then
+        MsgBox "CSVƒf[ƒ^ƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBæ‚ÉCSVƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚ñ‚Å‚­‚¾‚³‚¢B", vbExclamation
+        Exit Sub
+    End If
+    
+    ' ƒf[ƒ^‚Ì‘¶İŠm”FiÅ’áŒÀ‚ÌŒŸØj
+    If dataSheet.Cells(1, 1).Value = "" Then
+        MsgBox "CSVƒf[ƒ^‚ª‹ó‚Å‚·Bæ‚ÉCSVƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚ñ‚Å‚­‚¾‚³‚¢B", vbExclamation
+        Exit Sub
+    End If
+    
+    ' ƒwƒbƒ_[ƒGƒ‰[‚ª‚ ‚éê‡‚Í‹xŒeŠÔE‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN‚ğƒXƒLƒbƒv
+    If g_HeaderCheckError Then
+        ' \¿•ªÍ‚Ì‚İÀs‚·‚é‚©Šm”F
+        Dim applicationAnalysisResponse As Integer
+        applicationAnalysisResponse = MsgBox("\¿•ªÍ‚ğs‚¢‚Ü‚·‚©H" & vbCrLf & _
+                                           "\¿•ªÍ‚Í\¿ŒˆÙ‰æ–Ê‚©‚ç‘S\¿‚ğ‘ÎÛ‚Æ‚µ‚Ä•Û‘¶‚µ‚½csvƒtƒ@ƒCƒ‹‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", _
+                                           vbQuestion + vbYesNo, "\¿•ªÍŠm”F")
+        
+        If applicationAnalysisResponse = vbYes Then
+            ' \¿•ªÍ‚ğÀs
+            On Error Resume Next
+            Call \¿Ú×•ªÍÀs
+            If Err.Number <> 0 Then
+                MsgBox "\¿•ªÍ‚ÌÀs’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbExclamation
+                Err.Clear
+            End If
+            On Error GoTo 0
+        End If
+        Exit Sub
+    End If
+    
+    ' isó‹µ•\¦
+    Application.StatusBar = "•ªÍ‚ğÀs‚µ‚Ä‚¢‚Ü‚·..."
+    
+    ' d—v‚ÈC³: ƒAƒNƒeƒBƒuƒV[ƒg‚ğŠmÀ‚ÉCSVƒf[ƒ^ƒV[ƒg‚Éİ’è
+    dataSheet.Activate
+    
+    ' ƒGƒ‰[”­¶ƒtƒ‰ƒO‚ÆÀs¬Œ÷ƒtƒ‰ƒO
+    Dim hasError As Boolean
+    Dim breakTimeSuccess As Boolean
+    Dim attendanceSuccess As Boolean
+    
+    hasError = False
+    breakTimeSuccess = False
+    attendanceSuccess = False
+    
+    ' ‹xŒeŠÔƒ`ƒFƒbƒNÀs
+    On Error Resume Next
+    Err.Clear ' ƒGƒ‰[ó‘Ô‚ğƒNƒŠƒA
+    Call ‹xŒeŠÔƒ`ƒFƒbƒN
+    If Err.Number <> 0 Then
+        ' ƒGƒ‰[‚ÌÚ×‚ğ‹L˜^iƒfƒoƒbƒO—pj
+        Debug.Print "‹xŒeŠÔƒ`ƒFƒbƒN‚ÅƒGƒ‰[”­¶: " & Err.Number & " - " & Err.Description
+        ' ƒGƒ‰[‚ª‚ ‚Á‚Ä‚à‘±s‚·‚éiƒTƒCƒŒƒ“ƒg‚É¸”sj
+        Err.Clear
+    Else
+        breakTimeSuccess = True
+    End If
+    
+    ' ‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒNÀs
+    On Error Resume Next
+    Err.Clear ' ƒGƒ‰[ó‘Ô‚ğƒNƒŠƒA
+    Call ‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN
+    If Err.Number <> 0 Then
+        ' ƒGƒ‰[‚ÌÚ×‚ğ‹L˜^iƒfƒoƒbƒO—pj
+        Debug.Print "‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN‚ÅƒGƒ‰[”­¶: " & Err.Number & " - " & Err.Description
+        ' ƒGƒ‰[‚ª‚ ‚Á‚Ä‚à‘±s‚·‚éiƒTƒCƒŒƒ“ƒg‚É¸”sj
+        Err.Clear
+    Else
+        attendanceSuccess = True
+    End If
+    On Error GoTo 0
+    
+    Application.StatusBar = False
+    
+    ' ‚¢‚¸‚ê‚©‚Ìƒ`ƒFƒbƒN‚ª¬Œ÷‚µ‚Ä‚¢‚ê‚ÎŠT—vƒV[ƒg‚ğ•\¦
+    If breakTimeSuccess Then
+        ' ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ğƒAƒNƒeƒBƒu‚É‚·‚é
+        Dim summarySheet As Worksheet
+        On Error Resume Next
+        Set summarySheet = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+        If Not summarySheet Is Nothing Then
+            summarySheet.Activate
+        End If
+        On Error GoTo 0
+    ElseIf attendanceSuccess Then
+        ' ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ğƒAƒNƒeƒBƒu‚É‚·‚é
+        Dim missingEntriesSheet As Worksheet
+        On Error Resume Next
+        Set missingEntriesSheet = ThisWorkbook.Worksheets("‹Î‘Ó“ü—Í˜R‚êˆê——")
+        If Not missingEntriesSheet Is Nothing Then
+            missingEntriesSheet.Activate
+        End If
+        On Error GoTo 0
+    End If
+    ' •ªÍŒ‹‰ÊƒTƒ}ƒŠ[‚ğ•\¦iˆø”‚ğ“n‚·j
+    Call DisplayAnalysisSummary(breakTimeSuccess, attendanceSuccess)
+End Sub
+' •ªÍŒ‹‰Ê‚ÌƒTƒ}ƒŠ[‚ğ•\¦‚·‚éŠÖ”
+Private Sub DisplayAnalysisSummary(ByVal breakTimeSuccess As Boolean, ByVal attendanceSuccess As Boolean)
+    ' ŠeƒV[ƒg‚©‚çî•ñ‚ğûW
+    Dim breakViolationCount As Long
+    Dim attendanceViolationCount As Long
+    Dim overtimeCount As Long
+    Dim sheetsCreated As String
+    Dim activatedSheet As String
+    
+    sheetsCreated = ""
+    activatedSheet = ""  ' ‰Šú‰»
+    
+    ' ‹xŒeŠÔˆá”½”
+    On Error Resume Next
+    Dim violationSheet As Worksheet
+    Set violationSheet = ThisWorkbook.Worksheets("‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½Ò")
+    If Not violationSheet Is Nothing Then
+        ' 2s–ÚˆÈ~‚Éƒf[ƒ^‚ª‚ ‚é‚©ƒ`ƒFƒbƒN
+        If Not IsEmpty(violationSheet.Cells(2, 1).Value) And violationSheet.Cells(2, 1).Value <> "‹xŒeŠÔˆá”½‚Í‚ ‚è‚Ü‚¹‚ñB" Then
+            ' ÅIs‚ğæ“¾‚µ‚ÄƒJƒEƒ“ƒg
+            breakViolationCount = violationSheet.Cells(violationSheet.Rows.count, "A").End(xlUp).Row - 1
+        End If
+    End If
+    On Error GoTo 0
+    
+    ' ‹Î‘Ó“ü—Í˜R‚ê”
+    On Error Resume Next
+    Dim missingEntriesSheet As Worksheet
+    Set missingEntriesSheet = ThisWorkbook.Worksheets("‹Î‘Ó“ü—Í˜R‚êˆê——")
+    If Not missingEntriesSheet Is Nothing Then
+        ' 2s–ÚˆÈ~‚Éƒf[ƒ^‚ª‚ ‚é‚©ƒ`ƒFƒbƒN
+        If Not IsEmpty(missingEntriesSheet.Cells(2, 1).Value) And missingEntriesSheet.Cells(2, 1).Value <> "‹Î‘Ó“ü—Í˜R‚ê‚ÍŒŸo‚³‚ê‚Ü‚¹‚ñ‚Å‚µ‚½B" Then
+            ' ÅIs‚ğæ“¾‚µ‚ÄƒJƒEƒ“ƒg
+            attendanceViolationCount = missingEntriesSheet.Cells(missingEntriesSheet.Rows.count, "A").End(xlUp).Row - 1
+        End If
+    End If
+    On Error GoTo 0
+    
+    ' c‹Æ”­¶”
+    On Error Resume Next
+    Dim overtimeSheet As Worksheet
+    Set overtimeSheet = ThisWorkbook.Worksheets("c‹Æˆê——")
+    If Not overtimeSheet Is Nothing Then
+        ' 2s–ÚˆÈ~‚Éƒf[ƒ^‚ª‚ ‚é‚©ƒ`ƒFƒbƒN
+        If Not IsEmpty(overtimeSheet.Cells(2, 1).Value) And overtimeSheet.Cells(2, 1).Value <> "c‹ÆŠÔ‚Ì‹L˜^‚Í‚ ‚è‚Ü‚¹‚ñB" Then
+            ' ÅIs‚ğæ“¾‚µ‚ÄƒJƒEƒ“ƒg
+            overtimeCount = overtimeSheet.Cells(overtimeSheet.Rows.count, "A").End(xlUp).Row - 1
+        End If
+    End If
+    On Error GoTo 0
+    
+    If breakTimeSuccess Then
+        sheetsCreated = sheetsCreated & "E‹xŒeŠÔƒ`ƒFƒbƒN" & vbCrLf
+        activatedSheet = "u‹Î‘Óî•ñ•ªÍŒ‹‰ÊvƒV[ƒg"
+    End If
+    If attendanceSuccess Then
+        sheetsCreated = sheetsCreated & "E‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN" & vbCrLf
+        If breakTimeSuccess = False Then
+            activatedSheet = "u‹Î‘Ó“ü—Í˜R‚êˆê——vƒV[ƒg"
+        End If
+    End If
+    
+    ' ƒTƒ}ƒŠ[ƒƒbƒZ[ƒW‚Ìì¬
+    Dim message As String
+    
+    If breakTimeSuccess Or attendanceSuccess Then
+        message = "•ªÍ‚ªŠ®—¹‚µ‚Ü‚µ‚½B" & vbCrLf & vbCrLf
+        message = message & "yÀs‚µ‚½•ªÍz" & vbCrLf & sheetsCreated & vbCrLf
+        message = message & "y•ªÍŒ‹‰ÊƒTƒ}ƒŠ[z" & vbCrLf
+        
+        If breakTimeSuccess Then
+            message = message & "E‹xŒeŠÔˆá”½: " & breakViolationCount & "Œ" & vbCrLf
+            message = message & "Ec‹Æ”­¶: " & overtimeCount & "Œ" & vbCrLf
+        End If
+        
+        If attendanceSuccess Then
+            message = message & "E‹Î‘Ó“ü—Í˜R‚ê: " & attendanceViolationCount & "Œ" & vbCrLf
+        End If
+        
+        message = message & vbCrLf & "Ú×‚ÍŠeƒV[ƒg‚ğ‚²Šm”F‚­‚¾‚³‚¢B" & vbCrLf
+        If activatedSheet <> "" Then
+            message = message & "Œ»İA" & activatedSheet & "‚ğ•\¦‚µ‚Ä‚¢‚Ü‚·B"
+        End If
+    Else
+        message = "•K—v‚Èƒf[ƒ^—ñ‚ª•s‘«‚µ‚Ä‚¢‚é‚½‚ßA•ªÍ‚ğÀs‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & vbCrLf
+        message = message & "CSVƒf[ƒ^‚ª³‚µ‚­ƒtƒH[ƒ}ƒbƒg‚³‚ê‚Ä‚¢‚é‚±‚Æ‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B" & vbCrLf
+        message = message & "•K—v‚È—ñFĞˆõ”Ô†A–¼A“ú•tAi‹Î‘Ó“à—e‚É‰‚¶‚Äj‹xŒeŠÔAÀ“­ŠÔ‚È‚Ç"
+    End If
+    
+    ' ƒƒbƒZ[ƒW‚ğ•\¦
+    MsgBox message, vbInformation, "•ªÍŠ®—¹"
+    
+    ' \¿•ªÍ‚ÌÀsŠm”F
+    Dim applicationAnalysisResponse As Integer
+    applicationAnalysisResponse = MsgBox("\¿•ªÍ‚ğs‚¢‚Ü‚·‚©H" & vbCrLf & _
+                                       "\¿•ªÍ‚Í\¿ŒˆÙ‰æ–Ê‚©‚ç‘S\¿‚ğ‘ÎÛ‚Æ‚µ‚Ä•Û‘¶‚µ‚½csvƒtƒ@ƒCƒ‹‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢B", _
+                                       vbQuestion + vbYesNo, "\¿•ªÍŠm”F")
+    
+    If applicationAnalysisResponse = vbYes Then
+        ' \¿•ªÍ‚ğÀs
+        On Error Resume Next
+        Call \¿Ú×•ªÍÀs
+        If Err.Number <> 0 Then
+            MsgBox "\¿•ªÍ‚ÌÀs’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbExclamation
+            Err.Clear
+        End If
+        On Error GoTo 0
+    Else
+        ' ‰½‚à‚¹‚¸I—¹
+        MsgBox "‚·‚×‚Ä‚Ì•ªÍ‚ªŠ®—¹‚µ‚Ü‚µ‚½B", vbInformation, "•ªÍI—¹"
+        ' •ªÍ‚ªŠ®—¹‚µ‚½‚Ì‚Å‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ğƒAƒNƒeƒBƒu‚É‚·‚é
+        On Error Resume Next
+        Dim finalSummarySheet As Worksheet
+        Set finalSummarySheet = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+        If Not finalSummarySheet Is Nothing Then
+            finalSummarySheet.Activate
+        End If
+        On Error GoTo 0
+    End If
+End Sub
+' “Á•Ê‹x‰ÉƒŠƒXƒg‚ğ•\¦‚·‚éŠÖ”
+Private Sub AddSpecialLeaveList(summarySheet As Worksheet, NextRow As Long)
+    ' CSVƒf[ƒ^ƒV[ƒg‚ğæ“¾
+    Dim wsCSVData As Worksheet
+    On Error Resume Next
+    Set wsCSVData = ThisWorkbook.Worksheets("CSVƒf[ƒ^")
+    If wsCSVData Is Nothing Then Exit Sub
+    
+    ' ÅIs‚ğæ“¾
+    Dim lastRow As Long
+    lastRow = wsCSVData.Cells(wsCSVData.Rows.count, "A").End(xlUp).Row
+    
+    ' —ñƒCƒ“ƒfƒbƒNƒX‚Ì“Á’è
+    Dim Ğˆõ”Ô†Col As Integer, –¼Col As Integer, •”–åCol As Integer
+    Dim –ğECol As Integer, “ú•tCol As Integer, —j“úCol As Integer
+    Dim ƒJƒŒƒ“ƒ_[Col As Integer, “ÍoCol As Integer, ”õlCol As Integer
+    
+    ' Še—ñ‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ“Á’è
+    Dim i As Long
+    For i = 1 To wsCSVData.Cells(1, wsCSVData.Columns.count).End(xlToLeft).Column
+        Select Case wsCSVData.Cells(1, i).Value
+            Case "Ğˆõ”Ô†": Ğˆõ”Ô†Col = i
+            Case "–¼": –¼Col = i
+            Case "•”–å": •”–åCol = i
+            Case "–ğE": –ğECol = i
+            Case "“ú•t": “ú•tCol = i
+            Case "—j“ú": —j“úCol = i
+            Case "ƒJƒŒƒ“ƒ_[": ƒJƒŒƒ“ƒ_[Col = i
+            Case "“Ío“à—e": “ÍoCol = i
+            Case "”õl": ”õlCol = i
+        End Select
+    Next i
+    
+    ' •K—v‚È—ñ‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡‚ÍƒfƒtƒHƒ‹ƒg’l‚ğİ’è
+    If Ğˆõ”Ô†Col = 0 Then Ğˆõ”Ô†Col = 1
+    If –¼Col = 0 Then –¼Col = 2
+    If •”–åCol = 0 Then •”–åCol = 3
+    If –ğECol = 0 Then –ğECol = 4
+    If “ú•tCol = 0 Then “ú•tCol = 5
+    If —j“úCol = 0 Then —j“úCol = 6
+    If ƒJƒŒƒ“ƒ_[Col = 0 Then ƒJƒŒƒ“ƒ_[Col = 7
+    If “ÍoCol = 0 Then “ÍoCol = 8
+    If ”õlCol = 0 Then ”õlCol = 60 ' ƒfƒtƒHƒ‹ƒg‚ÅBH—ñ
+    
+    ' “Á•Ê‹x‰ÉƒŒƒR[ƒh‚ğûW
+    Dim specialLeaves As New Collection
+    Dim leaveRecord As Object
+    
+    ' CSVŠes‚ğƒ`ƒFƒbƒN
+    For i = 2 To lastRow
+        ' “Ío“à—e‚ªu“Á•Ê‹x‰Év‚ÌƒŒƒR[ƒh‚ğ’Šo
+        If Trim(wsCSVData.Cells(i, “ÍoCol).Value) = "“Á•Ê‹x‰É" Then
+            Set leaveRecord = CreateObject("Scripting.Dictionary")
+            leaveRecord.Add "Ğˆõ”Ô†", wsCSVData.Cells(i, Ğˆõ”Ô†Col).Value
+            leaveRecord.Add "–¼", wsCSVData.Cells(i, –¼Col).Value
+            leaveRecord.Add "•”–å", wsCSVData.Cells(i, •”–åCol).Value
+            leaveRecord.Add "–ğE", wsCSVData.Cells(i, –ğECol).Value
+            leaveRecord.Add "“ú•t", wsCSVData.Cells(i, “ú•tCol).Value
+            leaveRecord.Add "—j“ú", wsCSVData.Cells(i, —j“úCol).Value
+            leaveRecord.Add "ƒJƒŒƒ“ƒ_[", wsCSVData.Cells(i, ƒJƒŒƒ“ƒ_[Col).Value
+            leaveRecord.Add "“Ío“à—e", wsCSVData.Cells(i, “ÍoCol).Value
+            leaveRecord.Add "”õl", wsCSVData.Cells(i, ”õlCol).Value
+            leaveRecord.Add "”õl‹ó—“", (Trim(wsCSVData.Cells(i, ”õlCol).Value) = "")
+            
+            ' ƒRƒŒƒNƒVƒ‡ƒ“‚É’Ç‰Á
+            specialLeaves.Add leaveRecord
+        End If
+    Next i
+    
+    ' “Á•Ê‹x‰É‚ª‚È‚¯‚ê‚ÎI—¹
+    If specialLeaves.count = 0 Then Exit Sub
+    
+    ' “Á•Ê‹x‰ÉƒŠƒXƒg‚Ì•\¦ˆÊ’ui‹Î‘Ó“ü—Í˜R‚êŠT—v‚Ì2s‰ºj
+    Dim listRow As Long
+    listRow = NextRow + 8
+    
+    ' ƒwƒbƒ_[s‚ğİ’è
+    With summarySheet
+        .Cells(listRow, 1).Value = "“Á•Ê‹x‰ÉƒŠƒXƒg"
+        .Cells(listRow, 1).Font.Bold = True
+        .Cells(listRow, 1).Interior.Color = RGB(200, 200, 200)
+        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Merge
+        
+        listRow = listRow + 1
+        
+        ' ƒJƒ‰ƒ€ƒwƒbƒ_[
+        .Cells(listRow, 1).Value = "Ğˆõ”Ô†"
+        .Cells(listRow, 2).Value = "–¼"
+        .Cells(listRow, 3).Value = "•”–å"
+        .Cells(listRow, 4).Value = "–ğE"
+        .Cells(listRow, 5).Value = "“ú•t"
+        .Cells(listRow, 6).Value = "—j“ú"
+        .Cells(listRow, 7).Value = "ƒJƒŒƒ“ƒ_["
+        .Cells(listRow, 8).Value = "“Ío“à—e"
+        .Cells(listRow, 9).Value = "”õl"
+        
+        ' ƒwƒbƒ_[s‚Ì‘®İ’è
+        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Font.Bold = True
+        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Interior.Color = RGB(200, 200, 200)
+        
+        listRow = listRow + 1
+        
+        ' “Á•Ê‹x‰ÉƒŒƒR[ƒh‚ğ•\¦
+        Dim hasEmptyRemarks As Boolean
+        hasEmptyRemarks = False
+        
+        Dim leaveItem As Object
+        For Each leaveItem In specialLeaves
+            .Cells(listRow, 1).NumberFormat = "@"
+            .Cells(listRow, 1).Value = leaveItem("Ğˆõ”Ô†")
+            .Cells(listRow, 2).Value = leaveItem("–¼")
+            .Cells(listRow, 3).Value = leaveItem("•”–å")
+            .Cells(listRow, 4).Value = leaveItem("–ğE")
+            .Cells(listRow, 5).Value = leaveItem("“ú•t")
+            .Cells(listRow, 6).Value = leaveItem("—j“ú")
+            .Cells(listRow, 7).Value = leaveItem("ƒJƒŒƒ“ƒ_[")
+            .Cells(listRow, 8).Value = leaveItem("“Ío“à—e")
+            .Cells(listRow, 9).Value = leaveItem("”õl")
+            
+            ' ”õl—“‚ª‹ó—“‚Ìê‡‚Í—D‚µ‚¢‰©F‚ÅƒnƒCƒ‰ƒCƒg
+            If leaveItem("”õl‹ó—“") Then
+                .Cells(listRow, 9).Interior.Color = RGB(255, 255, 200)  ' ‚æ‚è—D‚µ‚¢‰©F
+                hasEmptyRemarks = True
+            End If
+            
+            listRow = listRow + 1
+        Next leaveItem
+        
+        ' ƒRƒƒ“ƒg‚ğ’Ç‰Á
+        .Cells(listRow + 1, 1).Value = "“Ío“à—e‚ª–¾ŠmA‚©‚ÂŠmÀ‚É”õl—“‚Åà–¾‚ª‚È‚³‚ê‚Ä‚¢‚é‚±‚ÆB"
+        .Cells(listRow + 2, 1).Value = "”õl—“‚Ì‹LÚ•s”õ‚ÍC³‚ª•K—v‚Å‚·B"
+        
+        If hasEmptyRemarks Then
+            .Range(.Cells(listRow + 1, 1), .Cells(listRow + 2, 9)).Font.Color = RGB(255, 0, 0)
+            .Range(.Cells(listRow + 1, 1), .Cells(listRow + 2, 9)).Font.Bold = True
+        End If
+        
+        ' •\‚Ìƒ{[ƒ_[‚ğİ’è
+        Dim tableRange As Range
+        Set tableRange = .Range(.Cells(listRow - specialLeaves.count, 1), .Cells(listRow - 1, 9))
+        tableRange.Borders.LineStyle = xlContinuous
+        tableRange.Borders.Weight = xlThin
+        
+        ' —ñ•‚Ì©“®’²®
+        .Columns("A:I").AutoFit
+    End With
+End Sub
+' ƒƒCƒ“ˆ—iCSVƒtƒ@ƒCƒ‹“Ç‚İ‚İƒ{ƒ^ƒ“‚©‚çŒÄ‚Ño‚³‚ê‚éŠÖ”j‚ğ“‡
+Sub ƒƒCƒ“ˆ—()
+    Call CSVƒtƒ@ƒCƒ‹“Ç‚İ‚İ
+End Sub
+' ƒV[ƒgƒNƒŠƒAˆ—iŠg’£”Åj
+Sub ƒV[ƒgƒNƒŠƒA()
+    Dim sheetNames As Variant
+    Dim i As Integer
+    Dim ws As Worksheet
+    
+    ' íœ‘ÎÛ‚ÌƒV[ƒg–¼‚ğ”z—ñ‚Å’è‹`iV‚µ‚¢ƒV[ƒg–¼‚àŠÜ‚Şj
+    sheetNames = Array("CSVƒf[ƒ^", "ŠÔƒ`ƒFƒbƒN_‘S‘Ì", "‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½Ò", "‹Î‘Óî•ñ•ªÍŒ‹‰Ê", "‹xŒeŠÔA”õlˆê——", "c‹Æˆê——", "‹Î‘Ó“ü—Í˜R‚êˆê——", "\¿Ú×•ªÍˆê——")
+    Application.DisplayAlerts = False
+    
+    ' ŠeƒV[ƒg‚ğŠm”F‚µA‘¶İ‚·‚ê‚Îíœ
+    For i = LBound(sheetNames) To UBound(sheetNames)
+        On Error Resume Next
+        Set ws = ThisWorkbook.Worksheets(sheetNames(i))
+        If Not ws Is Nothing Then
+            ws.Delete
+        End If
+        On Error GoTo 0
+    Next i
+    
+    Application.DisplayAlerts = True
+    
+    MsgBox "‚·‚×‚Ä‚Ì•ªÍƒV[ƒg‚ªƒNƒŠƒA‚³‚ê‚Ü‚µ‚½B", vbInformation
+End Sub
+' CSV“Ç‚İ‚İƒV[ƒgì¬‚Éƒ{ƒ^ƒ“‚ğ’Ç‰Á‚·‚éˆ—i“‡”Åj
+Public Sub CSV“Ç‚İ‚İƒV[ƒgì¬“‡()
+    ' CSV“Ç‚İ‚İƒV[ƒgì¬
+    Call CSV“Ç‚İ‚İƒV[ƒgì¬
+    
+    ' ƒƒCƒ“ƒV[ƒg‚ğæ“¾
+    Dim mainSheet As Worksheet
+    On Error Resume Next
+    Set mainSheet = Worksheets("CSV“Ç‚İ‚İƒV[ƒg")
+    If mainSheet Is Nothing Then
+        MsgBox "CSV“Ç‚İ‚İƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    
+    ' ‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒNƒ{ƒ^ƒ“‚ğ”z’u
+    With mainSheet.Buttons.Add(528, 60, 150, 30)
+        .OnAction = "‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN"
+        .Caption = "‹Î‘Ó“ü—Í˜R‚êƒ`ƒFƒbƒN"
+    End With
+    
+    ' \¿•ªÍƒ{ƒ^ƒ“‚ğ”z’u
+    With mainSheet.Buttons.Add(528, 100, 150, 30)
+        .OnAction = "\¿Ú×•ªÍÀs"
+        .Caption = "\¿•ªÍ"
+    End With
+    
+    MsgBox "ƒ{ƒ^ƒ“‚ª’Ç‰Á‚³‚ê‚Ü‚µ‚½B", vbInformation
+End Sub
+' ŠÔ—ñ‚Ì‘®‚ğİ’è‚·‚éƒwƒ‹ƒp[ŠÖ”
+Sub FormatTimeColumns(ws As Worksheet, ParamArray columnIndexes() As Variant)
+    Dim lastRow As Long
+    Dim i As Long, j As Long
+    
+    ' ƒV[ƒg‚ÌÅIs‚ğæ“¾
+    lastRow = ws.Cells(ws.Rows.count, "A").End(xlUp).Row
+    
+    If lastRow < 2 Then Exit Sub ' ƒf[ƒ^‚ª‚È‚¢ê‡‚ÍI—¹
+    
+    ' w’è‚³‚ê‚½—ñ‚Ì‘®‚ğİ’è
+    For i = 0 To UBound(columnIndexes)
+        For j = 2 To lastRow ' ƒwƒbƒ_[s‚ğƒXƒLƒbƒv
+            ' ŠÔŒ`®‚ğ HH:MM ‚Éİ’è
+            ws.Cells(j, columnIndexes(i)).NumberFormat = "[hh]:mm"
+        Next j
+    Next i
+End Sub
+' •Ê–¼‚Å•Û‘¶‚·‚éŠÖ”
+Sub •Ê–¼•Û‘¶()
+    Dim filePath As Variant
+    
+    ' •Û‘¶ƒ_ƒCƒAƒƒO‚ğ•\¦iƒ}ƒNƒ—LŒøƒuƒbƒNŒ`®j
+    filePath = Application.GetSaveAsFilename( _
+        InitialFileName:="‹Î”V•–¾×ƒ`ƒFƒbƒN_" & Format(Date, "yyyymmdd") & ".xlsm", _
+        FileFilter:="ƒ}ƒNƒ—LŒøƒuƒbƒN (*.xlsm),*.xlsm", _
+        Title:="•Ê–¼‚Å•Û‘¶")
+    If filePath = False Then
+        MsgBox "•Û‘¶‚ªƒLƒƒƒ“ƒZƒ‹‚³‚ê‚Ü‚µ‚½B", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Œ»İ‚ÌƒuƒbƒN‚ğ•Û‘¶
+    On Error Resume Next
+    ThisWorkbook.SaveAs filePath, xlOpenXMLWorkbookMacroEnabled
+    
+    If Err.Number <> 0 Then
+        MsgBox "•Û‘¶’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbCritical
+    Else
+        MsgBox "ƒtƒ@ƒCƒ‹‚ª³í‚É•Û‘¶‚³‚ê‚Ü‚µ‚½: " & filePath, vbInformation
+    End If
+    On Error GoTo 0
+End Sub
+
+' *************************************************************
+' C³”Å: CSV“Ç‚İ‚İƒV[ƒgì¬
+' C³“ú: 2025-10-20
+' C³“à—e: İ’èƒV[ƒg‚ğíœ‘ÎÛ‚©‚çœŠO
+' *************************************************************
+Sub CSV“Ç‚İ‚İƒV[ƒgì¬()
+    Dim ws As Worksheet
+    Dim mainSheet As Worksheet
+    Dim initSheet As Worksheet
+    Dim configSheet As Worksheet  ' ššš ’Ç‰Á: İ’èƒV[ƒg‚ÌQÆ ššš
+    Dim btn As Button
+    Dim sh As Worksheet
+    
+    Application.DisplayAlerts = False
+    
+    ' ššš C³: ‰Šú‰»ƒV[ƒgACSV“Ç‚İ‚İƒV[ƒgAİ’èƒV[ƒgˆÈŠO‚ÌƒV[ƒg‚ğíœ ššš
+    For Each sh In ThisWorkbook.Worksheets
+        ' íœ‘ÎÛŠO‚ÌƒV[ƒg–¼‚ğw’è
+        If sh.Name <> "‰Šú‰»ƒV[ƒg" And _
+           sh.Name <> "CSV“Ç‚İ‚İƒV[ƒg" And _
+           sh.Name <> "İ’è" Then
+            sh.Delete
+        End If
+    Next sh
+    
+    Application.DisplayAlerts = True
+    
+    ' ‰Šú‰»ƒV[ƒg‚ª‘¶İ‚·‚é‚©Šm”F
+    On Error Resume Next
+    Set initSheet = Worksheets("‰Šú‰»ƒV[ƒg")
+    If initSheet Is Nothing Then
+        Set initSheet = Worksheets.Add(Before:=Worksheets(1))
+        initSheet.Name = "‰Šú‰»ƒV[ƒg"
+    End If
+    On Error GoTo 0
+    
+    ' CSV“Ç‚İ‚İƒV[ƒg‚ª‘¶İ‚·‚é‚©Šm”F
+    On Error Resume Next
+    Set mainSheet = Worksheets("CSV“Ç‚İ‚İƒV[ƒg")
+    If mainSheet Is Nothing Then
+        Set mainSheet = Worksheets.Add(After:=initSheet)
+        mainSheet.Name = "CSV“Ç‚İ‚İƒV[ƒg"
+    End If
+    On Error GoTo 0
+    
+    ' ššš ’Ç‰Á: İ’èƒV[ƒg‚ª‘¶İ‚·‚é‚©Šm”Fiíœ‚³‚ê‚Ä‚¢‚½ê‡‚ÍÄì¬j ššš
+    On Error Resume Next
+    Set configSheet = Worksheets("İ’è")
+    If configSheet Is Nothing Then
+        Debug.Print "[Œx] İ’èƒV[ƒg‚ªíœ‚³‚ê‚Ä‚¢‚½‚½‚ßÄì¬‚µ‚Ü‚·"
+        ' İ’èƒV[ƒg‚ğÄì¬
+        Set configSheet = Worksheets.Add(After:=Worksheets(Worksheets.count))
+        configSheet.Name = "İ’è"
+        
+        ' İ’èƒV[ƒg‚Ìƒwƒbƒ_[‚ğÄİ’è
+        With configSheet
+            .Cells(1, 1).Value = "Webhook URL"
+            .Cells(1, 2).Value = "[‚±‚±‚ÉWebhook URL‚ğ“\‚è•t‚¯‚Ä‚­‚¾‚³‚¢]"
+            .Cells(2, 1).Value = "Channel ID"
+            .Cells(2, 2).Value = "[‚±‚±‚ÉChannel ID‚ğ“\‚è•t‚¯‚Ä‚­‚¾‚³‚¢]"
+            .Columns("A:B").AutoFit
+        End With
+        
+        ' ”ñ•\¦‰»
+        configSheet.Visible = xlSheetVeryHidden
+    End If
+    On Error GoTo 0
+    
+    ' ƒƒCƒ“ƒV[ƒg‚ğƒNƒŠƒA
+    mainSheet.Cells.Clear
+    
+    ' ƒ^ƒCƒgƒ‹‚ğİ’è
+    With mainSheet
+        .Range("A1").Value = "‹xŒeŠÔƒ`ƒFƒbƒNƒc[ƒ‹iSI1•”ê—pj"
+        .Range("A1").Font.Size = 16
+        .Range("A1").Font.Bold = True
+        .Range("A1").Font.Color = RGB(0, 102, 204)
+    End With
+    
+    ' à–¾•¶‚ğ8s–ÚˆÈ~‚É”z’u
+    With mainSheet
+        .Range("A8").Value = "à–¾F"
+        .Range("A8").Font.Bold = True
+        
+        .Range("A9").Value = "À“­ŠÔ‚É‘Î‚µ‚Ä“KØ‚È‹xŒeŠÔ‚ª‚Æ‚ç‚ê‚Ä‚¢‚é‚©‚ğƒ`ƒFƒbƒN‚µ‚Ü‚·B"
+        .Range("A10").Value = "c‹ÆŠÔ‚É‚Â‚¢‚Ä³Šm‚ÉZo‚µ‚Ü‚·B"
+        .Range("A11").Value = "‹Î‘Ó‚Ì“ü—Í˜R‚ê‚É‚Â‚¢‚Äƒ`ƒFƒbƒN‚µ‚Ü‚·B"
+        .Range("A12").Value = "\¿‚Ì•ªÍ‚ğs‚¢AĞˆõ‚²‚Æ‚Ì—L‹x“ú”‚È‚Ç‚ğWŒv‚µ‚Ü‚·B"
+        
+        ' ‹æØ‚èü
+        .Range("A13").Value = "„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª"
+        .Range("A13").Font.Color = RGB(128, 128, 128)
+        
+        ' LINEWORKS’Ê’m‹@”\‚Ìà–¾
+        .Range("A14").Value = "yLINEWORKS’Ê’m‹@”\z"
+        .Range("A14").Font.Bold = True
+        .Range("A14").Font.Size = 11
+        .Range("A14").Font.Color = RGB(0, 153, 0)
+        
+        .Range("A15").Value = "E‹Î‘Ó–¢“ü—ÍÒ‚Ìî•ñ‚ğLINE WORKSuSI1•”ƒŠ[ƒ_[ƒ`ƒƒƒ“ƒlƒ‹v‚É’Ê’m‚·‚é‹@”\‚ğÀ‘•"
+        .Range("A16").Value = "E‹Î”V•–¾×•ªÍŒãA‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ÉLINEWORKS’Ê’mƒ{ƒ^ƒ“‚ª¶¬‚³‚ê‚é"
+        .Range("A17").Value = "ELINEWORKS’Ê’mƒ{ƒ^ƒ“‚ğ‰Ÿ‰º‚·‚é‚ÆA‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚Ì“à—e‚ªê—pƒ`ƒƒƒ“ƒlƒ‹‚É’Ê’m‚³‚ê‚é"
+        .Range("A18").Value = "E–¢“ü—Í“ú”‚É‰‚¶‚ÄˆÈ‰º‚Ì‚æ‚¤‚É•ª—Ş‚µ‚Ä•\¦‚³‚ê‚Ü‚·F"
+        .Range("A19").Value = "  [‹Ù‹}] 5“úˆÈã–¢“ü—Í / [—v’ˆÓ] 3-4“ú–¢“ü—Í / [Šm”F] 1-2“ú–¢“ü—Í"
+        
+        ' ‹æØ‚èü
+        .Range("A20").Value = "„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª"
+        .Range("A20").Font.Color = RGB(128, 128, 128)
+        
+        ' ˜A—æî•ñ
+        .Range("A21").Value = "y‹@”\’Ç‰ÁEC³‚Ì‚²ˆË—Šz"
+        .Range("A21").Font.Bold = True
+        .Range("A21").Font.Size = 11
+        .Range("A21").Font.Color = RGB(0, 102, 204)
+        
+        .Range("A22").Value = "‹@”\’Ç‰Á‚â•s‹ï‡C³‚Ì‚²—v–]‚Í‰º‹L‚Ü‚Å‚²˜A—‚­‚¾‚³‚¢F"
+        .Range("A23").Value = "  ˜A—æ: suzuki.shunpei@altx.co.jp"
+        .Range("A23").Font.Bold = True
+        .Range("A23").Font.Size = 11
+        .Range("A23").Font.Color = RGB(0, 102, 204)
+        
+        .Range("A24").Value = "¦‚²˜A—‚ÌÛ‚ÍA‹ï‘Ì“I‚È“à—e‚â“®ìŠÂ‹«‚ğ‚¨’m‚ç‚¹‚­‚¾‚³‚¢"
+        .Range("A24").Font.Size = 9
+        .Range("A24").Font.Color = RGB(128, 128, 128)
+        
+        ' ˆÈ‰ºAŠù‘¶‚Ìà–¾•¶‚ğŒp‘±...
+        ' (Šù‘¶‚ÌƒR[ƒh‚ğ‚»‚Ì‚Ü‚Ü‘±‚¯‚é)
+        
+    End With
+    
+    Debug.Print "[INFO] CSV“Ç‚İ‚İƒV[ƒgì¬Š®—¹iİ’èƒV[ƒg•ÛŒì‘Î‰Ï‚İj"
+    
+End Sub
+
+' ššš œŠOĞˆõ”Ô†æ“¾ŠÖ”‚ğC³iA63 ¨ A58‚É•ÏXjššš
+Function œŠOĞˆõ”Ô†æ“¾() As Variant
+    Dim mainSheet As Worksheet
+    Dim excludeNumbersStr As String
+    Dim excludeNumbers As Variant
+    Dim i As Long
+    
+    On Error Resume Next
+    Set mainSheet = ThisWorkbook.Worksheets("CSV“Ç‚İ‚İƒV[ƒg")
+    If mainSheet Is Nothing Then
+        ' ƒV[ƒg‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡‚Í‹ó‚Ì”z—ñ‚ğ•Ô‚·
+        ReDim excludeNumbers(0)
+        excludeNumbers(0) = ""
+        œŠOĞˆõ”Ô†æ“¾ = excludeNumbers
+        Exit Function
+    End If
+    
+    ' ššš œŠOĞˆõ”Ô†—“‚Ì’l‚ğæ“¾iA63 ¨ A58‚É•ÏXjššš
+    excludeNumbersStr = Trim(mainSheet.Range("A58").Value)
+    
+    ' ƒfƒoƒbƒOo—Í
+    Debug.Print "œŠOĞˆõ”Ô†•¶š—ñ: [" & excludeNumbersStr & "]"
+    
+    If excludeNumbersStr = "" Then
+        ' “ü—Í‚ª‚È‚¢ê‡‚Í‹ó‚Ì”z—ñ‚ğ•Ô‚·
+        ReDim excludeNumbers(0)
+        excludeNumbers(0) = ""
+    Else
+        ' ƒJƒ“ƒ}‹æØ‚è‚Å•ªŠ„
+        excludeNumbers = Split(excludeNumbersStr, ",")
+        
+        ' Še”Ô†‚©‚çƒXƒy[ƒX‚ğíœ‚µA•¶š—ñ‚Æ‚µ‚Ä®Œ`
+        For i = LBound(excludeNumbers) To UBound(excludeNumbers)
+            excludeNumbers(i) = Trim(CStr(excludeNumbers(i)))
+            ' ƒfƒoƒbƒOo—Í
+            Debug.Print "œŠOĞˆõ”Ô†[" & i & "]: [" & excludeNumbers(i) & "]"
+        Next i
+    End If
+    
+    œŠOĞˆõ”Ô†æ“¾ = excludeNumbers
+End Function
+
+' ‰Šú‰»ƒV[ƒg‚ğ•\¦‚·‚éƒvƒƒV[ƒWƒƒiŠJ”­Òƒ‚[ƒh—pj
+Sub ‰Šú‰»ƒV[ƒg•\¦()
+    Dim initSheet As Worksheet
+    
+    On Error Resume Next
+    Set initSheet = Worksheets("‰Šú‰»ƒV[ƒg")
+    
+    If Not initSheet Is Nothing Then
+        initSheet.Visible = xlSheetVisible
+        initSheet.Activate
+    Else
+        MsgBox "‰Šú‰»ƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
+    End If
+    On Error GoTo 0
+End Sub
+' ‰Šú‰»ƒV[ƒg‚ğ”ñ•\¦‚É‚·‚éƒvƒƒV[ƒWƒƒ
+Sub ‰Šú‰»ƒV[ƒg”ñ•\¦()
+    Dim initSheet As Worksheet
+    
+    On Error Resume Next
+    Set initSheet = Worksheets("‰Šú‰»ƒV[ƒg")
+    
+    If Not initSheet Is Nothing Then
+        initSheet.Visible = xlSheetVeryHidden
+    End If
+    On Error GoTo 0
+End Sub
+' •”–å•Êc‹ÆŠÔ‚ğWŒv‚·‚é‰ü—Ç”ÅŠÖ”
+Sub •”–å•Êc‹ÆWŒv()
+    Dim wsCSVData As Worksheet
+    Dim wsSummary As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    Dim summaryRow As Long
+    Dim dict As Object
+    Dim dept As Variant
+    Dim deptCode As String
+    Dim deptName As String
+    Dim employeeDict As Object
+    Dim empID As String
+    Dim empName As String
+    Dim emp As Variant ' For Each ƒ‹[ƒv‚Ì‚½‚ß‚Ì•Ï”’Ç‰Á
+    
+    ' •K—v‚ÈƒV[ƒg‚Ìæ“¾
+    On Error Resume Next
+    Set wsCSVData = ThisWorkbook.Worksheets("CSVƒf[ƒ^")
+    Set wsSummary = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+    
+    If wsCSVData Is Nothing Then
+        MsgBox "CSVƒf[ƒ^ƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    
+    If wsSummary Is Nothing Then
+        Set wsSummary = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
+        wsSummary.Name = "‹Î‘Óî•ñ•ªÍŒ‹‰Ê"
+    End If
+    On Error GoTo 0
+    
+    ' CSVƒf[ƒ^‚ÌÅIs‚ğæ“¾
+    lastRow = wsCSVData.Cells(wsCSVData.Rows.count, "A").End(xlUp).Row
+    
+    If lastRow <= 1 Then
+        MsgBox "CSVƒf[ƒ^‚ª‘¶İ‚µ‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    
+    ' —ñƒCƒ“ƒfƒbƒNƒX‚Ì“Á’è
+    Dim Ğˆõ”Ô†Col As Integer
+    Dim –¼Col As Integer
+    Dim •”–åCol As Integer
+    Dim “Ío“à—eCol As Integer
+    Dim À“­ŠÔCol As Integer
+    
+    ' Še—ñ‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ“Á’èiƒwƒbƒ_[s‚©‚çj
+    For i = 1 To wsCSVData.Cells(1, wsCSVData.Columns.count).End(xlToLeft).Column
+        Select Case wsCSVData.Cells(1, i).Value
+            Case "Ğˆõ”Ô†"
+                Ğˆõ”Ô†Col = i
+            Case "–¼"
+                –¼Col = i
+            Case "•”–å"
+                •”–åCol = i
+            Case "“Ío“à—e"
+                “Ío“à—eCol = i
+            Case "À“­ŠÔ"
+                À“­ŠÔCol = i
+        End Select
+    Next i
+    
+    ' •K—v‚È—ñ‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡‚ÍƒfƒtƒHƒ‹ƒg’l‚ğİ’è
+    If Ğˆõ”Ô†Col = 0 Then Ğˆõ”Ô†Col = 1
+    If –¼Col = 0 Then –¼Col = 2
+    If •”–åCol = 0 Then •”–åCol = 3
+    If “Ío“à—eCol = 0 Then “Ío“à—eCol = 9
+    If À“­ŠÔCol = 0 Then À“­ŠÔCol = 41
+    
+    ' ƒfƒoƒbƒO—pF—ñî•ñ‚ğ•\¦
+    Debug.Print "Ğˆõ”Ô†Col: " & Ğˆõ”Ô†Col & ", –¼Col: " & –¼Col & ", •”–åCol: " & •”–åCol & ", “Ío“à—eCol: " & “Ío“à—eCol & ", À“­ŠÔCol: " & À“­ŠÔCol
+    
+    ' •”–åƒf[ƒ^WŒv—p‚Ì«‘‚ğì¬
+    Set dict = CreateObject("Scripting.Dictionary")
+    
+    ' CSVƒf[ƒ^‚ÌŠes‚ğˆ—
+    For i = 3 To lastRow ' ƒwƒbƒ_[s‚ğƒXƒLƒbƒv
+        deptCode = Trim(wsCSVData.Cells(i, •”–åCol).Value)
+        empID = Trim(wsCSVData.Cells(i, Ğˆõ”Ô†Col).Value)
+        empName = Trim(wsCSVData.Cells(i, –¼Col).Value)
+        
+        ' ‹ó‚Ì•”–åƒR[ƒh‚ğƒXƒLƒbƒv
+        If deptCode <> "" And empID <> "" Then  ' © empID‚à‹ó‚Å‚È‚¢‚±‚Æ‚ğŠm”F
+            ' ‚±‚Ì•”–å‚ª«‘‚É‚È‚¢ê‡‚Í’Ç‰Á
+            If Not dict.Exists(deptCode) Then
+                Set dict(deptCode) = CreateObject("Scripting.Dictionary")
+                dict(deptCode)("TotalOvertime") = 0        ' ‡Œvc‹ÆŠÔi•ªj
+                dict(deptCode)("OccurrenceCount") = 0      ' c‹Æ”­¶Œ”
+                dict(deptCode)("HolidayWorkCount") = 0     ' ‹x“úo‹ÎŒ”
+                Set dict(deptCode)("Employees") = CreateObject("Scripting.Dictionary") ' ĞˆõƒŠƒXƒg
+                dict(deptCode)("DepartmentName") = deptCode ' •”–å–¼
+            End If
+            
+            ' šC³‰ÓŠ: CSV‚É‘¶İ‚·‚é‚·‚×‚Ä‚ÌĞˆõ‚ğ’Ç‰Áid•¡ƒ`ƒFƒbƒN‚ ‚èj
+            ' Ğˆõ”Ô†‚ª‘¶İ‚µA‚Ü‚¾’Ç‰Á‚³‚ê‚Ä‚¢‚È‚¢ê‡‚Ì‚İ’Ç‰Á
+            If Not dict(deptCode)("Employees").Exists(empID) Then
+                dict(deptCode)("Employees").Add empID, empName
+            End If
+            
+            ' ˆÈ‰ºAc‹ÆŠÔ‚ÌŒvZˆ—‚Í]—ˆ’Ê‚è
+            ' ‹x“úo‹Î‚©‚Ç‚¤‚©‚ğ”»’è
+            Dim isHolidayWork As Boolean
+            Dim deliveryContent As String
+            
+            deliveryContent = Trim(wsCSVData.Cells(i, “Ío“à—eCol).Value)
+            
+            ' “Ío“à—e‚Å‹x“úo‹Î”»’è
+            isHolidayWork = (InStr(1, deliveryContent, "‹x“úo‹Î", vbTextCompare) > 0) Or _
+                           (InStr(1, deliveryContent, "‹xo", vbTextCompare) > 0)
+            
+            ' À“­ŠÔ‚ğæ“¾‚µ‚Ä•ª‚É•ÏŠ·
+            Dim workingMinutes As Double
+            Dim overtimeMinutes As Double
+            Dim rawWorkingTime As Variant
+            
+            rawWorkingTime = wsCSVData.Cells(i, À“­ŠÔCol).Value
+            
+            ' À“­ŠÔ‚ğ“KØ‚É•ÏŠ·
+            If IsNumeric(rawWorkingTime) Then
+                If rawWorkingTime < 1 Then
+                    workingMinutes = rawWorkingTime * 24 * 60
+                Else
+                    workingMinutes = 0
+                End If
+            Else
+                workingMinutes = ConvertTimeToMinutes(rawWorkingTime)
+            End If
+            
+            ' c‹ÆŠÔ‚ğŒvZ
+            If isHolidayWork Then
+                overtimeMinutes = workingMinutes
+            ElseIf workingMinutes > 480 Then
+                overtimeMinutes = workingMinutes - 480
+            Else
+                overtimeMinutes = 0
+            End If
+            
+            ' c‹ÆŠÔ‚ª‚ ‚éê‡‚Ì‚İc‹ÆŠÖ˜A‚ÌWŒv
+            If overtimeMinutes > 0 Then
+                dict(deptCode)("TotalOvertime") = dict(deptCode)("TotalOvertime") + overtimeMinutes
+                dict(deptCode)("OccurrenceCount") = dict(deptCode)("OccurrenceCount") + 1
+                
+                If isHolidayWork Then
+                    dict(deptCode)("HolidayWorkCount") = dict(deptCode)("HolidayWorkCount") + 1
+                End If
+            End If
+        End If
+    Next i
+
+    ' ŠT—vƒV[ƒg‚Ìc‹ÆWŒv•”•ª‚ğƒNƒŠƒA
+    wsSummary.Range("A14:F100").ClearContents
+    ' ÅŒã‚Ìs”Ô†‚ğæ“¾iÅ’á‚Å‚à13s–Ú‚©‚çn‚ß‚éj
+    Dim headerRow As Long
+    headerRow = 13
+    For i = 1 To 30
+        If IsEmpty(wsSummary.Cells(i, 1).Value) Then
+            headerRow = i + 2  ' ‹ó‚Ìs‚ğŒ©‚Â‚¯‚½‚ç2s‹ó‚¯‚Ä”z’u
+            Exit For
+        End If
+    Next i
+    ' ƒwƒbƒ_[‚ğİ’è
+    wsSummary.Cells(headerRow, 1).Value = "•”"
+    wsSummary.Cells(headerRow, 2).Value = "‡Œvc‹ÆŠÔ"
+    wsSummary.Cells(headerRow, 3).Value = "•½‹Ïc‹ÆŠÔ/‰ñ"
+    wsSummary.Cells(headerRow, 4).Value = "•½‹ÏŒc‹ÆŠÔ/l"
+    wsSummary.Cells(headerRow, 5).Value = "‹x“úo‹Î‰ñ”"
+    wsSummary.Cells(headerRow, 6).Value = "l”"
+    ' ƒwƒbƒ_[s‚Ì‘®İ’è
+    With wsSummary.Range("A" & headerRow & ":F" & headerRow)
+        .Font.Bold = True
+        .HorizontalAlignment = xlCenter
+        .Interior.Color = RGB(200, 200, 200)
+    End With
+    ' •”–å‚²‚Æ‚Ìƒf[ƒ^‚ğo—Í
+    summaryRow = headerRow + 1  ' ƒwƒbƒ_[‚ÌŸ‚Ìs‚©‚ç
+    ' WŒv—p‚Ì•Ï”
+    Dim totalOvertimeAll As Double
+    Dim totalOccurrencesAll As Long
+    Dim totalPersonsAll As Long
+    Dim totalHolidayWorkAll As Long
+    Dim allEmployees As Object
+    
+    totalOvertimeAll = 0
+    totalOccurrencesAll = 0
+    totalHolidayWorkAll = 0
+    Set allEmployees = CreateObject("Scripting.Dictionary")
+    
+    ' Še•”–å‚ÌWŒv‚ğo—Í
+    For Each dept In dict.keys
+        Dim totalOvertime As Double
+        Dim occurrenceCount As Long
+        Dim holidayWorkCount As Long
+        Dim personCount As Long
+        
+        totalOvertime = dict(dept)("TotalOvertime")
+        occurrenceCount = dict(dept)("OccurrenceCount")
+        holidayWorkCount = dict(dept)("HolidayWorkCount")
+        personCount = dict(dept)("Employees").count
+        
+        ' ‡Œv’l‚É‰ÁZ
+        totalOvertimeAll = totalOvertimeAll + totalOvertime
+        totalOccurrencesAll = totalOccurrencesAll + occurrenceCount
+        totalHolidayWorkAll = totalHolidayWorkAll + holidayWorkCount
+        
+        ' ‘SĞˆõƒŠƒXƒg‚É’Ç‰Á
+        For Each emp In dict(dept)("Employees").keys
+            If Not allEmployees.Exists(emp) Then
+                allEmployees.Add emp, dict(dept)("Employees")(emp)
+            End If
+        Next emp
+        
+        ' •”–å–¼
+        wsSummary.Cells(summaryRow, 1).Value = dict(dept)("DepartmentName")
+        
+        ' ‡Œvc‹ÆŠÔ
+        wsSummary.Cells(summaryRow, 2).Value = MinutesToTime(totalOvertime)
+        
+        ' •½‹Ïc‹ÆŠÔ/‰ñ
+        If occurrenceCount > 0 Then
+            wsSummary.Cells(summaryRow, 3).Value = MinutesToTime(totalOvertime / occurrenceCount)
+        Else
+            wsSummary.Cells(summaryRow, 3).Value = "0:00"
+        End If
+        
+        ' •½‹Ïc‹ÆŠÔ/l
+        If personCount > 0 Then
+            wsSummary.Cells(summaryRow, 4).Value = MinutesToTime(totalOvertime / personCount)
+        Else
+            wsSummary.Cells(summaryRow, 4).Value = "0:00"
+        End If
+        
+        ' ‹x“úo‹Î‰ñ”
+        wsSummary.Cells(summaryRow, 5).Value = holidayWorkCount
+        
+        ' l”
+        wsSummary.Cells(summaryRow, 6).Value = personCount
+        
+        summaryRow = summaryRow + 1
+    Next dept
+    
+    ' ‘SĞ‚Ì‡Œvs
+    totalPersonsAll = allEmployees.count
+    
+    wsSummary.Cells(summaryRow, 1).Value = "‡Œv"
+    wsSummary.Cells(summaryRow, 1).Font.Bold = True
+    
+    ' ‡Œvc‹ÆŠÔ
+    wsSummary.Cells(summaryRow, 2).Value = MinutesToTime(totalOvertimeAll)
+    
+    ' ‘S‘Ì•½‹Ïc‹ÆŠÔ/‰ñ
+    If totalOccurrencesAll > 0 Then
+        wsSummary.Cells(summaryRow, 3).Value = MinutesToTime(totalOvertimeAll / totalOccurrencesAll)
+    Else
+        wsSummary.Cells(summaryRow, 3).Value = "0:00"
+    End If
+    
+    ' ‘S‘Ì•½‹Ïc‹ÆŠÔ/l
+    If totalPersonsAll > 0 Then
+        wsSummary.Cells(summaryRow, 4).Value = MinutesToTime(totalOvertimeAll / totalPersonsAll)
+    Else
+        wsSummary.Cells(summaryRow, 4).Value = "0:00"
+    End If
+    
+    ' ‘S‘Ì‹x“úo‹Î‰ñ”
+    wsSummary.Cells(summaryRow, 5).Value = totalHolidayWorkAll
+    
+    ' ‘S‘Ìl”
+    wsSummary.Cells(summaryRow, 6).Value = totalPersonsAll
+    
+    ' ‡Œvs‚Ì‘®İ’è
+    With wsSummary.Range(wsSummary.Cells(summaryRow, 1), wsSummary.Cells(summaryRow, 6))
+        .Font.Bold = True
+        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+        .Borders(xlEdgeBottom).Weight = xlMedium
+        .Interior.Color = RGB(240, 240, 240)
+    End With
+    
+    ' Œ‹‰Ê‚Ì‘®İ’è
+    With wsSummary.Range("A" & headerRow + 1 & ":F" & summaryRow)
+        .Borders.LineStyle = xlContinuous
+        .Borders.Weight = xlThin
+        .HorizontalAlignment = xlCenter
+    End With
+    
+    ' ’è‘ŞĞ—¦ŒvZ‚ğŒÄ‚Ño‚µ
+    On Error Resume Next
+    Debug.Print "’è‘ŞĞ—¦ŒvZ‚ğŠJn‚µ‚Ü‚·..."
+    Application.Run "CalculateAndOutputRate"
+    If Err.Number <> 0 Then
+        Debug.Print "’è‘ŞĞ—¦ŒvZ‚ÅƒGƒ‰[: " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
+
+    
+    ' —ñ•‚Ì©“®’²®
+    wsSummary.Columns("A:F").AutoFit
+' =====================================================
+    ' ’è‘ŞĞ—¦ŒvZ‹@”\‚ğŒÄ‚Ño‚µi2025/08/20’Ç‰Áj
+    ' =====================================================
+    ' ššš ‰Ò“­—¦ŒvZ‚ğ’Ç‰Á ššš
+    On Error Resume Next
+    Debug.Print "‰Ò“­—¦ŒvZ‚ğŠJn‚µ‚Ü‚·..."
+    Call •”–å•Ê‰Ò“­—¦WŒv
+    If Err.Number <> 0 Then
+        Debug.Print "‰Ò“­—¦ŒvZ‚ÅƒGƒ‰[: " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo 0
+    
+    MsgBox "•”–å•Êc‹ÆŠÔE’è‘ŞĞ—¦E‰Ò“­—¦‚ÌWŒv‚ªŠ®—¹‚µ‚Ü‚µ‚½B", _
+           vbInformation, "WŒvŠ®—¹"
+End Sub
+
+' *************************************************************
+' ŠÖ”–¼: Add_LineWorks_Button_To_Summary
+' –Ú“I: ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ÉLINEWORKS’Ê’mƒ{ƒ^ƒ“‚ğ’Ç‰Á
+' ŒÄ‚Ño‚µŒ³: ‹xŒeŠÔƒ`ƒFƒbƒNˆ—‚ÌÅŒã
+' ì¬“ú: 2025-10-19
+' C³“ú: 2025-11-14iƒ{ƒ^ƒ“ˆÊ’u‚ğD7‚É•ÏXj
+' ”õl: D7ƒZƒ‹•t‹ß‚É”z’u
+' *************************************************************
+Public Sub Add_LineWorks_Button_To_Summary()
+    On Error GoTo ErrorHandler
+    
+    Dim summarySheet As Worksheet
+    
+    ' ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ğæ“¾
+    On Error Resume Next
+    Set summarySheet = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+    On Error GoTo ErrorHandler
+    
+    If summarySheet Is Nothing Then
+        Debug.Print "[INFO] ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
+        Exit Sub
+    End If
+    
+    ' Šù‘¶‚ÌLINEWORKS’Ê’mƒ{ƒ^ƒ“‚ğíœid•¡–h~j
+    Dim btn As Button
+    On Error Resume Next
+    For Each btn In summarySheet.Buttons
+        If InStr(btn.Caption, "LINEWORKS") > 0 Then
+            btn.Delete
+        End If
+    Next btn
+    On Error GoTo ErrorHandler
+    
+    ' ššš C³: D7ƒZƒ‹‚ÌˆÊ’u‚ğŠî€‚Éƒ{ƒ^ƒ“‚ğ”z’u ššš
+    Dim buttonLeft As Double
+    Dim buttonTop As Double
+    Dim buttonWidth As Double
+    Dim buttonHeight As Double
+    
+    With summarySheet
+        ' D7ƒZƒ‹‚Ì¶ãÀ•W‚ğæ“¾
+        buttonLeft = .Range("D7").Left
+        buttonTop = .Range("D7").Top
+        buttonWidth = 150  ' ƒ{ƒ^ƒ“‚Ì•iƒsƒNƒZƒ‹j
+        buttonHeight = 30  ' ƒ{ƒ^ƒ“‚Ì‚‚³iƒsƒNƒZƒ‹j
+        
+        ' ƒ{ƒ^ƒ“‚ğ’Ç‰Á
+        Dim newButton As Button
+        Set newButton = .Buttons.Add(buttonLeft, buttonTop, buttonWidth, buttonHeight)
+        
+        With newButton
+            .OnAction = "SendNotificationToLineWorks"  ' Module8_Notification.bas ‚ÌŠÖ”
+            .Caption = "LINEWORKS’Ê’m"
+            .Font.Size = 11
+            .Font.Bold = True
+        End With
+    End With
+    
+    Debug.Print "[INFO] ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ÉLINEWORKS’Ê’mƒ{ƒ^ƒ“‚ğ’Ç‰Á‚µ‚Ü‚µ‚½iD7j"
+    
+    Exit Sub
+    
+ErrorHandler:
+    Debug.Print "[ERROR] LINEWORKS’Ê’mƒ{ƒ^ƒ“’Ç‰ÁƒGƒ‰[: " & Err.Description
+End Sub
+
+' *************************************************************
+' ŠÖ”–¼: •”–å•Ê‰Ò“­—¦WŒv
+' –Ú“I: ƒOƒ‹[ƒv(•”–å)‚²‚Æ‚Ì‰Ò“­—¦‚ğŒvZ‚µA•ªÍŒ‹‰ÊƒV[ƒg‚Éo—Í
+' ì¬“ú: 2025-11-14
+' ”õl: 1“ú7.5ŠÔA‰c‹Æ“ú100%‚ğŠî€‚Æ‚µ‚Ä‰Ò“­—¦‚ğZo
+' *************************************************************
+Sub •”–å•Ê‰Ò“­—¦WŒv()
+    Dim wsCSVData As Worksheet
+    Dim wsSummary As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    Dim summaryRow As Long
+    Dim dict As Object
+    Dim dept As Variant
+    Dim deptCode As String
+    
+    ' •K—v‚ÈƒV[ƒg‚Ìæ“¾
+    On Error Resume Next
+    Set wsCSVData = ThisWorkbook.Worksheets("CSVƒf[ƒ^")
+    Set wsSummary = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+    
+    If wsCSVData Is Nothing Then
+        MsgBox "CSVƒf[ƒ^ƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    
+    If wsSummary Is Nothing Then
+        MsgBox "‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    On Error GoTo 0
+    
+    ' CSVƒf[ƒ^‚ÌÅIs‚ğæ“¾
+    lastRow = wsCSVData.Cells(wsCSVData.Rows.count, "A").End(xlUp).Row
+    
+    If lastRow <= 1 Then
+        MsgBox "CSVƒf[ƒ^‚ª‘¶İ‚µ‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    
+    ' —ñƒCƒ“ƒfƒbƒNƒX‚Ì“Á’è
+    Dim •”–åCol As Integer
+    Dim À“­ŠÔCol As Integer
+    Dim “ú•tCol As Integer
+    Dim Ğˆõ”Ô†Col As Integer
+    Dim “Ío“à—eCol As Integer
+    
+    ' ƒwƒbƒ_[s‚©‚ç—ñ‚ğ“Á’è
+    For i = 1 To wsCSVData.Cells(1, wsCSVData.Columns.count).End(xlToLeft).Column
+        Select Case wsCSVData.Cells(1, i).Value
+            Case "•”–å", "Š‘®"
+                •”–åCol = i
+            Case "À“­ŠÔ"
+                À“­ŠÔCol = i
+            Case "“ú•t"
+                “ú•tCol = i
+            Case "Ğˆõ”Ô†"
+                Ğˆõ”Ô†Col = i
+            Case "“Ío“à—e"
+                “Ío“à—eCol = i
+        End Select
+    Next i
+    
+    ' •K{—ñ‚ÌŠm”F
+    If •”–åCol = 0 Or À“­ŠÔCol = 0 Or “ú•tCol = 0 Or Ğˆõ”Ô†Col = 0 Then
+        MsgBox "•K—v‚È—ñi•”–åAÀ“­ŠÔA“ú•tAĞˆõ”Ô†j‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation
+        Exit Sub
+    End If
+    
+    ' •”–å‚²‚Æ‚Ìƒf[ƒ^‚ğŠi”[‚·‚é«‘
+    Set dict = CreateObject("Scripting.Dictionary")
+    
+    ' •W€‰Ò“­ŠÔi•ª’PˆÊj
+    Const STANDARD_DAILY_MINUTES As Double = 450 ' 7.5ŠÔ = 450•ª
+    
+    ' CSVƒf[ƒ^‚ğ‘–¸‚µ‚ÄWŒv
+    For i = 2 To lastRow
+        deptCode = Trim(wsCSVData.Cells(i, •”–åCol).Value)
+        
+        ' •”–åƒR[ƒh‚ª‹ó‚Ìê‡‚ÍƒXƒLƒbƒv
+        If deptCode = "" Then GoTo NextRow
+        
+        ' •”–å‚ª«‘‚É‘¶İ‚µ‚È‚¢ê‡‚Í‰Šú‰»
+        If Not dict.Exists(deptCode) Then
+            dict.Add deptCode, Array(0, 0, CreateObject("Scripting.Dictionary"), CreateObject("Scripting.Dictionary"))
+            ' ”z—ñ—v‘f: (0)‡ŒvÀ“­•ª, (1)‰c‹Æ“ú”, (2)ĞˆõDict, (3)“ú•tDict
+        End If
+        
+        ' Œ»İ‚Ì•”–åƒf[ƒ^‚ğæ“¾
+        Dim deptData As Variant
+        deptData = dict(deptCode)
+        
+        ' À“­ŠÔ‚ğæ“¾i•ª’PˆÊ‚É•ÏŠ·j
+        Dim workingMinutes As Double
+        Dim rawWorkingTime As Variant
+        rawWorkingTime = wsCSVData.Cells(i, À“­ŠÔCol).Value
+        
+        ' À“­ŠÔ‚ğ“KØ‚É•ÏŠ·
+        If IsNumeric(rawWorkingTime) Then
+            If rawWorkingTime < 1 Then
+                ' ŠÔ’li1“ú‚ÌŠ„‡j‚Ìê‡
+                workingMinutes = rawWorkingTime * 24 * 60
+            Else
+                ' Šù‚É•ª’PˆÊ‚Ìê‡
+                workingMinutes = rawWorkingTime
+            End If
+        Else
+            ' HH:MMŒ`®‚Ìê‡
+            workingMinutes = ConvertTimeToMinutes(rawWorkingTime)
+        End If
+        
+        ' —L‹x‚â“Á•Ê‹x‰É‚ğœŠO‚·‚é‚©‚Ì”»’è
+        Dim “Ío“à—e As String
+        Dim ‰Ò“­ŠÔ‚Æ‚µ‚ÄƒJƒEƒ“ƒg As Boolean
+        ‰Ò“­ŠÔ‚Æ‚µ‚ÄƒJƒEƒ“ƒg = True
+        
+        If “Ío“à—eCol > 0 Then
+            “Ío“à—e = Trim(wsCSVData.Cells(i, “Ío“à—eCol).Value)
+            
+            ' œŠO‚·‚é“Ío“à—e‚Ìƒpƒ^[ƒ“
+            ' ¦—vŒ‚É‰‚¶‚Ä’²®‚µ‚Ä‚­‚¾‚³‚¢
+            If InStr(“Ío“à—e, "—L‹x") > 0 Or _
+               InStr(“Ío“à—e, "“Á•Ê‹x‰É") > 0 Or _
+               InStr(“Ío“à—e, "‘ã‹x") > 0 Then
+                ‰Ò“­ŠÔ‚Æ‚µ‚ÄƒJƒEƒ“ƒg = False
+            End If
+        End If
+        
+        ' ‰Ò“­ŠÔ‚Æ‚µ‚ÄWŒv‚·‚éê‡‚Ì‚İ‰ÁZ
+        If ‰Ò“­ŠÔ‚Æ‚µ‚ÄƒJƒEƒ“ƒg And workingMinutes > 0 Then
+            ' À“­ŠÔ‚ğ‰ÁZ
+            deptData(0) = deptData(0) + workingMinutes
+            
+            ' “ú•t‚ğ‰c‹Æ“ú‚Æ‚µ‚ÄƒJƒEƒ“ƒg
+            Dim “ú•tValue As String
+            “ú•tValue = wsCSVData.Cells(i, “ú•tCol).Value
+            
+            Dim “ú•tDict As Object
+            Set “ú•tDict = deptData(3)
+            
+            If Not “ú•tDict.Exists(“ú•tValue) Then
+                “ú•tDict.Add “ú•tValue, True
+                deptData(1) = deptData(1) + 1 ' ‰c‹Æ“ú”‚ğ‘‰Á
+            End If
+            
+            ' Ğˆõ‚ğƒJƒEƒ“ƒg
+            Dim Ğˆõ”Ô† As String
+            Ğˆõ”Ô† = wsCSVData.Cells(i, Ğˆõ”Ô†Col).Value
+            
+            Dim ĞˆõDict As Object
+            Set ĞˆõDict = deptData(2)
+            
+            If Not ĞˆõDict.Exists(Ğˆõ”Ô†) Then
+                ĞˆõDict.Add Ğˆõ”Ô†, True
+            End If
+        End If
+        
+        ' XV‚µ‚½•”–åƒf[ƒ^‚ğ«‘‚É–ß‚·
+        dict(deptCode) = deptData
+        
+NextRow:
+    Next i
+    
+    ' o—ÍŠJns‚ğŒˆ’èiŠù‘¶‚ÌWŒv•\‚Ì‰ºj
+    Dim headerRow As Long
+    headerRow = 0
+    
+    ' u•”v—ñ‚ğ’T‚µ‚ÄÅIs‚ğ“Á’è
+    For i = 1 To 100
+        If Not IsEmpty(wsSummary.Cells(i, 1).Value) Then
+            headerRow = i
+        End If
+    Next i
+    
+    ' 3s‹ó‚¯‚Ä‰Ò“­—¦WŒv‚ğŠJn
+    headerRow = headerRow + 3
+    
+    ' ƒwƒbƒ_[‚ğİ’è
+    wsSummary.Cells(headerRow, 1).Value = "•”"
+    wsSummary.Cells(headerRow, 2).Value = "‰c‹Æ“ú”"
+    wsSummary.Cells(headerRow, 3).Value = "‡ŒvÀ‰Ò“­ŠÔ"
+    wsSummary.Cells(headerRow, 4).Value = "Šî€‰Ò“­ŠÔ"
+    wsSummary.Cells(headerRow, 5).Value = "‰Ò“­—¦(%)"
+    wsSummary.Cells(headerRow, 6).Value = "‘ÎÛl”"
+    
+    ' ƒwƒbƒ_[s‚Ì‘®İ’è
+    With wsSummary.Range("A" & headerRow & ":F" & headerRow)
+        .Font.Bold = True
+        .HorizontalAlignment = xlCenter
+        .Interior.Color = RGB(200, 200, 200)
+    End With
+    
+    ' •”–å‚²‚Æ‚Ìƒf[ƒ^‚ğo—Í
+    summaryRow = headerRow + 1
+    
+    ' ‘S‘ÌWŒv—p‚Ì•Ï”
+    Dim totalWorkMinutesAll As Double
+    Dim totalWorkDaysAll As Long
+    Dim totalEmployeesAll As Long
+    
+    totalWorkMinutesAll = 0
+    totalWorkDaysAll = 0
+    
+    Dim allEmployees As Object
+    Set allEmployees = CreateObject("Scripting.Dictionary")
+    
+    ' Še•”–å‚ÌWŒv‚ğo—Í
+    For Each dept In dict.keys
+        deptData = dict(dept)
+        
+        Dim ‡ŒvÀ“­•ª As Double
+        Dim ‰c‹Æ“ú” As Long
+        Dim Ğˆõ” As Long
+        
+        ‡ŒvÀ“­•ª = deptData(0)
+        ‰c‹Æ“ú” = deptData(1)
+        Ğˆõ” = deptData(2).count
+        
+        ' ššš C³: Šî€‰Ò“­ŠÔ‚ÌŒvZ ššš
+        ' Šî€‰Ò“­ŠÔ = •W€“úŸŠÔ ~ ‰c‹Æ“ú” ~ l”
+        Dim Šî€‰Ò“­•ª As Double
+        Šî€‰Ò“­•ª = STANDARD_DAILY_MINUTES * ‰c‹Æ“ú” * Ğˆõ”
+        
+        ' ‰Ò“­—¦‚ğŒvZ
+        Dim ‰Ò“­—¦ As Double
+        If Šî€‰Ò“­•ª > 0 Then
+            ‰Ò“­—¦ = (‡ŒvÀ“­•ª / Šî€‰Ò“­•ª) * 100
+        Else
+            ‰Ò“­—¦ = 0
+        End If
+        
+        ' ‘S‘ÌWŒv‚É‰ÁZ
+        totalWorkMinutesAll = totalWorkMinutesAll + ‡ŒvÀ“­•ª
+        totalWorkDaysAll = totalWorkDaysAll + ‰c‹Æ“ú”
+        
+        ' Ğˆõ‚ğ‘S‘Ì‚Éƒ}[ƒW
+        Dim empKey As Variant
+        For Each empKey In deptData(2).keys
+            If Not allEmployees.Exists(empKey) Then
+                allEmployees.Add empKey, True
+            End If
+        Next empKey
+        
+        ' ƒf[ƒ^‚ğo—Í
+        wsSummary.Cells(summaryRow, 1).Value = dept
+        wsSummary.Cells(summaryRow, 2).Value = ‰c‹Æ“ú”
+        wsSummary.Cells(summaryRow, 3).Value = MinutesToTime(‡ŒvÀ“­•ª)
+        wsSummary.Cells(summaryRow, 4).Value = MinutesToTime(Šî€‰Ò“­•ª)
+        wsSummary.Cells(summaryRow, 5).Value = Format(‰Ò“­—¦, "0.0") & "%"
+        wsSummary.Cells(summaryRow, 6).Value = Ğˆõ”
+
+        summaryRow = summaryRow + 1
+    Next dept
+    
+    ' ‡Œvs‚ğo—Í
+    Dim ‘S‘ÌŠî€‰Ò“­•ª As Double
+    ‘S‘ÌŠî€‰Ò“­•ª = STANDARD_DAILY_MINUTES * totalWorkDaysAll
+    
+    Dim ‘S‘Ì‰Ò“­—¦ As Double
+    If ‘S‘ÌŠî€‰Ò“­•ª > 0 Then
+        ‘S‘Ì‰Ò“­—¦ = (totalWorkMinutesAll / ‘S‘ÌŠî€‰Ò“­•ª) * 100
+    Else
+        ‘S‘Ì‰Ò“­—¦ = 0
+    End If
+    
+    wsSummary.Cells(summaryRow, 1).Value = "‡Œv"
+    wsSummary.Cells(summaryRow, 2).Value = totalWorkDaysAll
+    wsSummary.Cells(summaryRow, 3).Value = MinutesToTime(totalWorkMinutesAll)
+    wsSummary.Cells(summaryRow, 4).Value = MinutesToTime(‘S‘ÌŠî€‰Ò“­•ª)
+    wsSummary.Cells(summaryRow, 5).Value = Format(‘S‘Ì‰Ò“­—¦, "0.0") & "%"
+    wsSummary.Cells(summaryRow, 6).Value = allEmployees.count
+    
+    ' ‡Œvs‚Ì‘®İ’è
+    With wsSummary.Range("A" & summaryRow & ":F" & summaryRow)
+        .Font.Bold = True
+        .Interior.Color = RGB(240, 240, 240)
+        .HorizontalAlignment = xlCenter
+    End With
+    
+    ' Œrüİ’è
+    With wsSummary.Range("A" & headerRow & ":F" & summaryRow)
+        .Borders.LineStyle = xlContinuous
+        .Borders.Weight = xlThin
+        .HorizontalAlignment = xlCenter
+    End With
+    
+    ' —ñ•‚Ì©“®’²®
+    wsSummary.Columns("A:F").AutoFit
+    
+    Debug.Print "‰Ò“­—¦WŒv‚ªŠ®—¹‚µ‚Ü‚µ‚½"
+End Sub
+
+' *************************************************************
+' ŠÖ”–¼: –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡
+' –Ú“I: ‹Î‘Ó“ü—Í˜R‚êˆê——‚©‚ç–µ‚ƒŒƒR[ƒh‚ğ“Ç‚İæ‚èA
+'       ‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½ÒƒV[ƒg‚É’Ç‰Á‚·‚é
+' –ß‚è’l: –µ‚ƒŒƒR[ƒh”
+' ŒÄ‚Ño‚µŒ³: ‹xŒeŠÔƒ`ƒFƒbƒN‚ÌƒƒCƒ“ˆ—‚ÌÅŒã
+' ì¬“ú: 2025-11-17
+' *************************************************************
+Public Function –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡() As Long
+    On Error GoTo ErrorHandler
+    
+    ' ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ğæ“¾
+    Dim missingSheet As Worksheet
+    On Error Resume Next
+    Set missingSheet = ThisWorkbook.Worksheets("‹Î‘Ó“ü—Í˜R‚êˆê——")
+    On Error GoTo ErrorHandler
+    
+    If missingSheet Is Nothing Then
+        Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
+        –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡ = 0
+        Exit Function
+    End If
+    
+    ' ‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½ÒƒV[ƒg‚ğæ“¾
+    Dim violationSheet As Worksheet
+    On Error Resume Next
+    Set violationSheet = ThisWorkbook.Worksheets("‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½Ò")
+    On Error GoTo ErrorHandler
+    
+    If violationSheet Is Nothing Then
+        Debug.Print "[INFO] ‹xŒeŠÔƒ`ƒFƒbƒN_ˆá”½ÒƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
+        –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡ = 0
+        Exit Function
+    End If
+    
+    ' –µ‚ƒŒƒR[ƒh‚ÌFiƒIƒŒƒ“ƒW/Âj
+    Const COLOR_CONTRADICTION As Long = 16750848  ' RGB(255, 200, 150)
+    
+    ' ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ÌÅIs‚ğæ“¾
+    Dim lastRowMissing As Long
+    lastRowMissing = missingSheet.Cells(missingSheet.Rows.count, 1).End(xlUp).Row
+    
+    If lastRowMissing <= 1 Then
+        Debug.Print "[INFO] ‹Î‘Ó“ü—Í˜R‚êˆê——‚É–µ‚ƒŒƒR[ƒh‚ª‚ ‚è‚Ü‚¹‚ñ"
+        –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡ = 0
+        Exit Function
+    End If
+    
+    ' ˆá”½ÒƒV[ƒg‚ÌŸ‚Ì‹ós‚ğæ“¾
+    Dim nextRowViolation As Long
+    nextRowViolation = violationSheet.Cells(violationSheet.Rows.count, 1).End(xlUp).Row + 1
+    
+    ' uˆá”½‚Í‚ ‚è‚Ü‚¹‚ñvƒƒbƒZ[ƒW‚ª‚ ‚éê‡‚Ííœ
+    If violationSheet.Cells(2, 1).Value = "‹xŒeŠÔˆá”½‚Í‚ ‚è‚Ü‚¹‚ñB" Then
+        violationSheet.Rows(2).Delete
+        nextRowViolation = 2
+    End If
+    
+    ' –µ‚ƒŒƒR[ƒh”‚ÌƒJƒEƒ“ƒg
+    Dim contradictionCount As Long
+    contradictionCount = 0
+    
+    ' ‹Î‘Ó“ü—Í˜R‚êˆê——‚©‚ç–µ‚ƒŒƒR[ƒhiƒIƒŒƒ“ƒWFj‚ğ’T‚·
+    Dim i As Long
+    For i = 2 To lastRowMissing
+        ' A—ñ‚Ì”wŒiF‚ğƒ`ƒFƒbƒN
+        If missingSheet.Cells(i, 1).Interior.Color = COLOR_CONTRADICTION Then
+            ' –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚ÉƒRƒs[
+            With violationSheet
+                .Cells(nextRowViolation, 1).Value = missingSheet.Cells(i, 1).Value  ' Ğˆõ”Ô†
+                .Cells(nextRowViolation, 2).Value = missingSheet.Cells(i, 2).Value  ' –¼
+                .Cells(nextRowViolation, 3).Value = ""                                ' •”–åi‹ó”’j
+                .Cells(nextRowViolation, 4).Value = missingSheet.Cells(i, 3).Value  ' “ú•t
+                .Cells(nextRowViolation, 5).Value = missingSheet.Cells(i, 8).Value  ' o‹Î
+                .Cells(nextRowViolation, 6).Value = missingSheet.Cells(i, 9).Value  ' ‘Ş‹Î
+                .Cells(nextRowViolation, 7).Value = ""                                ' À“­ŠÔi‹ó”’j
+                .Cells(nextRowViolation, 8).Value = ""                                ' ‹xŒeŠÔi‹ó”’j
+                .Cells(nextRowViolation, 9).Value = ""                                ' •K—v‹xŒeŠÔi‹ó”’j
+                .Cells(nextRowViolation, 10).Value = ""                               ' ‹xŒe•s‘«i‹ó”’j
+                .Cells(nextRowViolation, 11).Value = missingSheet.Cells(i, 7).Value ' ƒRƒƒ“ƒgi–µ‚“à—ej
+                
+                ' —ñ‚Ì‘®İ’è
+                .Cells(nextRowViolation, 5).NumberFormat = "h:mm"
+                .Cells(nextRowViolation, 6).NumberFormat = "h:mm"
+                
+                ' ƒIƒŒƒ“ƒWF‚ÅƒnƒCƒ‰ƒCƒgi–µ‚ƒŒƒR[ƒh‚Å‚ ‚é‚±‚Æ‚ğ¦‚·j
+                .Range(.Cells(nextRowViolation, 1), .Cells(nextRowViolation, 11)).Interior.Color = COLOR_CONTRADICTION
+                .Range(.Cells(nextRowViolation, 1), .Cells(nextRowViolation, 11)).Font.Bold = True
+            End With
+            
+            nextRowViolation = nextRowViolation + 1
+            contradictionCount = contradictionCount + 1
+        End If
+    Next i
+    
+    Debug.Print "[INFO] –µ‚ƒŒƒR[ƒh " & contradictionCount & " Œ‚ğˆá”½ÒƒV[ƒg‚É“‡‚µ‚Ü‚µ‚½"
+    
+    ' ššš ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚Ì“Œvî•ñ‚ğXV ššš
+    If contradictionCount > 0 Then
+        Dim summarySheet As Worksheet
+        On Error Resume Next
+        Set summarySheet = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+        On Error GoTo ErrorHandler
+        
+        If Not summarySheet Is Nothing Then
+            ' Šù‘¶‚Ìˆá”½ƒŒƒR[ƒh”‚ğæ“¾
+            Dim currentViolationCount As Long
+            currentViolationCount = summarySheet.Cells(5, 2).Value
+            
+            ' –µ‚ƒŒƒR[ƒh”‚ğ‰ÁZ
+            summarySheet.Cells(5, 2).Value = currentViolationCount + contradictionCount
+            
+            ' ˆá”½—¦‚ğÄŒvZ
+            Dim processedCount As Long
+            processedCount = summarySheet.Cells(3, 2).Value
+            
+            If processedCount > 0 Then
+                Dim totalViolationCount As Long
+                totalViolationCount = currentViolationCount + contradictionCount
+                summarySheet.Cells(6, 2).Value = Format(totalViolationCount / processedCount, "0.0%")
+            End If
+            
+            Debug.Print "[INFO] ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚Ì“Œv‚ğXV‚µ‚Ü‚µ‚½"
+        End If
+    End If
+    
+    ' –µ‚ƒŒƒR[ƒh”‚ğ•Ô‚·
+    –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡ = contradictionCount
+    
+    Exit Function
+    
+ErrorHandler:
+    Debug.Print "[ERROR] –µ‚ƒŒƒR[ƒh“‡ƒGƒ‰[: " & Err.Description
+    –µ‚ƒŒƒR[ƒh‚ğˆá”½ÒƒV[ƒg‚É“‡ = 0
+End Function

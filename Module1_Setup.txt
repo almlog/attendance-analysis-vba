@@ -1,52 +1,51 @@
-Attribute VB_Name = "Module1_Setup"
 ' *************************************************************
 ' Module1_Setup
-' –Ú“IFİ’èŠÇ—‚Æ‰ŠúƒZƒbƒgƒAƒbƒv
-' ì¬“úF2025-10-18
-' ‰ü”Å—š—ğF
-' 2025/10/18 ‰”Åì¬ - LINE WORKS’Ê’m‹@”\—p‚Ìİ’èŠÇ—
+' ç›®çš„ï¼šè¨­å®šç®¡ç†ã¨åˆæœŸã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—
+' ä½œæˆæ—¥ï¼š2025-10-18
+' æ”¹ç‰ˆå±¥æ­´ï¼š
+' 2025/10/18 åˆç‰ˆä½œæˆ - LINE WORKSé€šçŸ¥æ©Ÿèƒ½ç”¨ã®è¨­å®šç®¡ç†
 ' *************************************************************
 
 Option Explicit
 
 ' *************************************************************
-' ŠÖ”–¼: CreateConfigSheet
-' –Ú“I: İ’èƒV[ƒg‚ğì¬‚µ‚ÄWebhook URL‚ğŠi”[
-' g—p•û–@: VBƒGƒfƒBƒ^‚ÅF5ÀsA‚Ü‚½‚Í‘¼‚ÌƒvƒƒV[ƒWƒƒ‚©‚çŒÄ‚Ño‚µ
+' é–¢æ•°å: CreateConfigSheet
+' ç›®çš„: è¨­å®šã‚·ãƒ¼ãƒˆã‚’ä½œæˆã—ã¦Webhook URLã‚’æ ¼ç´
+' ä½¿ç”¨æ–¹æ³•: VBã‚¨ãƒ‡ã‚£ã‚¿ã§F5å®Ÿè¡Œã€ã¾ãŸã¯ä»–ã®ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£ã‹ã‚‰å‘¼ã³å‡ºã—
 ' *************************************************************
 Public Sub CreateConfigSheet()
     On Error GoTo ErrorHandler
     
-    ' ƒV[ƒg‘¶İƒ`ƒFƒbƒN
+    ' ã‚·ãƒ¼ãƒˆå­˜åœ¨ãƒã‚§ãƒƒã‚¯
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("İ’è")
+    Set ws = ThisWorkbook.Sheets("è¨­å®š")
     On Error GoTo ErrorHandler
     
     If Not ws Is Nothing Then
-        Debug.Print "İ’èƒV[ƒg‚ÍŠù‚É‘¶İ‚µ‚Ü‚·"
-        MsgBox "İ’èƒV[ƒg‚ÍŠù‚É‘¶İ‚µ‚Ü‚·B", vbInformation, "Šm”F"
+        Debug.Print "è¨­å®šã‚·ãƒ¼ãƒˆã¯æ—¢ã«å­˜åœ¨ã—ã¾ã™"
+        MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆã¯æ—¢ã«å­˜åœ¨ã—ã¾ã™ã€‚", vbInformation, "ç¢ºèª"
         Exit Sub
     End If
     
-    ' ‰æ–ÊXV’â~
+    ' ç”»é¢æ›´æ–°åœæ­¢
     Application.ScreenUpdating = False
     
-    ' V‹KƒV[ƒgì¬
-    Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-    ws.Name = "İ’è"
+    ' æ–°è¦ã‚·ãƒ¼ãƒˆä½œæˆ
+    Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
+    ws.Name = "è¨­å®š"
     
-    ' İ’è€–Ú‚Ì‘‚«‚İ
+    ' è¨­å®šé …ç›®ã®æ›¸ãè¾¼ã¿
     With ws
-        ' Webhook URLİ’è
+        ' Webhook URLè¨­å®š
         .Range("A1").Value = "WEBHOOK_URL"
-        .Range("B1").Value = "" ' Œã‚Åè“®“ü—Í
+        .Range("B1").Value = "" ' å¾Œã§æ‰‹å‹•å…¥åŠ›
         .Range("A1").Font.Bold = True
         .Range("A1:A1").HorizontalAlignment = xlRight
         
-        ' ‚»‚Ì‘¼‚Ìİ’è€–Ú
+        ' ãã®ä»–ã®è¨­å®šé …ç›®
         .Range("A2").Value = "BOT_NAME"
-        .Range("B2").Value = "‹Î‘ÓƒŠƒ}ƒCƒ“ƒ_["
+        .Range("B2").Value = "å‹¤æ€ ãƒªãƒã‚¤ãƒ³ãƒ€ãƒ¼"
         .Range("A2").Font.Bold = True
         .Range("A2:A2").HorizontalAlignment = xlRight
         
@@ -60,308 +59,308 @@ Public Sub CreateConfigSheet()
         .Range("A4").Font.Bold = True
         .Range("A4:A4").HorizontalAlignment = xlRight
         
-        ' —ñ•’²®
+        ' åˆ—å¹…èª¿æ•´
         .Columns("A:B").AutoFit
-        .Columns("B:B").ColumnWidth = 50 ' Webhook URL—p‚ÉL‚ß‚É
+        .Columns("B:B").ColumnWidth = 50 ' Webhook URLç”¨ã«åºƒã‚ã«
         
-        ' Œ©o‚µ‚ÉF‚ğ•t‚¯‚é
+        ' è¦‹å‡ºã—ã«è‰²ã‚’ä»˜ã‘ã‚‹
         .Range("A1:A4").Interior.Color = RGB(220, 230, 241)
         
-        ' ”ñ•\¦‰»
+        ' éè¡¨ç¤ºåŒ–
         .Visible = xlSheetVeryHidden
     End With
     
-    ' ‰æ–ÊXVÄŠJ
+    ' ç”»é¢æ›´æ–°å†é–‹
     Application.ScreenUpdating = True
     
-    Debug.Print "İ’èƒV[ƒg‚ğì¬‚µ‚Ü‚µ‚½: " & Now
+    Debug.Print "è¨­å®šã‚·ãƒ¼ãƒˆã‚’ä½œæˆã—ã¾ã—ãŸ: " & Now
     
-    ' Š®—¹ƒƒbƒZ[ƒW
-    MsgBox "İ’èƒV[ƒg‚ğì¬‚µ‚Ü‚µ‚½B" & vbCrLf & vbCrLf & _
-           "Ÿ‚ÌƒXƒeƒbƒv:" & vbCrLf & _
-           "1. ‚±‚ÌŒãAİ’èƒV[ƒg‚ğÄ•\¦‚µ‚Ü‚·" & vbCrLf & _
-           "2. B1ƒZƒ‹‚ÉWebhook URL‚ğ“\‚è•t‚¯‚Ä‚­‚¾‚³‚¢" & vbCrLf & _
-           "3. •Û‘¶‚µ‚ÄAÄ“x”ñ•\¦‚É‚µ‚Ü‚·", _
-           vbInformation, "İ’èƒV[ƒgì¬Š®—¹"
+    ' å®Œäº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
+    MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆã‚’ä½œæˆã—ã¾ã—ãŸã€‚" & vbCrLf & vbCrLf & _
+           "æ¬¡ã®ã‚¹ãƒ†ãƒƒãƒ—:" & vbCrLf & _
+           "1. ã“ã®å¾Œã€è¨­å®šã‚·ãƒ¼ãƒˆã‚’å†è¡¨ç¤ºã—ã¾ã™" & vbCrLf & _
+           "2. B1ã‚»ãƒ«ã«Webhook URLã‚’è²¼ã‚Šä»˜ã‘ã¦ãã ã•ã„" & vbCrLf & _
+           "3. ä¿å­˜ã—ã¦ã€å†åº¦éè¡¨ç¤ºã«ã—ã¾ã™", _
+           vbInformation, "è¨­å®šã‚·ãƒ¼ãƒˆä½œæˆå®Œäº†"
     
     Exit Sub
     
 ErrorHandler:
     Application.ScreenUpdating = True
-    MsgBox "İ’èƒV[ƒg‚Ìì¬‚É¸”s‚µ‚Ü‚µ‚½: " & vbCrLf & _
-           "ƒGƒ‰[: " & Err.Description, vbCritical, "ƒGƒ‰["
+    MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆã®ä½œæˆã«å¤±æ•—ã—ã¾ã—ãŸ: " & vbCrLf & _
+           "ã‚¨ãƒ©ãƒ¼: " & Err.Description, vbCritical, "ã‚¨ãƒ©ãƒ¼"
 End Sub
 
 
 ' *************************************************************
-' ŠÖ”–¼: GetWebhookURL
-' –Ú“I: İ’èƒV[ƒg‚©‚çWebhook URL‚ğæ“¾
-' –ß‚è’l: Webhook URLi•¶š—ñjA–¢İ’è‚Ìê‡‚Í‹ó•¶š
-' g—p—á:
+' é–¢æ•°å: GetWebhookURL
+' ç›®çš„: è¨­å®šã‚·ãƒ¼ãƒˆã‹ã‚‰Webhook URLã‚’å–å¾—
+' æˆ»ã‚Šå€¤: Webhook URLï¼ˆæ–‡å­—åˆ—ï¼‰ã€æœªè¨­å®šã®å ´åˆã¯ç©ºæ–‡å­—
+' ä½¿ç”¨ä¾‹:
 '   Dim url As String
 '   url = GetWebhookURL()
 '   If url <> "" Then
-'       ' URL‚ªİ’è‚³‚ê‚Ä‚¢‚éê‡‚Ìˆ—
+'       ' URLãŒè¨­å®šã•ã‚Œã¦ã„ã‚‹å ´åˆã®å‡¦ç†
 '   End If
 ' *************************************************************
 Public Function GetWebhookURL() As String
     On Error GoTo ErrorHandler
     
-    ' İ’èƒV[ƒgæ“¾
+    ' è¨­å®šã‚·ãƒ¼ãƒˆå–å¾—
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("İ’è")
+    Set ws = ThisWorkbook.Sheets("è¨­å®š")
     On Error GoTo ErrorHandler
     
     If ws Is Nothing Then
-        MsgBox "İ’èƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & _
-               "CreateConfigSheet‚ğÀs‚µ‚Ä‚­‚¾‚³‚¢B", _
-               vbExclamation, "İ’èƒGƒ‰["
+        MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & _
+               "CreateConfigSheetã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚", _
+               vbExclamation, "è¨­å®šã‚¨ãƒ©ãƒ¼"
         GetWebhookURL = ""
         Exit Function
     End If
     
-    ' Webhook URLæ“¾iB1ƒZƒ‹j
+    ' Webhook URLå–å¾—ï¼ˆB1ã‚»ãƒ«ï¼‰
     GetWebhookURL = Trim(ws.Range("B1").Value)
     
-    ' –¢İ’èƒ`ƒFƒbƒN
+    ' æœªè¨­å®šãƒã‚§ãƒƒã‚¯
     If GetWebhookURL = "" Then
-        MsgBox "Webhook URL‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB" & vbCrLf & vbCrLf & _
-               "İ’è•û–@:" & vbCrLf & _
-               "1. VBAProject ‚Å [İ’è] ƒV[ƒg‚ğ‰EƒNƒŠƒbƒN" & vbCrLf & _
-               "2. [ƒvƒƒpƒeƒB] ‚Å Visible ‚ğ [xlSheetVisible] ‚É•ÏX" & vbCrLf & _
-               "3. Excel‚É–ß‚èA[İ’è]ƒV[ƒg‚ÌB1ƒZƒ‹‚ÉWebhook URL‚ğ“ü—Í" & vbCrLf & _
-               "4. •Û‘¶ŒãAÄ“x”ñ•\¦‚Éİ’è", _
-               vbExclamation, "Webhook URL–¢İ’è"
+        MsgBox "Webhook URLãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚" & vbCrLf & vbCrLf & _
+               "è¨­å®šæ–¹æ³•:" & vbCrLf & _
+               "1. VBAProject ã§ [è¨­å®š] ã‚·ãƒ¼ãƒˆã‚’å³ã‚¯ãƒªãƒƒã‚¯" & vbCrLf & _
+               "2. [ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£] ã§ Visible ã‚’ [xlSheetVisible] ã«å¤‰æ›´" & vbCrLf & _
+               "3. Excelã«æˆ»ã‚Šã€[è¨­å®š]ã‚·ãƒ¼ãƒˆã®B1ã‚»ãƒ«ã«Webhook URLã‚’å…¥åŠ›" & vbCrLf & _
+               "4. ä¿å­˜å¾Œã€å†åº¦éè¡¨ç¤ºã«è¨­å®š", _
+               vbExclamation, "Webhook URLæœªè¨­å®š"
     End If
     
     Exit Function
     
 ErrorHandler:
-    MsgBox "Webhook URL‚Ìæ“¾‚É¸”s‚µ‚Ü‚µ‚½: " & Err.Description, vbCritical, "ƒGƒ‰["
+    MsgBox "Webhook URLã®å–å¾—ã«å¤±æ•—ã—ã¾ã—ãŸ: " & Err.Description, vbCritical, "ã‚¨ãƒ©ãƒ¼"
     GetWebhookURL = ""
 End Function
 
 
 ' *************************************************************
-' ŠÖ”–¼: CreateNotificationHistorySheet
-' –Ú“I: ’Ê’m—š—ğƒV[ƒg‚ğì¬
-' g—p•û–@: VBƒGƒfƒBƒ^‚ÅF5ÀsA‚Ü‚½‚Í‘¼‚ÌƒvƒƒV[ƒWƒƒ‚©‚çŒÄ‚Ño‚µ
+' é–¢æ•°å: CreateNotificationHistorySheet
+' ç›®çš„: é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã‚’ä½œæˆ
+' ä½¿ç”¨æ–¹æ³•: VBã‚¨ãƒ‡ã‚£ã‚¿ã§F5å®Ÿè¡Œã€ã¾ãŸã¯ä»–ã®ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£ã‹ã‚‰å‘¼ã³å‡ºã—
 ' *************************************************************
 Public Sub CreateNotificationHistorySheet()
     On Error GoTo ErrorHandler
     
-    ' ƒV[ƒg‘¶İƒ`ƒFƒbƒN
+    ' ã‚·ãƒ¼ãƒˆå­˜åœ¨ãƒã‚§ãƒƒã‚¯
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("’Ê’m—š—ğ")
+    Set ws = ThisWorkbook.Sheets("é€šçŸ¥å±¥æ­´")
     On Error GoTo ErrorHandler
     
     If Not ws Is Nothing Then
-        Debug.Print "’Ê’m—š—ğƒV[ƒg‚ÍŠù‚É‘¶İ‚µ‚Ü‚·"
-        MsgBox "’Ê’m—š—ğƒV[ƒg‚ÍŠù‚É‘¶İ‚µ‚Ü‚·B", vbInformation, "Šm”F"
+        Debug.Print "é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã¯æ—¢ã«å­˜åœ¨ã—ã¾ã™"
+        MsgBox "é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã¯æ—¢ã«å­˜åœ¨ã—ã¾ã™ã€‚", vbInformation, "ç¢ºèª"
         Exit Sub
     End If
     
-    ' ‰æ–ÊXV’â~
+    ' ç”»é¢æ›´æ–°åœæ­¢
     Application.ScreenUpdating = False
     
-    ' V‹KƒV[ƒgì¬
-    Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-    ws.Name = "’Ê’m—š—ğ"
+    ' æ–°è¦ã‚·ãƒ¼ãƒˆä½œæˆ
+    Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
+    ws.Name = "é€šçŸ¥å±¥æ­´"
     
-    ' ƒwƒbƒ_[İ’è
+    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¨­å®š
     With ws
-        .Range("A1").Value = "‘—M“ú"
-        .Range("B1").Value = "‘ÎÛÒ”"
-        .Range("C1").Value = "–¢“ü—ÍŒ”"
-        .Range("D1").Value = "Œ‹‰Ê"
-        .Range("E1").Value = "ƒGƒ‰[Ú×"
+        .Range("A1").Value = "é€ä¿¡æ—¥æ™‚"
+        .Range("B1").Value = "å¯¾è±¡è€…æ•°"
+        .Range("C1").Value = "æœªå…¥åŠ›ä»¶æ•°"
+        .Range("D1").Value = "çµæœ"
+        .Range("E1").Value = "ã‚¨ãƒ©ãƒ¼è©³ç´°"
         
-        ' ‘®İ’è
+        ' æ›¸å¼è¨­å®š
         .Range("A1:E1").Font.Bold = True
         .Range("A1:E1").Interior.Color = RGB(217, 217, 217)
         .Range("A1:E1").HorizontalAlignment = xlCenter
         
-        ' —ñ•’²®
-        .Columns("A:A").ColumnWidth = 20 ' ‘—M“ú
-        .Columns("B:B").ColumnWidth = 12 ' ‘ÎÛÒ”
-        .Columns("C:C").ColumnWidth = 12 ' –¢“ü—ÍŒ”
-        .Columns("D:D").ColumnWidth = 10 ' Œ‹‰Ê
-        .Columns("E:E").ColumnWidth = 40 ' ƒGƒ‰[Ú×
+        ' åˆ—å¹…èª¿æ•´
+        .Columns("A:A").ColumnWidth = 20 ' é€ä¿¡æ—¥æ™‚
+        .Columns("B:B").ColumnWidth = 12 ' å¯¾è±¡è€…æ•°
+        .Columns("C:C").ColumnWidth = 12 ' æœªå…¥åŠ›ä»¶æ•°
+        .Columns("D:D").ColumnWidth = 10 ' çµæœ
+        .Columns("E:E").ColumnWidth = 40 ' ã‚¨ãƒ©ãƒ¼è©³ç´°
         
-        ' ˜gü
+        ' æ ç·š
         .Range("A1:E1").Borders.LineStyle = xlContinuous
     End With
     
-    ' ‰æ–ÊXVÄŠJ
+    ' ç”»é¢æ›´æ–°å†é–‹
     Application.ScreenUpdating = True
     
-    Debug.Print "’Ê’m—š—ğƒV[ƒg‚ğì¬‚µ‚Ü‚µ‚½: " & Now
+    Debug.Print "é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã‚’ä½œæˆã—ã¾ã—ãŸ: " & Now
     
-    MsgBox "’Ê’m—š—ğƒV[ƒg‚ğì¬‚µ‚Ü‚µ‚½B", vbInformation, "ì¬Š®—¹"
+    MsgBox "é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã‚’ä½œæˆã—ã¾ã—ãŸã€‚", vbInformation, "ä½œæˆå®Œäº†"
     
     Exit Sub
     
 ErrorHandler:
     Application.ScreenUpdating = True
-    MsgBox "’Ê’m—š—ğƒV[ƒg‚Ìì¬‚É¸”s‚µ‚Ü‚µ‚½: " & vbCrLf & _
-           "ƒGƒ‰[: " & Err.Description, vbCritical, "ƒGƒ‰["
+    MsgBox "é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã®ä½œæˆã«å¤±æ•—ã—ã¾ã—ãŸ: " & vbCrLf & _
+           "ã‚¨ãƒ©ãƒ¼: " & Err.Description, vbCritical, "ã‚¨ãƒ©ãƒ¼"
 End Sub
 
 
 ' *************************************************************
-' ŠÖ”–¼: LogNotification
-' –Ú“I: ’Ê’m—š—ğƒV[ƒg‚É‘—MŒ‹‰Ê‚ğ‹L˜^
-' ˆø”:
-'   - targetCount: ‘ÎÛÒ”
-'   - totalCount: –¢“ü—ÍŒ”
-'   - result: Œ‹‰Êi"¬Œ÷" or "¸”s"j
-'   - errorDetail: ƒGƒ‰[Ú×iƒIƒvƒVƒ‡ƒ“j
-' g—p—á:
-'   Call LogNotification(3, 5, "¬Œ÷", "")
-'   Call LogNotification(0, 0, "¸”s", "HTTP 404 Not Found")
+' é–¢æ•°å: LogNotification
+' ç›®çš„: é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã«é€ä¿¡çµæœã‚’è¨˜éŒ²
+' å¼•æ•°:
+'   - targetCount: å¯¾è±¡è€…æ•°
+'   - totalCount: æœªå…¥åŠ›ä»¶æ•°
+'   - result: çµæœï¼ˆ"æˆåŠŸ" or "å¤±æ•—"ï¼‰
+'   - errorDetail: ã‚¨ãƒ©ãƒ¼è©³ç´°ï¼ˆã‚ªãƒ—ã‚·ãƒ§ãƒ³ï¼‰
+' ä½¿ç”¨ä¾‹:
+'   Call LogNotification(3, 5, "æˆåŠŸ", "")
+'   Call LogNotification(0, 0, "å¤±æ•—", "HTTP 404 Not Found")
 ' *************************************************************
 Public Sub LogNotification(targetCount As Integer, totalCount As Integer, _
                           result As String, Optional errorDetail As String = "")
     On Error GoTo ErrorHandler
     
-    ' ’Ê’m—š—ğƒV[ƒgæ“¾
+    ' é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆå–å¾—
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("’Ê’m—š—ğ")
+    Set ws = ThisWorkbook.Sheets("é€šçŸ¥å±¥æ­´")
     On Error GoTo ErrorHandler
     
     If ws Is Nothing Then
-        Debug.Print "’Ê’m—š—ğƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ"
+        Debug.Print "é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“"
         Exit Sub
     End If
     
-    ' ÅIsæ“¾iƒf[ƒ^‚ğ‰º‚É’Ç‰Áj
+    ' æœ€çµ‚è¡Œå–å¾—ï¼ˆãƒ‡ãƒ¼ã‚¿ã‚’ä¸‹ã«è¿½åŠ ï¼‰
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+    lastRow = ws.Cells(ws.Rows.count, 1).End(xlUp).Row + 1
     
-    ' ƒf[ƒ^‘‚«‚İ
+    ' ãƒ‡ãƒ¼ã‚¿æ›¸ãè¾¼ã¿
     With ws
-        .Cells(lastRow, 1).Value = Now ' ‘—M“ú
-        .Cells(lastRow, 2).Value = targetCount ' ‘ÎÛÒ”
-        .Cells(lastRow, 3).Value = totalCount ' –¢“ü—ÍŒ”
-        .Cells(lastRow, 4).Value = result ' Œ‹‰Ê
-        .Cells(lastRow, 5).Value = errorDetail ' ƒGƒ‰[Ú×
+        .Cells(lastRow, 1).Value = Now ' é€ä¿¡æ—¥æ™‚
+        .Cells(lastRow, 2).Value = targetCount ' å¯¾è±¡è€…æ•°
+        .Cells(lastRow, 3).Value = totalCount ' æœªå…¥åŠ›ä»¶æ•°
+        .Cells(lastRow, 4).Value = result ' çµæœ
+        .Cells(lastRow, 5).Value = errorDetail ' ã‚¨ãƒ©ãƒ¼è©³ç´°
         
-        ' Œ‹‰Ê‚É‰‚¶‚ÄF•t‚¯
-        If result = "¬Œ÷" Then
-            .Cells(lastRow, 4).Interior.Color = RGB(198, 224, 180) ' —Î
+        ' çµæœã«å¿œã˜ã¦è‰²ä»˜ã‘
+        If result = "æˆåŠŸ" Then
+            .Cells(lastRow, 4).Interior.Color = RGB(198, 224, 180) ' ç·‘
         Else
-            .Cells(lastRow, 4).Interior.Color = RGB(255, 199, 206) ' Ô
+            .Cells(lastRow, 4).Interior.Color = RGB(255, 199, 206) ' èµ¤
         End If
     End With
     
-    Debug.Print "’Ê’m—š—ğ‚ğ‹L˜^‚µ‚Ü‚µ‚½: " & Now & " | Œ‹‰Ê: " & result
+    Debug.Print "é€šçŸ¥å±¥æ­´ã‚’è¨˜éŒ²ã—ã¾ã—ãŸ: " & Now & " | çµæœ: " & result
     
     Exit Sub
     
 ErrorHandler:
-    Debug.Print "’Ê’m—š—ğ‚Ì‹L˜^‚É¸”s‚µ‚Ü‚µ‚½: " & Err.Description
+    Debug.Print "é€šçŸ¥å±¥æ­´ã®è¨˜éŒ²ã«å¤±æ•—ã—ã¾ã—ãŸ: " & Err.Description
 End Sub
 
 
 ' *************************************************************
-' ŠÖ”–¼: InitialSetup
-' –Ú“I: ‰ŠúƒZƒbƒgƒAƒbƒv‚ğ‚Ü‚Æ‚ß‚ÄÀs
-' g—p•û–@: VBƒGƒfƒBƒ^‚Å‚±‚ÌŠÖ”‚ğŠJ‚¢‚ÄF5Às
+' é–¢æ•°å: InitialSetup
+' ç›®çš„: åˆæœŸã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ã‚’ã¾ã¨ã‚ã¦å®Ÿè¡Œ
+' ä½¿ç”¨æ–¹æ³•: VBã‚¨ãƒ‡ã‚£ã‚¿ã§ã“ã®é–¢æ•°ã‚’é–‹ã„ã¦F5å®Ÿè¡Œ
 ' *************************************************************
 Public Sub InitialSetup()
     On Error GoTo ErrorHandler
     
-    MsgBox "LINE WORKS’Ê’m‹@”\‚Ì‰ŠúƒZƒbƒgƒAƒbƒv‚ğŠJn‚µ‚Ü‚·B", vbInformation, "‰ŠúƒZƒbƒgƒAƒbƒv"
+    MsgBox "LINE WORKSé€šçŸ¥æ©Ÿèƒ½ã®åˆæœŸã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ã‚’é–‹å§‹ã—ã¾ã™ã€‚", vbInformation, "åˆæœŸã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—"
     
-    ' İ’èƒV[ƒgì¬
+    ' è¨­å®šã‚·ãƒ¼ãƒˆä½œæˆ
     Call CreateConfigSheet
     
-    ' ’Ê’m—š—ğƒV[ƒgì¬
+    ' é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆä½œæˆ
     Call CreateNotificationHistorySheet
     
-    MsgBox "‰ŠúƒZƒbƒgƒAƒbƒv‚ªŠ®—¹‚µ‚Ü‚µ‚½I" & vbCrLf & vbCrLf & _
-           "Ÿ‚ÌƒXƒeƒbƒv:" & vbCrLf & _
-           "1. VBAƒGƒfƒBƒ^‚ÌƒvƒƒWƒFƒNƒgƒGƒNƒXƒvƒ[ƒ‰[‚Å" & vbCrLf & _
-           "   [İ’è] ƒV[ƒg‚ğŒ©‚Â‚¯‚Ä‚­‚¾‚³‚¢" & vbCrLf & _
-           "2. ‰EƒNƒŠƒbƒN ¨ [ƒvƒƒpƒeƒB]" & vbCrLf & _
-           "3. Visible ‚ğ [0 - xlSheetVisible] ‚É•ÏX" & vbCrLf & _
-           "4. Excel‚É–ß‚èAB1ƒZƒ‹‚ÉWebhook URL‚ğ“ü—Í" & vbCrLf & _
-           "5. •Û‘¶ŒãAVisible‚ğ [2 - xlSheetVeryHidden] ‚É–ß‚·", _
-           vbInformation, "ƒZƒbƒgƒAƒbƒvŠ®—¹"
+    MsgBox "åˆæœŸã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ãŒå®Œäº†ã—ã¾ã—ãŸï¼" & vbCrLf & vbCrLf & _
+           "æ¬¡ã®ã‚¹ãƒ†ãƒƒãƒ—:" & vbCrLf & _
+           "1. VBAã‚¨ãƒ‡ã‚£ã‚¿ã®ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆã‚¨ã‚¯ã‚¹ãƒ—ãƒ­ãƒ¼ãƒ©ãƒ¼ã§" & vbCrLf & _
+           "   [è¨­å®š] ã‚·ãƒ¼ãƒˆã‚’è¦‹ã¤ã‘ã¦ãã ã•ã„" & vbCrLf & _
+           "2. å³ã‚¯ãƒªãƒƒã‚¯ â†’ [ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£]" & vbCrLf & _
+           "3. Visible ã‚’ [0 - xlSheetVisible] ã«å¤‰æ›´" & vbCrLf & _
+           "4. Excelã«æˆ»ã‚Šã€B1ã‚»ãƒ«ã«Webhook URLã‚’å…¥åŠ›" & vbCrLf & _
+           "5. ä¿å­˜å¾Œã€Visibleã‚’ [2 - xlSheetVeryHidden] ã«æˆ»ã™", _
+           vbInformation, "ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—å®Œäº†"
     
     Exit Sub
     
 ErrorHandler:
-    MsgBox "‰ŠúƒZƒbƒgƒAƒbƒv‚ÅƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & vbCrLf & _
-           "ƒGƒ‰[: " & Err.Description, vbCritical, "ƒGƒ‰["
+    MsgBox "åˆæœŸã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ã§ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & vbCrLf & _
+           "ã‚¨ãƒ©ãƒ¼: " & Err.Description, vbCritical, "ã‚¨ãƒ©ãƒ¼"
 End Sub
 
 ' *************************************************************
-' ƒeƒXƒg—pƒvƒƒV[ƒWƒƒ
+' ãƒ†ã‚¹ãƒˆç”¨ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£
 ' *************************************************************
 
-' ƒeƒXƒg1: Webhook URLæ“¾ƒeƒXƒg
+' ãƒ†ã‚¹ãƒˆ1: Webhook URLå–å¾—ãƒ†ã‚¹ãƒˆ
 Sub Test_GetWebhookURL()
     Dim url As String
     url = GetWebhookURL()
     
     If url <> "" Then
-        MsgBox "? ƒeƒXƒg‡Ši" & vbCrLf & vbCrLf & _
-               "æ“¾‚µ‚½URL: " & vbCrLf & url, _
-               vbInformation, "Webhook URLƒeƒXƒg"
+        MsgBox "? ãƒ†ã‚¹ãƒˆåˆæ ¼" & vbCrLf & vbCrLf & _
+               "å–å¾—ã—ãŸURL: " & vbCrLf & url, _
+               vbInformation, "Webhook URLãƒ†ã‚¹ãƒˆ"
     Else
-        MsgBox "? ƒeƒXƒg¸”s: URL‚ªæ“¾‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½", vbCritical, "ƒeƒXƒgŒ‹‰Ê"
+        MsgBox "? ãƒ†ã‚¹ãƒˆå¤±æ•—: URLãŒå–å¾—ã§ãã¾ã›ã‚“ã§ã—ãŸ", vbCritical, "ãƒ†ã‚¹ãƒˆçµæœ"
     End If
 End Sub
 
-' ƒeƒXƒg2: ’Ê’m—š—ğ‹L˜^ƒeƒXƒg
+' ãƒ†ã‚¹ãƒˆ2: é€šçŸ¥å±¥æ­´è¨˜éŒ²ãƒ†ã‚¹ãƒˆ
 Sub Test_LogNotification()
-    ' ƒeƒXƒgƒf[ƒ^‚ğ‹L˜^
-    Call LogNotification(3, 5, "¬Œ÷", "")
-    Call LogNotification(0, 0, "¸”s", "HTTP 404 Not Found")
+    ' ãƒ†ã‚¹ãƒˆãƒ‡ãƒ¼ã‚¿ã‚’è¨˜éŒ²
+    Call LogNotification(3, 5, "æˆåŠŸ", "")
+    Call LogNotification(0, 0, "å¤±æ•—", "HTTP 404 Not Found")
     
-    MsgBox "? ƒeƒXƒgƒf[ƒ^‚ğ’Ê’m—š—ğƒV[ƒg‚É‹L˜^‚µ‚Ü‚µ‚½B" & vbCrLf & _
-           "[’Ê’m—š—ğ] ƒV[ƒg‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", _
-           vbInformation, "—š—ğ‹L˜^ƒeƒXƒg"
+    MsgBox "? ãƒ†ã‚¹ãƒˆãƒ‡ãƒ¼ã‚¿ã‚’é€šçŸ¥å±¥æ­´ã‚·ãƒ¼ãƒˆã«è¨˜éŒ²ã—ã¾ã—ãŸã€‚" & vbCrLf & _
+           "[é€šçŸ¥å±¥æ­´] ã‚·ãƒ¼ãƒˆã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", _
+           vbInformation, "å±¥æ­´è¨˜éŒ²ãƒ†ã‚¹ãƒˆ"
 End Sub
 
 ' *************************************************************
-' ŠÖ”–¼: GetChannelID
-' –Ú“I: İ’èƒV[ƒg‚©‚çChannel ID‚ğæ“¾
-' –ß‚è’l: Channel IDi•¶š—ñjA–¢İ’è‚Ìê‡‚Í‹ó•¶š
+' é–¢æ•°å: GetChannelID
+' ç›®çš„: è¨­å®šã‚·ãƒ¼ãƒˆã‹ã‚‰Channel IDã‚’å–å¾—
+' æˆ»ã‚Šå€¤: Channel IDï¼ˆæ–‡å­—åˆ—ï¼‰ã€æœªè¨­å®šã®å ´åˆã¯ç©ºæ–‡å­—
 ' *************************************************************
 Public Function GetChannelID() As String
     On Error GoTo ErrorHandler
     
-    ' İ’èƒV[ƒgæ“¾
+    ' è¨­å®šã‚·ãƒ¼ãƒˆå–å¾—
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("İ’è")
+    Set ws = ThisWorkbook.Sheets("è¨­å®š")
     On Error GoTo ErrorHandler
     
     If ws Is Nothing Then
-        MsgBox "İ’èƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB", vbExclamation, "İ’èƒGƒ‰["
+        MsgBox "è¨­å®šã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚", vbExclamation, "è¨­å®šã‚¨ãƒ©ãƒ¼"
         GetChannelID = ""
         Exit Function
     End If
     
-    ' Channel IDæ“¾iB5ƒZƒ‹j
+    ' Channel IDå–å¾—ï¼ˆB5ã‚»ãƒ«ï¼‰
     GetChannelID = Trim(ws.Range("B5").Value)
     
-    ' –¢İ’èƒ`ƒFƒbƒN
+    ' æœªè¨­å®šãƒã‚§ãƒƒã‚¯
     If GetChannelID = "" Then
-        MsgBox "Channel ID‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB" & vbCrLf & _
-               "[İ’è]ƒV[ƒg‚ÌB5ƒZƒ‹‚ÉChannel ID‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B", _
-               vbExclamation, "Channel ID–¢İ’è"
+        MsgBox "Channel IDãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚" & vbCrLf & _
+               "[è¨­å®š]ã‚·ãƒ¼ãƒˆã®B5ã‚»ãƒ«ã«Channel IDã‚’å…¥åŠ›ã—ã¦ãã ã•ã„ã€‚", _
+               vbExclamation, "Channel IDæœªè¨­å®š"
     End If
     
     Exit Function
     
 ErrorHandler:
-    MsgBox "Channel ID‚Ìæ“¾‚É¸”s‚µ‚Ü‚µ‚½: " & Err.Description, vbCritical, "ƒGƒ‰["
+    MsgBox "Channel IDã®å–å¾—ã«å¤±æ•—ã—ã¾ã—ãŸ: " & Err.Description, vbCritical, "ã‚¨ãƒ©ãƒ¼"
     GetChannelID = ""
 End Function
 

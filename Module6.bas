@@ -1,526 +1,521 @@
-ï»¿' ========================================
-' Module6
-' ã‚¿ã‚¤ãƒ—: æ¨™æº–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«
-' è¡Œæ•°: 520
-' ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆæ—¥æ™‚: 2025-10-20 14:30:49
-' ========================================
+Attribute VB_Name = "Module6"
+Option Explicit
 
-Option Explicit
-
-' *************************************************************
-' ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ï¼šå‹¤æ€ å…¥åŠ›æ¼ã‚Œãƒ¬ãƒãƒ¼ãƒˆç”Ÿæˆ
-' ç›®çš„ï¼šå‹¤æ€ å…¥åŠ›æ¼ã‚Œã®ãƒ¬ãƒãƒ¼ãƒˆã‚’ç”Ÿæˆã™ã‚‹é–¢æ•°ç¾¤
-' Copyright (c) 2025 SI1 shunpei.suzuki
-' ä½œæˆæ—¥ï¼š2025å¹´4æœˆ2æ—¥
-'
-' æ”¹ç‰ˆå±¥æ­´ï¼š
-' 2025/04/02 module2ã‹ã‚‰åˆ†å‰²ä½œæˆ
-' 2025/10/18 LINE WORKSé€šçŸ¥ãƒœã‚¿ãƒ³è¿½åŠ æ©Ÿèƒ½ã‚’çµ±åˆ
-' *************************************************************
-
-' å®šæ•°å®šç¾©ï¼ˆmodule2_coreã¨åŒã˜å®šæ•°ã‚’å®šç¾©ï¼‰
-Private Const SHEET_NAME_MISSING_ENTRIES As String = "å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§"
-Private Const COL_EMPLOYEE_ID As Integer = 1
-Private Const COL_EMPLOYEE_NAME As Integer = 2
-Private Const COL_DATE As Integer = 3
-Private Const COL_DAY_TYPE As Integer = 4
-Private Const COL_LEAVE_TYPE As Integer = 5
-Private Const COL_MISSING_ENTRY_TYPE As Integer = 6
-Private Const COL_COMMENT As Integer = 7
-Private Const COL_ATTENDANCE_TIME As Integer = 8 ' å‡ºå‹¤æ™‚åˆ»åˆ—ã‚’è¿½åŠ 
-Private Const COL_DEPARTURE_TIME As Integer = 9 ' é€€å‹¤æ™‚åˆ»åˆ—ã‚’è¿½åŠ 
-Private Const COL_CONTRADICTION_TYPE As Integer = 10 ' çŸ›ç›¾ç¨®åˆ¥åˆ—ã‚’è¿½åŠ 
-Private Const DEBUG_MODE As Boolean = False ' ãƒ‡ãƒãƒƒã‚°ãƒ¢ãƒ¼ãƒ‰è¨­å®š - é€šå¸¸é‹ç”¨æ™‚ã¯False
-
-' å‡ºåŠ›ã‚·ãƒ¼ãƒˆã‚’æº–å‚™ã™ã‚‹
-Public Function PrepareOutputSheet() As Worksheet
-    On Error Resume Next
-    
-    Application.StatusBar = "å‡ºåŠ›ã‚·ãƒ¼ãƒˆã‚’æº–å‚™ã—ã¦ã„ã¾ã™..."
-    
-    ' æ—¢å­˜ã‚·ãƒ¼ãƒˆãŒã‚ã‚Œã°å‰Šé™¤
-    Dim ws As Worksheet
-    Set ws = ThisWorkbook.Sheets(SHEET_NAME_MISSING_ENTRIES)
-    If Not ws Is Nothing Then
-        ws.Delete
-    End If
-    
-    ' æ®‹æ¥­ä¸€è¦§ã‚·ãƒ¼ãƒˆã‚’å–å¾—
-    Dim overtimeSheet As Worksheet
-    On Error Resume Next
-    Set overtimeSheet = ThisWorkbook.Worksheets("æ®‹æ¥­ä¸€è¦§")
-    On Error GoTo 0
-    
-    ' æ–°ã—ã„ã‚·ãƒ¼ãƒˆã‚’ä½œæˆï¼ˆæ®‹æ¥­ä¸€è¦§ã‚·ãƒ¼ãƒˆã®å³éš£ã«ï¼‰
-    If Not overtimeSheet Is Nothing Then
-        Set ws = ThisWorkbook.Sheets.Add(After:=overtimeSheet)
-    Else
-        Set ws = ThisWorkbook.Sheets.Add
-    End If
-    ws.Name = SHEET_NAME_MISSING_ENTRIES
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®è¨­å®š
-    ws.Cells(1, COL_EMPLOYEE_ID).Value = "ç¤¾å“¡ç•ªå·"
-    ws.Cells(1, COL_EMPLOYEE_NAME).Value = "æ°å"
-    ws.Cells(1, COL_DATE).Value = "æ—¥ä»˜"
-    ws.Cells(1, COL_DAY_TYPE).Value = "æ›œæ—¥åŒºåˆ†"
-    ws.Cells(1, COL_LEAVE_TYPE).Value = "å±Šå‡ºå†…å®¹"
-    ws.Cells(1, COL_COMMENT).Value = "ã‚³ãƒ¡ãƒ³ãƒˆ"
-    ws.Cells(1, COL_ATTENDANCE_TIME).Value = "å‡ºå‹¤æ™‚åˆ»"
-    ws.Cells(1, COL_DEPARTURE_TIME).Value = "é€€å‹¤æ™‚åˆ»"
-    
-    ' å…¥åŠ›æ¼ã‚Œç¨®åˆ¥ã¨çŸ›ç›¾ç¨®åˆ¥ã®åˆ—ã¯éè¡¨ç¤ºã«ã™ã‚‹
-    ws.Columns(COL_MISSING_ENTRY_TYPE).Hidden = True
-    ws.Columns(COL_CONTRADICTION_TYPE).Hidden = True
-    
-    ' çŸ›ç›¾ç¨®åˆ¥ã®èª¬æ˜ã¯æ¦‚è¦çµ±è¨ˆã®ä¸‹ã«é…ç½®ã™ã‚‹ãŸã‚ã€ã“ã“ã§ã¯è¿½åŠ ã—ãªã„
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-    ws.Range(ws.Cells(1, 1), ws.Cells(1, COL_CONTRADICTION_TYPE)).Interior.Color = RGB(200, 200, 200)
-    ws.Range(ws.Cells(1, 1), ws.Cells(1, COL_CONTRADICTION_TYPE)).Font.Bold = True
-    
-    ' åˆ—å¹…ã®è‡ªå‹•èª¿æ•´
-    ws.Columns("B:M").AutoFit
-    
-    ' ç¤¾å“¡ç•ªå·åˆ—ã‚’æ–‡å­—åˆ—å½¢å¼ã«è¨­å®š
-    ws.Columns("A").NumberFormat = "@"
-    
-    ' â˜…â˜…â˜… LINE WORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’è¿½åŠ  â˜…â˜…â˜…
-    Debug.Print "PrepareOutputSheet: ãƒœã‚¿ãƒ³è¿½åŠ ã‚’å®Ÿè¡Œã—ã¾ã™"
-    Call AddLineWorksNotificationButton(ws)
-    Debug.Print "PrepareOutputSheet: ãƒœã‚¿ãƒ³è¿½åŠ å®Œäº†"
-    
-    Set PrepareOutputSheet = ws
-End Function
-
-' æ¦‚è¦çµ±è¨ˆã‚’è¨ˆç®—ã—ã¦è¡¨ç¤ºã™ã‚‹
-Public Sub CalculateAndDisplaySummary(missingEntriesSheet As Worksheet)
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "æ¦‚è¦çµ±è¨ˆã‚’è¨ˆç®—ã—ã¦ã„ã¾ã™..."
-    
-    ' ä¿å­˜ã•ã‚ŒãŸçµ±è¨ˆæƒ…å ±ã®å–å¾—
-    Dim totalMissing As Long
-    Dim missingAttendance As Long
-    Dim missingDeparture As Long
-    Dim missingBoth As Long
-    Dim employeeCount As Long
-    Dim i As Long
-    Dim lastRow As Long
-    Dim NextRow As Long
-    
-    totalMissing = missingEntriesSheet.Range("J2").Value
-    missingAttendance = missingEntriesSheet.Range("J3").Value
-    missingDeparture = missingEntriesSheet.Range("J4").Value
-    missingBoth = missingEntriesSheet.Range("J5").Value
-    employeeCount = missingEntriesSheet.Range("J6").Value
-    
-    ' å…¥åŠ›æ¼ã‚Œä¸€è¦§ã®ã‚·ãƒ¼ãƒˆã«æ¦‚è¦çµ±è¨ˆã‚¨ãƒªã‚¢ã‚’ä½œæˆ
-    With missingEntriesSheet
-        ' ä¸è¦ãªè¨ˆç®—ãƒ‡ãƒ¼ã‚¿ã‚»ãƒ«ã¯ç™½è‰²æ–‡å­—ã«ã—ã¦ãŠãï¼ˆJ2-J6ï¼‰
-        .Range("J2:J3").Font.Color = RGB(255, 255, 255)
-        
-        .Cells(3, 12).Value = "æ¦‚è¦çµ±è¨ˆ"
-        .Cells(3, 12).Font.Bold = True
-        
-        .Cells(4, 12).Value = "æ¤œå‡ºã•ã‚ŒãŸå…¥åŠ›æ¼ã‚Œ"
-        .Cells(4, 13).Value = totalMissing & "ä»¶"
-        
-        .Cells(5, 12).Value = "å‡ºå‹¤æ™‚åˆ»ãªã—"
-        .Cells(5, 13).Value = missingAttendance & "ä»¶"
-        
-        .Cells(6, 12).Value = "é€€å‹¤æ™‚åˆ»ãªã—"
-        .Cells(6, 13).Value = missingDeparture & "ä»¶"
-        
-        .Cells(7, 12).Value = "å‡ºé€€å‹¤æ™‚åˆ»ãªã—"
-        .Cells(7, 13).Value = missingBoth & "ä»¶"
-        
-        .Cells(8, 12).Value = "å¯¾è±¡å¾“æ¥­å“¡æ•°"
-        .Cells(8, 13).Value = employeeCount & "å"
-        
-        ' æ›¸å¼è¨­å®š
-        .Range(.Cells(3, 12), .Cells(8, 13)).Borders.LineStyle = xlNone
-        .Range(.Cells(3, 12), .Cells(3, 13)).Interior.Color = RGB(200, 200, 200)
-        
-        ' èª¬æ˜ã¯ä¸è¦
-        
-        ' åˆ—å¹…ã®è‡ªå‹•èª¿æ•´
-        .Columns("L:M").AutoFit
-    End With
-    
-    ' å‹¤æ€ æƒ…å ±åˆ†æçµæœã‚·ãƒ¼ãƒˆã«ã‚‚æƒ…å ±ã‚’è¿½åŠ ï¼ˆã‚·ãƒ¼ãƒˆåã‚’ä¿®æ­£ï¼‰
-    Dim summarySheet As Worksheet
-    On Error Resume Next
-    Set summarySheet = ThisWorkbook.Worksheets("å‹¤æ€ æƒ…å ±åˆ†æçµæœ")
-    
-    If Not summarySheet Is Nothing Then
-        ' æ—¢å­˜ã®æœ€çµ‚è¡Œã‚’è¦‹ã¤ã‘ã‚‹ï¼ˆéƒ¨é–€åˆ¥æ®‹æ¥­é›†è¨ˆã®æœ€çµ‚è¡Œä»¥é™ï¼‰
-        lastRow = 0
-        
-        ' éƒ¨ç½²åˆ—ï¼ˆAåˆ—ï¼‰ã‚’ä¸‹æ–¹å‘ã«ã‚¹ã‚­ãƒ£ãƒ³ã—ã¦æœ€å¾Œã®éç©ºã‚»ãƒ«ã‚’è¦‹ã¤ã‘ã‚‹
-        For i = 1 To 100
-            If Not IsEmpty(summarySheet.Cells(i, 1).Value) Then
-                lastRow = i
-            End If
-        Next i
-        
-        ' æœ€çµ‚è¡Œã‹ã‚‰3è¡Œç©ºã‘ã¦é–‹å§‹
-        NextRow = lastRow + 3
-        
-        ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œæƒ…å ±ã®ãƒ˜ãƒƒãƒ€ãƒ¼
-        summarySheet.Cells(NextRow, 1).Value = "å‹¤æ€ å…¥åŠ›æ¼ã‚Œæ¦‚è¦"
-        summarySheet.Cells(NextRow, 1).Font.Bold = True
-        summarySheet.Cells(NextRow, 1).Interior.Color = RGB(200, 200, 200)
-        summarySheet.Range(summarySheet.Cells(NextRow, 1), summarySheet.Cells(NextRow, 2)).Merge
-        
-        ' è©³ç´°æƒ…å ±
-        summarySheet.Cells(NextRow + 1, 1).Value = "æ¤œå‡ºã•ã‚ŒãŸå…¥åŠ›æ¼ã‚Œ"
-        summarySheet.Cells(NextRow + 1, 2).Value = totalMissing & "ä»¶"
-        
-        summarySheet.Cells(NextRow + 2, 1).Value = "å‡ºå‹¤æ™‚åˆ»ãªã—"
-        summarySheet.Cells(NextRow + 2, 2).Value = missingAttendance & "ä»¶"
-        
-        summarySheet.Cells(NextRow + 3, 1).Value = "é€€å‹¤æ™‚åˆ»ãªã—"
-        summarySheet.Cells(NextRow + 3, 2).Value = missingDeparture & "ä»¶"
-        
-        summarySheet.Cells(NextRow + 4, 1).Value = "å‡ºé€€å‹¤æ™‚åˆ»ãªã—"
-        summarySheet.Cells(NextRow + 4, 2).Value = missingBoth & "ä»¶"
-        
-        summarySheet.Cells(NextRow + 5, 1).Value = "å¯¾è±¡å¾“æ¥­å“¡æ•°"
-        summarySheet.Cells(NextRow + 5, 2).Value = employeeCount & "å"
-        
-        ' æ›¸å¼è¨­å®š
-        summarySheet.Range(summarySheet.Cells(NextRow + 1, 1), summarySheet.Cells(NextRow + 5, 2)).Borders.LineStyle = xlContinuous
-    End If
-    
-    ' ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆã‚’è¡¨ç¤ºï¼ˆå‹¤æ€ å…¥åŠ›æ¼ã‚Œæ¦‚è¦ã®ä¸‹ï¼‰
-    Call AddSpecialLeaveList(summarySheet, NextRow)
-    
-    Exit Sub
-    
-ErrorHandler:
-    MsgBox "æ¦‚è¦çµ±è¨ˆã®è¨ˆç®—ä¸­ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ: " & Err.Description, vbCritical
-End Sub
-
-' ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆã‚’è¡¨ç¤ºã™ã‚‹ - æœ€é©åŒ–ç‰ˆ
-Public Sub AddSpecialLeaveList(summarySheet As Worksheet, NextRow As Long)
-    ' CSVãƒ‡ãƒ¼ã‚¿ã‚·ãƒ¼ãƒˆã‚’å–å¾—
-    Dim wsCSVData As Worksheet
-    On Error Resume Next
-    Set wsCSVData = ThisWorkbook.Worksheets("CSVãƒ‡ãƒ¼ã‚¿")
-    If wsCSVData Is Nothing Then Exit Sub
-    
-    ' æœ€çµ‚è¡Œã‚’å–å¾—
-    Dim lastRow As Long
-    lastRow = wsCSVData.Cells(wsCSVData.Rows.Count, "A").End(xlUp).Row
-    
-    ' åˆ—ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ç‰¹å®š
-    Dim ç¤¾å“¡ç•ªå·Col As Integer, æ°åCol As Integer, éƒ¨é–€Col As Integer
-    Dim å½¹è·Col As Integer, æ—¥ä»˜Col As Integer, æ›œæ—¥Col As Integer
-    Dim ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col As Integer, å±Šå‡ºCol As Integer, å‚™è€ƒCol As Integer
-    
-    ' é«˜é€ŸåŒ–ã®ãŸã‚ã«ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’ãƒãƒƒãƒ•ã‚¡ã«å–å¾—
-    Dim headerRange As Range
-    Set headerRange = wsCSVData.Range(wsCSVData.Cells(1, 1), wsCSVData.Cells(1, wsCSVData.Cells(1, wsCSVData.Columns.Count).End(xlToLeft).Column))
-    Dim headerArray As Variant
-    headerArray = headerRange.Value
-    
-    ' å„åˆ—ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ç‰¹å®š
-    Dim i As Long, j As Long
-    For i = 1 To UBound(headerArray, 2)
-        Select Case headerArray(1, i)
-            Case "ç¤¾å“¡ç•ªå·": ç¤¾å“¡ç•ªå·Col = i
-            Case "æ°å": æ°åCol = i
-            Case "éƒ¨é–€": éƒ¨é–€Col = i
-            Case "å½¹è·": å½¹è·Col = i
-            Case "æ—¥ä»˜": æ—¥ä»˜Col = i
-            Case "æ›œæ—¥": æ›œæ—¥Col = i
-            Case "ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼": ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col = i
-            Case "å±Šå‡ºå†…å®¹": å±Šå‡ºCol = i
-            Case "å‚™è€ƒ": å‚™è€ƒCol = i
-        End Select
-    Next i
-    
-    ' å¿…è¦ãªåˆ—ãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã¯ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã‚’è¨­å®š
-    If ç¤¾å“¡ç•ªå·Col = 0 Then ç¤¾å“¡ç•ªå·Col = 1
-    If æ°åCol = 0 Then æ°åCol = 2
-    If éƒ¨é–€Col = 0 Then éƒ¨é–€Col = 3
-    If å½¹è·Col = 0 Then å½¹è·Col = 4
-    If æ—¥ä»˜Col = 0 Then æ—¥ä»˜Col = 5
-    If æ›œæ—¥Col = 0 Then æ›œæ—¥Col = 6
-    If ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col = 0 Then ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col = 7
-    If å±Šå‡ºCol = 0 Then å±Šå‡ºCol = 8
-    If å‚™è€ƒCol = 0 Then å‚™è€ƒCol = 60 ' ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§BHåˆ—
-    
-    ' é™¤å¤–ç¤¾å“¡ç•ªå·ã‚’å–å¾—
-    Dim excludeIDs As Variant
-    excludeIDs = é™¤å¤–ç¤¾å“¡ç•ªå·å–å¾—()
-    
-    ' é«˜é€ŸåŒ–ã®ãŸã‚é™¤å¤–IDã‚’è¾æ›¸ã«å¤‰æ›
-    Dim excludeDict As Object
-    Set excludeDict = CreateObject("Scripting.Dictionary")
-    excludeDict.CompareMode = vbTextCompare
-    
-    For j = LBound(excludeIDs) To UBound(excludeIDs)
-        If excludeIDs(j) <> "" Then
-            excludeDict.Add excludeIDs(j), True
-        End If
-    Next j
-    
-    ' ãƒ‡ãƒ¼ã‚¿ã‚’ãƒãƒƒãƒ•ã‚¡ã«å–å¾—ã—ã¦é«˜é€ŸåŒ–
-    Dim dataRange As Range
-    Set dataRange = wsCSVData.Range(wsCSVData.Cells(2, 1), wsCSVData.Cells(lastRow, wsCSVData.Cells(1, wsCSVData.Columns.Count).End(xlToLeft).Column))
-    Dim dataArray As Variant
-    dataArray = dataRange.Value
-    
-    ' ç‰¹åˆ¥ä¼‘æš‡ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’åé›†
-    Dim specialLeaves As New Collection
-    Dim leaveRecord As Object
-    
-    ' CSVå„è¡Œã‚’ãƒã‚§ãƒƒã‚¯ - é«˜é€ŸåŒ–
-    For i = 1 To UBound(dataArray, 1)
-        ' ç¤¾å“¡ç•ªå·ã‚’å–å¾—
-        Dim employeeID As String
-        employeeID = Trim(CStr(dataArray(i, ç¤¾å“¡ç•ªå·Col)))
-        
-        ' é™¤å¤–ç¤¾å“¡ã®å ´åˆã¯ã‚¹ã‚­ãƒƒãƒ— - å³å¯†ãªæ–‡å­—åˆ—æ¯”è¼ƒ
-        If excludeDict.Exists(employeeID) Then
-            Debug.Print "==> ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆã‹ã‚‰é™¤å¤–: " & employeeID
-            GoTo NextSpecialLeave
-        End If
-        
-        ' å±Šå‡ºå†…å®¹ãŒã€Œç‰¹åˆ¥ä¼‘æš‡ã€ã®ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’æŠ½å‡º
-        If å±Šå‡ºCol > 0 And Trim(CStr(dataArray(i, å±Šå‡ºCol))) = "ç‰¹åˆ¥ä¼‘æš‡" Then
-            Set leaveRecord = CreateObject("Scripting.Dictionary")
-            leaveRecord.Add "éƒ¨é–€", dataArray(i, éƒ¨é–€Col) ' éƒ¨é–€ã‚’æœ€åˆã«
-            leaveRecord.Add "ç¤¾å“¡ç•ªå·", employeeID
-            leaveRecord.Add "æ°å", dataArray(i, æ°åCol)
-            leaveRecord.Add "å½¹è·", dataArray(i, å½¹è·Col)
-            leaveRecord.Add "æ—¥ä»˜", dataArray(i, æ—¥ä»˜Col)
-            leaveRecord.Add "æ›œæ—¥", dataArray(i, æ›œæ—¥Col)
-            leaveRecord.Add "ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼", dataArray(i, ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼Col)
-            leaveRecord.Add "å±Šå‡ºå†…å®¹", dataArray(i, å±Šå‡ºCol)
-            leaveRecord.Add "å‚™è€ƒ", dataArray(i, å‚™è€ƒCol)
-            leaveRecord.Add "å‚™è€ƒç©ºæ¬„", (Trim(CStr(dataArray(i, å‚™è€ƒCol))) = "")
-            
-            ' ã‚³ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ã«è¿½åŠ 
-            specialLeaves.Add leaveRecord
-        End If
-NextSpecialLeave:
-    Next i
-    
-    ' ç‰¹åˆ¥ä¼‘æš‡ãŒãªã‘ã‚Œã°çµ‚äº†
-    If specialLeaves.Count = 0 Then Exit Sub
-    
-    ' ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆã®è¡¨ç¤ºä½ç½®ï¼ˆå‹¤æ€ å…¥åŠ›æ¼ã‚Œæ¦‚è¦ã®2è¡Œä¸‹ï¼‰
-    Dim listRow As Long
-    listRow = NextRow + 8
-    
-    ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’è¨­å®š
-    With summarySheet
-        .Cells(listRow, 1).Value = "ç‰¹åˆ¥ä¼‘æš‡ãƒªã‚¹ãƒˆ"
-        .Cells(listRow, 1).Font.Bold = True
-        .Cells(listRow, 1).Interior.Color = RGB(200, 200, 200)
-        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Merge
-        
-        listRow = listRow + 1
-        
-        ' ã‚«ãƒ©ãƒ ãƒ˜ãƒƒãƒ€ãƒ¼ (ä¸¦ã³é †ã‚’å¤‰æ›´)
-        .Cells(listRow, 1).Value = "éƒ¨ç½²" ' éƒ¨é–€ã‚’éƒ¨ç½²ã«å¤‰æ›´
-        .Cells(listRow, 2).Value = "ç¤¾å“¡ç•ªå·"
-        .Cells(listRow, 3).Value = "æ°å"
-        .Cells(listRow, 4).Value = "å½¹è·"
-        .Cells(listRow, 5).Value = "æ—¥ä»˜"
-        .Cells(listRow, 6).Value = "æ›œæ—¥"
-        .Cells(listRow, 7).Value = "ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼"
-        .Cells(listRow, 8).Value = "å±Šå‡ºå†…å®¹"
-        .Cells(listRow, 9).Value = "å‚™è€ƒ"
-        
-        ' ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã®æ›¸å¼è¨­å®š
-        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Font.Bold = True
-        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Interior.Color = RGB(200, 200, 200)
-        
-        listRow = listRow + 1
-        
-        ' ç‰¹åˆ¥ä¼‘æš‡ãƒ¬ã‚³ãƒ¼ãƒ‰ã‚’è¡¨ç¤º - ãƒãƒƒãƒ•ã‚¡ã«ä¸€åº¦ã«ãƒ‡ãƒ¼ã‚¿ã‚’æº–å‚™ã—ã¦é«˜é€ŸåŒ–
-        Dim outputData() As Variant
-        ReDim outputData(1 To specialLeaves.Count, 1 To 9)
-        Dim hasEmptyRemarks As Boolean
-        hasEmptyRemarks = False
-        
-        Dim idx As Long
-        idx = 1
-        
-        For Each leaveRecord In specialLeaves
-            outputData(idx, 1) = leaveRecord("éƒ¨é–€")
-            outputData(idx, 2) = leaveRecord("ç¤¾å“¡ç•ªå·")
-            outputData(idx, 3) = leaveRecord("æ°å")
-            outputData(idx, 4) = leaveRecord("å½¹è·")
-            outputData(idx, 5) = leaveRecord("æ—¥ä»˜")
-            outputData(idx, 6) = leaveRecord("æ›œæ—¥")
-            outputData(idx, 7) = leaveRecord("ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼")
-            outputData(idx, 8) = leaveRecord("å±Šå‡ºå†…å®¹")
-            outputData(idx, 9) = leaveRecord("å‚™è€ƒ")
-            
-            If leaveRecord("å‚™è€ƒç©ºæ¬„") Then
-                hasEmptyRemarks = True
-            End If
-            
-            idx = idx + 1
-        Next leaveRecord
-        
-        ' ãƒ‡ãƒ¼ã‚¿ã‚’ä¸€æ‹¬ã§ã‚·ãƒ¼ãƒˆã«æ›¸ãè¾¼ã¿
-        .Range(.Cells(listRow, 1), .Cells(listRow + specialLeaves.Count - 1, 9)).Value = outputData
-        
-        ' ç¤¾å“¡ç•ªå·åˆ—ã‚’æ–‡å­—åˆ—å½¢å¼ã«è¨­å®š
-        .Range(.Cells(listRow, 2), .Cells(listRow + specialLeaves.Count - 1, 2)).NumberFormat = "@"
-        
-        ' å‚™è€ƒæ¬„ãŒç©ºæ¬„ã®è¡Œã‚’ãƒã‚¤ãƒ©ã‚¤ãƒˆ
-        For i = 1 To specialLeaves.Count
-            If outputData(i, 9) = "" Then
-                .Cells(listRow + i - 1, 9).Interior.Color = RGB(255, 255, 200)
-            End If
-        Next i
-        
-        ' ã‚³ãƒ¡ãƒ³ãƒˆã‚’è¿½åŠ 
-        .Cells(listRow + specialLeaves.Count + 1, 1).Value = "å±Šå‡ºå†…å®¹ã«å¯¾ã—ã¦å‚™è€ƒæ¬„ã®è¨˜è¼‰ãŒæ˜ç¢ºã€ã‹ã¤ç¢ºå®Ÿã«èª¬æ˜ãŒãªã•ã‚Œã¦ã„ã‚‹ã“ã¨ã‚’ç¢ºèªã™ã‚‹ã“ã¨ã€‚"
-        .Cells(listRow + specialLeaves.Count + 2, 1).Value = "å‚™è€ƒæ¬„ã®è¨˜è¼‰ä¸å‚™ã¯ä¿®æ­£ãŒå¿…è¦ã§ã™ã€‚"
-        .Cells(listRow + specialLeaves.Count + 3, 1).Value = "å…¥åŠ›ã€å ±å‘Šä¸å‚™ãŒåŸå› ã§æŒ‡æ‘˜ã‚’å—ã‘ãŸå ´åˆã¯å ±å‘Šæ›¸å¯¾å¿œã¨ãªã‚Šã¾ã™ã€‚"
-        .Cells(listRow + specialLeaves.Count + 5, 1).Value = "ã€æŒ‡æ‘˜ã‚ã‚Šå®Ÿç¸¾ã€‘"
-        .Cells(listRow + specialLeaves.Count + 6, 1).Value = "ã€€2025å¹´3æœˆ æ…¶å¼”ä¼‘æš‡ç”³è«‹ã«ã¤ã„ã¦ã€ã€Œæ…¶å¼”ä¼‘æš‡ã€ã¨ã„ã†å‚™è€ƒæ¬„ã®è¨˜è¼‰ã¯èªã‚ã‚‰ã‚Œãªã„ã€‚"
-        .Cells(listRow + specialLeaves.Count + 7, 1).Value = "ã€€2025å¹´3æœˆ æ…¶å¼”ä¼‘æš‡ç”³è«‹ã«ã¤ã„ã¦ã€ã€Œæ…¶äº‹ã€ãªã®ã‹ã€Œå¼”äº‹ã€ãªã®ã‹æ˜ç¢ºã«è¨˜è¼‰ãŒãŒã‚ã‚‹ã“ã¨ã‚’ç¢ºèªã™ã‚‹ã“ã¨ã€‚"
-        
-        If hasEmptyRemarks Then
-            .Range(.Cells(listRow + specialLeaves.Count + 1, 1), .Cells(listRow + specialLeaves.Count + 2, 9)).Font.Color = RGB(255, 0, 0)
-            .Range(.Cells(listRow + specialLeaves.Count + 1, 1), .Cells(listRow + specialLeaves.Count + 2, 9)).Font.Bold = True
-        End If
-        
-        ' è¡¨ã®ãƒœãƒ¼ãƒ€ãƒ¼ã‚’è¨­å®š
-        Dim tableRange As Range
-        Set tableRange = .Range(.Cells(listRow, 1), .Cells(listRow + specialLeaves.Count - 1, 9))
-        tableRange.Borders.LineStyle = xlContinuous
-        tableRange.Borders.Weight = xlThin
-        
-        ' åˆ—å¹…ã®è‡ªå‹•èª¿æ•´
-        .Columns("B:I").AutoFit
-    End With
-End Sub
-
-
-' *************************************************************
-' é–¢æ•°å: AddLineWorksNotificationButton
-' ç›®çš„: å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã‚·ãƒ¼ãƒˆã«LINE WORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’è¿½åŠ 
-' å¼•æ•°: ws - å¯¾è±¡ãƒ¯ãƒ¼ã‚¯ã‚·ãƒ¼ãƒˆ
-' ä½œæˆæ—¥: 2025-10-18
-' æ”¹ç‰ˆå±¥æ­´:
-' 2025/10/18 çµµæ–‡å­—å‰Šé™¤ã€ãƒœã‚¿ãƒ³ä½ç½®ã‚’Låˆ—10è¡Œç›®ã«å¤‰æ›´ã€LINE WORKSã‚«ãƒ©ãƒ¼é©ç”¨
-' å‚™è€ƒ: PrepareOutputSheet()ã‹ã‚‰è‡ªå‹•çš„ã«å‘¼ã³å‡ºã•ã‚Œã‚‹
-' *************************************************************
-Public Sub AddLineWorksNotificationButton(ws As Worksheet)
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "========================================="
-    Debug.Print "ãƒœã‚¿ãƒ³è¿½åŠ é–‹å§‹: " & Now
-    Debug.Print "å¯¾è±¡ã‚·ãƒ¼ãƒˆ: " & ws.Name
-    
-    ' æ—¢å­˜ã®ãƒœã‚¿ãƒ³ã‚’å‰Šé™¤ï¼ˆé‡è¤‡é˜²æ­¢ï¼‰
-    Dim btn As Object
-    Dim btnCount As Integer
-    btnCount = 0
-    
-    On Error Resume Next
-    For Each btn In ws.Buttons
-        Debug.Print "æ—¢å­˜ãƒœã‚¿ãƒ³æ¤œå‡º: " & btn.Name
-        If btn.Name = "btnLineWorksNotification" Then
-            btn.Delete
-            btnCount = btnCount + 1
-            Debug.Print "ãƒœã‚¿ãƒ³ã‚’å‰Šé™¤ã—ã¾ã—ãŸ"
-        End If
-    Next btn
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "å‰Šé™¤ã—ãŸãƒœã‚¿ãƒ³æ•°: " & btnCount
-    
-    ' Låˆ—ï¼ˆ12åˆ—ç›®ï¼‰ã®10è¡Œç›®ã®ä½ç½®ã‚’å–å¾—
-    Dim targetCell As Range
-    Set targetCell = ws.Cells(10, 12) ' L10ã‚»ãƒ«
-    
-    ' ãƒœã‚¿ãƒ³ã®ã‚µã‚¤ã‚º
-    Dim buttonWidth As Double
-    Dim buttonHeight As Double
-    buttonWidth = 180  ' å¹…180ãƒ”ã‚¯ã‚»ãƒ«
-    buttonHeight = 35  ' é«˜ã•35ãƒ”ã‚¯ã‚»ãƒ«
-    
-    ' LINE WORKSé€šçŸ¥ãƒœã‚¿ãƒ³ã‚’è¿½åŠ 
-    Dim newBtn As Button
-    Set newBtn = ws.Buttons.Add( _
-        targetCell.Left, _
-        targetCell.Top, _
-        buttonWidth, _
-        buttonHeight)
-    
-    Debug.Print "ãƒœã‚¿ãƒ³ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆä½œæˆå®Œäº†"
-    Debug.Print "ãƒœã‚¿ãƒ³ä½ç½®: Left=" & targetCell.Left & ", Top=" & targetCell.Top
-    
-    ' ãƒœã‚¿ãƒ³ã®ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£è¨­å®š
-    With newBtn
-        .OnAction = "SendNotificationToLineWorks"
-        .Caption = "LINE WORKSé€šçŸ¥"  ' çµµæ–‡å­—ãªã—
-        .Name = "btnLineWorksNotification"
-        .Font.Name = "Meiryo UI"
-        .Font.Size = 11
-        .Font.Bold = True
-        .Font.Color = RGB(0, 0, 0)  ' ç™½æ–‡å­—
-    End With
-    
-    ' ãƒœã‚¿ãƒ³ã®èƒŒæ™¯è‰²ã‚’LINE WORKSã‚«ãƒ©ãƒ¼ï¼ˆç·‘ï¼‰ã«è¨­å®š
-    ' RGB(0, 195, 137) = LINE WORKSã®ç·‘
-    On Error Resume Next
-    newBtn.ShapeRange.Fill.ForeColor.RGB = RGB(0, 195, 137)
-    newBtn.ShapeRange.line.Visible = msoFalse  ' æ ç·šãªã—
-    On Error GoTo ErrorHandler
-    
-    Debug.Print "ãƒœã‚¿ãƒ³è¿½åŠ æˆåŠŸ"
-    Debug.Print "ãƒœã‚¿ãƒ³å: " & newBtn.Name
-    Debug.Print "ãƒœã‚¿ãƒ³ä½ç½®: Top=" & newBtn.Top & ", Left=" & newBtn.Left
-    Debug.Print "ãƒœã‚¿ãƒ³ã‚µã‚¤ã‚º: Width=" & newBtn.Width & ", Height=" & newBtn.Height
-    Debug.Print "========================================="
-    
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "ãƒœã‚¿ãƒ³è¿½åŠ ã‚¨ãƒ©ãƒ¼: " & Err.Description
-    Debug.Print "ã‚¨ãƒ©ãƒ¼ç•ªå·: " & Err.Number
-    Debug.Print "========================================="
-    
-    ' ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¦ã‚‚ã‚·ãƒ¼ãƒˆä½œæˆã¯ç¶™ç¶š
-    ' ãƒ¦ãƒ¼ã‚¶ãƒ¼ã«ã¯ã‚¨ãƒ©ãƒ¼ã‚’è¡¨ç¤ºã—ãªã„
-End Sub
-
-' *************************************************************
-' ãƒ†ã‚¹ãƒˆ: ãƒœã‚¿ãƒ³è¿½åŠ ãŒå‹•ä½œã™ã‚‹ã‹ç¢ºèª
-' *************************************************************
-Sub Test_AddButton()
-    ' å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã‚·ãƒ¼ãƒˆã‚’å–å¾—
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Sheets("å‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§")
-    On Error GoTo 0
-    
-    If ws Is Nothing Then
-        MsgBox "ã€Œå‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã€ã‚·ãƒ¼ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚" & vbCrLf & _
-               "å…ˆã«å‹¤æ€ ãƒã‚§ãƒƒã‚¯ã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚", vbExclamation
-        Exit Sub
-    End If
-    
-    ' ãƒœã‚¿ãƒ³è¿½åŠ é–¢æ•°ã‚’å®Ÿè¡Œ
-    Call AddLineWorksNotificationButton(ws)
-    
-    ' ç¢ºèª
-    MsgBox "ãƒœã‚¿ãƒ³ã‚’è¿½åŠ ã—ã¾ã—ãŸã€‚" & vbCrLf & _
-           "ã€Œå‹¤æ€ å…¥åŠ›æ¼ã‚Œä¸€è¦§ã€ã‚·ãƒ¼ãƒˆã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚", vbInformation
-    
-    ' ã‚·ãƒ¼ãƒˆã‚’ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ã™ã‚‹
-    ws.Activate
-End Sub
-
+' *************************************************************
+' ƒ‚ƒWƒ…[ƒ‹F‹Î‘Ó“ü—Í˜R‚êƒŒƒ|[ƒg¶¬
+' –Ú“IF‹Î‘Ó“ü—Í˜R‚ê‚ÌƒŒƒ|[ƒg‚ğ¶¬‚·‚éŠÖ”ŒQ
+' Copyright (c) 2025 SI1 shunpei.suzuki
+' ì¬“úF2025”N4Œ2“ú
+'
+' ‰ü”Å—š—ğF
+' 2025/04/02 module2‚©‚ç•ªŠ„ì¬
+' 2025/10/18 LINE WORKS’Ê’mƒ{ƒ^ƒ“’Ç‰Á‹@”\‚ğ“‡
+' *************************************************************
+
+' ’è”’è‹`imodule2_core‚Æ“¯‚¶’è”‚ğ’è‹`j
+Private Const SHEET_NAME_MISSING_ENTRIES As String = "‹Î‘Ó“ü—Í˜R‚êˆê——"
+Private Const COL_EMPLOYEE_ID As Integer = 1
+Private Const COL_EMPLOYEE_NAME As Integer = 2
+Private Const COL_DATE As Integer = 3
+Private Const COL_DAY_TYPE As Integer = 4
+Private Const COL_LEAVE_TYPE As Integer = 5
+Private Const COL_MISSING_ENTRY_TYPE As Integer = 6
+Private Const COL_COMMENT As Integer = 7
+Private Const COL_ATTENDANCE_TIME As Integer = 8 ' o‹Î—ñ‚ğ’Ç‰Á
+Private Const COL_DEPARTURE_TIME As Integer = 9 ' ‘Ş‹Î—ñ‚ğ’Ç‰Á
+Private Const COL_CONTRADICTION_TYPE As Integer = 10 ' –µ‚í•Ê—ñ‚ğ’Ç‰Á
+Private Const DEBUG_MODE As Boolean = False ' ƒfƒoƒbƒOƒ‚[ƒhİ’è - ’Êí‰^—p‚ÍFalse
+
+' o—ÍƒV[ƒg‚ğ€”õ‚·‚é
+Public Function PrepareOutputSheet() As Worksheet
+    On Error Resume Next
+    
+    Application.StatusBar = "o—ÍƒV[ƒg‚ğ€”õ‚µ‚Ä‚¢‚Ü‚·..."
+    
+    ' Šù‘¶ƒV[ƒg‚ª‚ ‚ê‚Îíœ
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(SHEET_NAME_MISSING_ENTRIES)
+    If Not ws Is Nothing Then
+        ws.Delete
+    End If
+    
+    ' c‹Æˆê——ƒV[ƒg‚ğæ“¾
+    Dim overtimeSheet As Worksheet
+    On Error Resume Next
+    Set overtimeSheet = ThisWorkbook.Worksheets("c‹Æˆê——")
+    On Error GoTo 0
+    
+    ' V‚µ‚¢ƒV[ƒg‚ğì¬ic‹Æˆê——ƒV[ƒg‚Ì‰E—×‚Éj
+    If Not overtimeSheet Is Nothing Then
+        Set ws = ThisWorkbook.Sheets.Add(After:=overtimeSheet)
+    Else
+        Set ws = ThisWorkbook.Sheets.Add
+    End If
+    ws.Name = SHEET_NAME_MISSING_ENTRIES
+    
+    ' ƒwƒbƒ_[s‚Ìİ’è
+    ws.Cells(1, COL_EMPLOYEE_ID).Value = "Ğˆõ”Ô†"
+    ws.Cells(1, COL_EMPLOYEE_NAME).Value = "–¼"
+    ws.Cells(1, COL_DATE).Value = "“ú•t"
+    ws.Cells(1, COL_DAY_TYPE).Value = "—j“ú‹æ•ª"
+    ws.Cells(1, COL_LEAVE_TYPE).Value = "“Ío“à—e"
+    ws.Cells(1, COL_COMMENT).Value = "ƒRƒƒ“ƒg"
+    ws.Cells(1, COL_ATTENDANCE_TIME).Value = "o‹Î"
+    ws.Cells(1, COL_DEPARTURE_TIME).Value = "‘Ş‹Î"
+    
+    ' “ü—Í˜R‚êí•Ê‚Æ–µ‚í•Ê‚Ì—ñ‚Í”ñ•\¦‚É‚·‚é
+    ws.Columns(COL_MISSING_ENTRY_TYPE).Hidden = True
+    ws.Columns(COL_CONTRADICTION_TYPE).Hidden = True
+    
+    ' –µ‚í•Ê‚Ìà–¾‚ÍŠT—v“Œv‚Ì‰º‚É”z’u‚·‚é‚½‚ßA‚±‚±‚Å‚Í’Ç‰Á‚µ‚È‚¢
+    
+    ' ƒwƒbƒ_[s‚Ì‘®İ’è
+    ws.Range(ws.Cells(1, 1), ws.Cells(1, COL_CONTRADICTION_TYPE)).Interior.Color = RGB(200, 200, 200)
+    ws.Range(ws.Cells(1, 1), ws.Cells(1, COL_CONTRADICTION_TYPE)).Font.Bold = True
+    
+    ' —ñ•‚Ì©“®’²®
+    ws.Columns("B:M").AutoFit
+    
+    ' Ğˆõ”Ô†—ñ‚ğ•¶š—ñŒ`®‚Éİ’è
+    ws.Columns("A").NumberFormat = "@"
+    
+    ' ššš LINE WORKS’Ê’mƒ{ƒ^ƒ“‚ğ’Ç‰Á ššš
+    Debug.Print "PrepareOutputSheet: ƒ{ƒ^ƒ“’Ç‰Á‚ğÀs‚µ‚Ü‚·"
+    Call AddLineWorksNotificationButton(ws)
+    Debug.Print "PrepareOutputSheet: ƒ{ƒ^ƒ“’Ç‰ÁŠ®—¹"
+    
+    Set PrepareOutputSheet = ws
+End Function
+
+' ŠT—v“Œv‚ğŒvZ‚µ‚Ä•\¦‚·‚é
+Public Sub CalculateAndDisplaySummary(missingEntriesSheet As Worksheet)
+    On Error GoTo ErrorHandler
+    
+    Application.StatusBar = "ŠT—v“Œv‚ğŒvZ‚µ‚Ä‚¢‚Ü‚·..."
+    
+    ' •Û‘¶‚³‚ê‚½“Œvî•ñ‚Ìæ“¾
+    Dim totalMissing As Long
+    Dim missingAttendance As Long
+    Dim missingDeparture As Long
+    Dim missingBoth As Long
+    Dim employeeCount As Long
+    Dim i As Long
+    Dim lastRow As Long
+    Dim NextRow As Long
+    
+    totalMissing = missingEntriesSheet.Range("J2").Value
+    missingAttendance = missingEntriesSheet.Range("J3").Value
+    missingDeparture = missingEntriesSheet.Range("J4").Value
+    missingBoth = missingEntriesSheet.Range("J5").Value
+    employeeCount = missingEntriesSheet.Range("J6").Value
+    
+    ' “ü—Í˜R‚êˆê——‚ÌƒV[ƒg‚ÉŠT—v“ŒvƒGƒŠƒA‚ğì¬
+    With missingEntriesSheet
+        ' •s—v‚ÈŒvZƒf[ƒ^ƒZƒ‹‚Í”’F•¶š‚É‚µ‚Ä‚¨‚­iJ2-J6j
+        .Range("J2:J3").Font.Color = RGB(255, 255, 255)
+        
+        .Cells(3, 12).Value = "ŠT—v“Œv"
+        .Cells(3, 12).Font.Bold = True
+        
+        .Cells(4, 12).Value = "ŒŸo‚³‚ê‚½“ü—Í˜R‚ê"
+        .Cells(4, 13).Value = totalMissing & "Œ"
+        
+        .Cells(5, 12).Value = "o‹Î‚È‚µ"
+        .Cells(5, 13).Value = missingAttendance & "Œ"
+        
+        .Cells(6, 12).Value = "‘Ş‹Î‚È‚µ"
+        .Cells(6, 13).Value = missingDeparture & "Œ"
+        
+        .Cells(7, 12).Value = "o‘Ş‹Î‚È‚µ"
+        .Cells(7, 13).Value = missingBoth & "Œ"
+        
+        .Cells(8, 12).Value = "‘ÎÛ]‹Æˆõ”"
+        .Cells(8, 13).Value = employeeCount & "–¼"
+        
+        ' ‘®İ’è
+        .Range(.Cells(3, 12), .Cells(8, 13)).Borders.LineStyle = xlNone
+        .Range(.Cells(3, 12), .Cells(3, 13)).Interior.Color = RGB(200, 200, 200)
+        
+        ' à–¾‚Í•s—v
+        
+        ' —ñ•‚Ì©“®’²®
+        .Columns("L:M").AutoFit
+    End With
+    
+    ' ‹Î‘Óî•ñ•ªÍŒ‹‰ÊƒV[ƒg‚É‚àî•ñ‚ğ’Ç‰ÁiƒV[ƒg–¼‚ğC³j
+    Dim summarySheet As Worksheet
+    On Error Resume Next
+    Set summarySheet = ThisWorkbook.Worksheets("‹Î‘Óî•ñ•ªÍŒ‹‰Ê")
+    
+    If Not summarySheet Is Nothing Then
+        ' Šù‘¶‚ÌÅIs‚ğŒ©‚Â‚¯‚éi•”–å•Êc‹ÆWŒv‚ÌÅIsˆÈ~j
+        lastRow = 0
+        
+        ' •”—ñiA—ñj‚ğ‰º•ûŒü‚ÉƒXƒLƒƒƒ“‚µ‚ÄÅŒã‚Ì”ñ‹óƒZƒ‹‚ğŒ©‚Â‚¯‚é
+        For i = 1 To 100
+            If Not IsEmpty(summarySheet.Cells(i, 1).Value) Then
+                lastRow = i
+            End If
+        Next i
+        
+        ' ÅIs‚©‚ç3s‹ó‚¯‚ÄŠJn
+        NextRow = lastRow + 3
+        
+        ' ‹Î‘Ó“ü—Í˜R‚êî•ñ‚Ìƒwƒbƒ_[
+        summarySheet.Cells(NextRow, 1).Value = "‹Î‘Ó“ü—Í˜R‚êŠT—v"
+        summarySheet.Cells(NextRow, 1).Font.Bold = True
+        summarySheet.Cells(NextRow, 1).Interior.Color = RGB(200, 200, 200)
+        summarySheet.Range(summarySheet.Cells(NextRow, 1), summarySheet.Cells(NextRow, 2)).Merge
+        
+        ' Ú×î•ñ
+        summarySheet.Cells(NextRow + 1, 1).Value = "ŒŸo‚³‚ê‚½“ü—Í˜R‚ê"
+        summarySheet.Cells(NextRow + 1, 2).Value = totalMissing & "Œ"
+        
+        summarySheet.Cells(NextRow + 2, 1).Value = "o‹Î‚È‚µ"
+        summarySheet.Cells(NextRow + 2, 2).Value = missingAttendance & "Œ"
+        
+        summarySheet.Cells(NextRow + 3, 1).Value = "‘Ş‹Î‚È‚µ"
+        summarySheet.Cells(NextRow + 3, 2).Value = missingDeparture & "Œ"
+        
+        summarySheet.Cells(NextRow + 4, 1).Value = "o‘Ş‹Î‚È‚µ"
+        summarySheet.Cells(NextRow + 4, 2).Value = missingBoth & "Œ"
+        
+        summarySheet.Cells(NextRow + 5, 1).Value = "‘ÎÛ]‹Æˆõ”"
+        summarySheet.Cells(NextRow + 5, 2).Value = employeeCount & "–¼"
+        
+        ' ‘®İ’è
+        summarySheet.Range(summarySheet.Cells(NextRow + 1, 1), summarySheet.Cells(NextRow + 5, 2)).Borders.LineStyle = xlContinuous
+    End If
+    
+    ' “Á•Ê‹x‰ÉƒŠƒXƒg‚ğ•\¦i‹Î‘Ó“ü—Í˜R‚êŠT—v‚Ì‰ºj
+    Call AddSpecialLeaveList(summarySheet, NextRow)
+    
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "ŠT—v“Œv‚ÌŒvZ’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½: " & Err.Description, vbCritical
+End Sub
+
+' “Á•Ê‹x‰ÉƒŠƒXƒg‚ğ•\¦‚·‚é - Å“K‰»”Å
+Public Sub AddSpecialLeaveList(summarySheet As Worksheet, NextRow As Long)
+    ' CSVƒf[ƒ^ƒV[ƒg‚ğæ“¾
+    Dim wsCSVData As Worksheet
+    On Error Resume Next
+    Set wsCSVData = ThisWorkbook.Worksheets("CSVƒf[ƒ^")
+    If wsCSVData Is Nothing Then Exit Sub
+    
+    ' ÅIs‚ğæ“¾
+    Dim lastRow As Long
+    lastRow = wsCSVData.Cells(wsCSVData.Rows.count, "A").End(xlUp).Row
+    
+    ' —ñƒCƒ“ƒfƒbƒNƒX‚Ì“Á’è
+    Dim Ğˆõ”Ô†Col As Integer, –¼Col As Integer, •”–åCol As Integer
+    Dim –ğECol As Integer, “ú•tCol As Integer, —j“úCol As Integer
+    Dim ƒJƒŒƒ“ƒ_[Col As Integer, “ÍoCol As Integer, ”õlCol As Integer
+    
+    ' ‚‘¬‰»‚Ì‚½‚ß‚Éƒwƒbƒ_[s‚ğƒoƒbƒtƒ@‚Éæ“¾
+    Dim headerRange As Range
+    Set headerRange = wsCSVData.Range(wsCSVData.Cells(1, 1), wsCSVData.Cells(1, wsCSVData.Cells(1, wsCSVData.Columns.count).End(xlToLeft).Column))
+    Dim headerArray As Variant
+    headerArray = headerRange.Value
+    
+    ' Še—ñ‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ“Á’è
+    Dim i As Long, j As Long
+    For i = 1 To UBound(headerArray, 2)
+        Select Case headerArray(1, i)
+            Case "Ğˆõ”Ô†": Ğˆõ”Ô†Col = i
+            Case "–¼": –¼Col = i
+            Case "•”–å": •”–åCol = i
+            Case "–ğE": –ğECol = i
+            Case "“ú•t": “ú•tCol = i
+            Case "—j“ú": —j“úCol = i
+            Case "ƒJƒŒƒ“ƒ_[": ƒJƒŒƒ“ƒ_[Col = i
+            Case "“Ío“à—e": “ÍoCol = i
+            Case "”õl": ”õlCol = i
+        End Select
+    Next i
+    
+    ' •K—v‚È—ñ‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡‚ÍƒfƒtƒHƒ‹ƒg’l‚ğİ’è
+    If Ğˆõ”Ô†Col = 0 Then Ğˆõ”Ô†Col = 1
+    If –¼Col = 0 Then –¼Col = 2
+    If •”–åCol = 0 Then •”–åCol = 3
+    If –ğECol = 0 Then –ğECol = 4
+    If “ú•tCol = 0 Then “ú•tCol = 5
+    If —j“úCol = 0 Then —j“úCol = 6
+    If ƒJƒŒƒ“ƒ_[Col = 0 Then ƒJƒŒƒ“ƒ_[Col = 7
+    If “ÍoCol = 0 Then “ÍoCol = 8
+    If ”õlCol = 0 Then ”õlCol = 60 ' ƒfƒtƒHƒ‹ƒg‚ÅBH—ñ
+    
+    ' œŠOĞˆõ”Ô†‚ğæ“¾
+    Dim excludeIDs As Variant
+    excludeIDs = œŠOĞˆõ”Ô†æ“¾()
+    
+    ' ‚‘¬‰»‚Ì‚½‚ßœŠOID‚ğ«‘‚É•ÏŠ·
+    Dim excludeDict As Object
+    Set excludeDict = CreateObject("Scripting.Dictionary")
+    excludeDict.CompareMode = vbTextCompare
+    
+    For j = LBound(excludeIDs) To UBound(excludeIDs)
+        If excludeIDs(j) <> "" Then
+            excludeDict.Add excludeIDs(j), True
+        End If
+    Next j
+    
+    ' ƒf[ƒ^‚ğƒoƒbƒtƒ@‚Éæ“¾‚µ‚Ä‚‘¬‰»
+    Dim dataRange As Range
+    Set dataRange = wsCSVData.Range(wsCSVData.Cells(2, 1), wsCSVData.Cells(lastRow, wsCSVData.Cells(1, wsCSVData.Columns.count).End(xlToLeft).Column))
+    Dim dataArray As Variant
+    dataArray = dataRange.Value
+    
+    ' “Á•Ê‹x‰ÉƒŒƒR[ƒh‚ğûW
+    Dim specialLeaves As New Collection
+    Dim leaveRecord As Object
+    
+    ' CSVŠes‚ğƒ`ƒFƒbƒN - ‚‘¬‰»
+    For i = 1 To UBound(dataArray, 1)
+        ' Ğˆõ”Ô†‚ğæ“¾
+        Dim employeeID As String
+        employeeID = Trim(CStr(dataArray(i, Ğˆõ”Ô†Col)))
+        
+        ' œŠOĞˆõ‚Ìê‡‚ÍƒXƒLƒbƒv - Œµ–§‚È•¶š—ñ”äŠr
+        If excludeDict.Exists(employeeID) Then
+            Debug.Print "==> “Á•Ê‹x‰ÉƒŠƒXƒg‚©‚çœŠO: " & employeeID
+            GoTo NextSpecialLeave
+        End If
+        
+        ' “Ío“à—e‚ªu“Á•Ê‹x‰Év‚ÌƒŒƒR[ƒh‚ğ’Šo
+        If “ÍoCol > 0 And Trim(CStr(dataArray(i, “ÍoCol))) = "“Á•Ê‹x‰É" Then
+            Set leaveRecord = CreateObject("Scripting.Dictionary")
+            leaveRecord.Add "•”–å", dataArray(i, •”–åCol) ' •”–å‚ğÅ‰‚É
+            leaveRecord.Add "Ğˆõ”Ô†", employeeID
+            leaveRecord.Add "–¼", dataArray(i, –¼Col)
+            leaveRecord.Add "–ğE", dataArray(i, –ğECol)
+            leaveRecord.Add "“ú•t", dataArray(i, “ú•tCol)
+            leaveRecord.Add "—j“ú", dataArray(i, —j“úCol)
+            leaveRecord.Add "ƒJƒŒƒ“ƒ_[", dataArray(i, ƒJƒŒƒ“ƒ_[Col)
+            leaveRecord.Add "“Ío“à—e", dataArray(i, “ÍoCol)
+            leaveRecord.Add "”õl", dataArray(i, ”õlCol)
+            leaveRecord.Add "”õl‹ó—“", (Trim(CStr(dataArray(i, ”õlCol))) = "")
+            
+            ' ƒRƒŒƒNƒVƒ‡ƒ“‚É’Ç‰Á
+            specialLeaves.Add leaveRecord
+        End If
+NextSpecialLeave:
+    Next i
+    
+    ' “Á•Ê‹x‰É‚ª‚È‚¯‚ê‚ÎI—¹
+    If specialLeaves.count = 0 Then Exit Sub
+    
+    ' “Á•Ê‹x‰ÉƒŠƒXƒg‚Ì•\¦ˆÊ’ui‹Î‘Ó“ü—Í˜R‚êŠT—v‚Ì2s‰ºj
+    Dim listRow As Long
+    listRow = NextRow + 8
+    
+    ' ƒwƒbƒ_[s‚ğİ’è
+    With summarySheet
+        .Cells(listRow, 1).Value = "“Á•Ê‹x‰ÉƒŠƒXƒg"
+        .Cells(listRow, 1).Font.Bold = True
+        .Cells(listRow, 1).Interior.Color = RGB(200, 200, 200)
+        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Merge
+        
+        listRow = listRow + 1
+        
+        ' ƒJƒ‰ƒ€ƒwƒbƒ_[ (•À‚Ñ‡‚ğ•ÏX)
+        .Cells(listRow, 1).Value = "•”" ' •”–å‚ğ•”‚É•ÏX
+        .Cells(listRow, 2).Value = "Ğˆõ”Ô†"
+        .Cells(listRow, 3).Value = "–¼"
+        .Cells(listRow, 4).Value = "–ğE"
+        .Cells(listRow, 5).Value = "“ú•t"
+        .Cells(listRow, 6).Value = "—j“ú"
+        .Cells(listRow, 7).Value = "ƒJƒŒƒ“ƒ_["
+        .Cells(listRow, 8).Value = "“Ío“à—e"
+        .Cells(listRow, 9).Value = "”õl"
+        
+        ' ƒwƒbƒ_[s‚Ì‘®İ’è
+        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Font.Bold = True
+        .Range(.Cells(listRow, 1), .Cells(listRow, 9)).Interior.Color = RGB(200, 200, 200)
+        
+        listRow = listRow + 1
+        
+        ' “Á•Ê‹x‰ÉƒŒƒR[ƒh‚ğ•\¦ - ƒoƒbƒtƒ@‚Éˆê“x‚Éƒf[ƒ^‚ğ€”õ‚µ‚Ä‚‘¬‰»
+        Dim outputData() As Variant
+        ReDim outputData(1 To specialLeaves.count, 1 To 9)
+        Dim hasEmptyRemarks As Boolean
+        hasEmptyRemarks = False
+        
+        Dim idx As Long
+        idx = 1
+        
+        For Each leaveRecord In specialLeaves
+            outputData(idx, 1) = leaveRecord("•”–å")
+            outputData(idx, 2) = leaveRecord("Ğˆõ”Ô†")
+            outputData(idx, 3) = leaveRecord("–¼")
+            outputData(idx, 4) = leaveRecord("–ğE")
+            outputData(idx, 5) = leaveRecord("“ú•t")
+            outputData(idx, 6) = leaveRecord("—j“ú")
+            outputData(idx, 7) = leaveRecord("ƒJƒŒƒ“ƒ_[")
+            outputData(idx, 8) = leaveRecord("“Ío“à—e")
+            outputData(idx, 9) = leaveRecord("”õl")
+            
+            If leaveRecord("”õl‹ó—“") Then
+                hasEmptyRemarks = True
+            End If
+            
+            idx = idx + 1
+        Next leaveRecord
+        
+        ' ƒf[ƒ^‚ğˆêŠ‡‚ÅƒV[ƒg‚É‘‚«‚İ
+        .Range(.Cells(listRow, 1), .Cells(listRow + specialLeaves.count - 1, 9)).Value = outputData
+        
+        ' Ğˆõ”Ô†—ñ‚ğ•¶š—ñŒ`®‚Éİ’è
+        .Range(.Cells(listRow, 2), .Cells(listRow + specialLeaves.count - 1, 2)).NumberFormat = "@"
+        
+        ' ”õl—“‚ª‹ó—“‚Ìs‚ğƒnƒCƒ‰ƒCƒg
+        For i = 1 To specialLeaves.count
+            If outputData(i, 9) = "" Then
+                .Cells(listRow + i - 1, 9).Interior.Color = RGB(255, 255, 200)
+            End If
+        Next i
+        
+        ' ƒRƒƒ“ƒg‚ğ’Ç‰Á
+        .Cells(listRow + specialLeaves.count + 1, 1).Value = "“Ío“à—e‚É‘Î‚µ‚Ä”õl—“‚Ì‹LÚ‚ª–¾ŠmA‚©‚ÂŠmÀ‚Éà–¾‚ª‚È‚³‚ê‚Ä‚¢‚é‚±‚Æ‚ğŠm”F‚·‚é‚±‚ÆB"
+        .Cells(listRow + specialLeaves.count + 2, 1).Value = "”õl—“‚Ì‹LÚ•s”õ‚ÍC³‚ª•K—v‚Å‚·B"
+        .Cells(listRow + specialLeaves.count + 3, 1).Value = "“ü—ÍA•ñ•s”õ‚ªŒ´ˆö‚Åw“E‚ğó‚¯‚½ê‡‚Í•ñ‘‘Î‰‚Æ‚È‚è‚Ü‚·B"
+        .Cells(listRow + specialLeaves.count + 5, 1).Value = "yw“E‚ ‚èÀÑz"
+        .Cells(listRow + specialLeaves.count + 6, 1).Value = "@2025”N3Œ Œc’¢‹x‰É\¿‚É‚Â‚¢‚ÄAuŒc’¢‹x‰Év‚Æ‚¢‚¤”õl—“‚Ì‹LÚ‚Í”F‚ß‚ç‚ê‚È‚¢B"
+        .Cells(listRow + specialLeaves.count + 7, 1).Value = "@2025”N3Œ Œc’¢‹x‰É\¿‚É‚Â‚¢‚ÄAuŒc–v‚È‚Ì‚©u’¢–v‚È‚Ì‚©–¾Šm‚É‹LÚ‚ª‚ª‚ ‚é‚±‚Æ‚ğŠm”F‚·‚é‚±‚ÆB"
+        
+        If hasEmptyRemarks Then
+            .Range(.Cells(listRow + specialLeaves.count + 1, 1), .Cells(listRow + specialLeaves.count + 2, 9)).Font.Color = RGB(255, 0, 0)
+            .Range(.Cells(listRow + specialLeaves.count + 1, 1), .Cells(listRow + specialLeaves.count + 2, 9)).Font.Bold = True
+        End If
+        
+        ' •\‚Ìƒ{[ƒ_[‚ğİ’è
+        Dim tableRange As Range
+        Set tableRange = .Range(.Cells(listRow, 1), .Cells(listRow + specialLeaves.count - 1, 9))
+        tableRange.Borders.LineStyle = xlContinuous
+        tableRange.Borders.Weight = xlThin
+        
+        ' —ñ•‚Ì©“®’²®
+        .Columns("B:I").AutoFit
+    End With
+End Sub
+
+
+' *************************************************************
+' ŠÖ”–¼: AddLineWorksNotificationButton
+' –Ú“I: ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ÉLINE WORKS’Ê’mƒ{ƒ^ƒ“‚ğ’Ç‰Á
+' ˆø”: ws - ‘ÎÛƒ[ƒNƒV[ƒg
+' ì¬“ú: 2025-10-18
+' ‰ü”Å—š—ğ:
+' 2025/10/18 ŠG•¶šíœAƒ{ƒ^ƒ“ˆÊ’u‚ğL—ñ10s–Ú‚É•ÏXALINE WORKSƒJƒ‰[“K—p
+' ”õl: PrepareOutputSheet()‚©‚ç©“®“I‚ÉŒÄ‚Ño‚³‚ê‚é
+' *************************************************************
+Public Sub AddLineWorksNotificationButton(ws As Worksheet)
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "========================================="
+    Debug.Print "ƒ{ƒ^ƒ“’Ç‰ÁŠJn: " & Now
+    Debug.Print "‘ÎÛƒV[ƒg: " & ws.Name
+    
+    ' Šù‘¶‚Ìƒ{ƒ^ƒ“‚ğíœid•¡–h~j
+    Dim btn As Object
+    Dim btnCount As Integer
+    btnCount = 0
+    
+    On Error Resume Next
+    For Each btn In ws.Buttons
+        Debug.Print "Šù‘¶ƒ{ƒ^ƒ“ŒŸo: " & btn.Name
+        If btn.Name = "btnLineWorksNotification" Then
+            btn.Delete
+            btnCount = btnCount + 1
+            Debug.Print "ƒ{ƒ^ƒ“‚ğíœ‚µ‚Ü‚µ‚½"
+        End If
+    Next btn
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "íœ‚µ‚½ƒ{ƒ^ƒ“”: " & btnCount
+    
+    ' L—ñi12—ñ–Új‚Ì10s–Ú‚ÌˆÊ’u‚ğæ“¾
+    Dim targetCell As Range
+    Set targetCell = ws.Cells(10, 12) ' L10ƒZƒ‹
+    
+    ' ƒ{ƒ^ƒ“‚ÌƒTƒCƒY
+    Dim buttonWidth As Double
+    Dim buttonHeight As Double
+    buttonWidth = 180  ' •180ƒsƒNƒZƒ‹
+    buttonHeight = 35  ' ‚‚³35ƒsƒNƒZƒ‹
+    
+    ' LINE WORKS’Ê’mƒ{ƒ^ƒ“‚ğ’Ç‰Á
+    Dim newBtn As Button
+    Set newBtn = ws.Buttons.Add( _
+        targetCell.Left, _
+        targetCell.Top, _
+        buttonWidth, _
+        buttonHeight)
+    
+    Debug.Print "ƒ{ƒ^ƒ“ƒIƒuƒWƒFƒNƒgì¬Š®—¹"
+    Debug.Print "ƒ{ƒ^ƒ“ˆÊ’u: Left=" & targetCell.Left & ", Top=" & targetCell.Top
+    
+    ' ƒ{ƒ^ƒ“‚ÌƒvƒƒpƒeƒBİ’è
+    With newBtn
+        .OnAction = "SendNotificationToLineWorks"
+        .Caption = "LINE WORKS’Ê’m"  ' ŠG•¶š‚È‚µ
+        .Name = "btnLineWorksNotification"
+        .Font.Name = "Meiryo UI"
+        .Font.Size = 11
+        .Font.Bold = True
+        .Font.Color = RGB(0, 0, 0)  ' ”’•¶š
+    End With
+    
+    ' ƒ{ƒ^ƒ“‚Ì”wŒiF‚ğLINE WORKSƒJƒ‰[i—Îj‚Éİ’è
+    ' RGB(0, 195, 137) = LINE WORKS‚Ì—Î
+    On Error Resume Next
+    newBtn.ShapeRange.Fill.ForeColor.RGB = RGB(0, 195, 137)
+    newBtn.ShapeRange.line.Visible = msoFalse  ' ˜gü‚È‚µ
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "ƒ{ƒ^ƒ“’Ç‰Á¬Œ÷"
+    Debug.Print "ƒ{ƒ^ƒ“–¼: " & newBtn.Name
+    Debug.Print "ƒ{ƒ^ƒ“ˆÊ’u: Top=" & newBtn.Top & ", Left=" & newBtn.Left
+    Debug.Print "ƒ{ƒ^ƒ“ƒTƒCƒY: Width=" & newBtn.Width & ", Height=" & newBtn.Height
+    Debug.Print "========================================="
+    
+    Exit Sub
+    
+ErrorHandler:
+    Debug.Print "ƒ{ƒ^ƒ“’Ç‰ÁƒGƒ‰[: " & Err.Description
+    Debug.Print "ƒGƒ‰[”Ô†: " & Err.Number
+    Debug.Print "========================================="
+    
+    ' ƒGƒ‰[‚ª”­¶‚µ‚Ä‚àƒV[ƒgì¬‚ÍŒp‘±
+    ' ƒ†[ƒU[‚É‚ÍƒGƒ‰[‚ğ•\¦‚µ‚È‚¢
+End Sub
+
+' *************************************************************
+' ƒeƒXƒg: ƒ{ƒ^ƒ“’Ç‰Á‚ª“®ì‚·‚é‚©Šm”F
+' *************************************************************
+Sub Test_AddButton()
+    ' ‹Î‘Ó“ü—Í˜R‚êˆê——ƒV[ƒg‚ğæ“¾
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets("‹Î‘Ó“ü—Í˜R‚êˆê——")
+    On Error GoTo 0
+    
+    If ws Is Nothing Then
+        MsgBox "u‹Î‘Ó“ü—Í˜R‚êˆê——vƒV[ƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB" & vbCrLf & _
+               "æ‚É‹Î‘Óƒ`ƒFƒbƒN‚ğÀs‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation
+        Exit Sub
+    End If
+    
+    ' ƒ{ƒ^ƒ“’Ç‰ÁŠÖ”‚ğÀs
+    Call AddLineWorksNotificationButton(ws)
+    
+    ' Šm”F
+    MsgBox "ƒ{ƒ^ƒ“‚ğ’Ç‰Á‚µ‚Ü‚µ‚½B" & vbCrLf & _
+           "u‹Î‘Ó“ü—Í˜R‚êˆê——vƒV[ƒg‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B", vbInformation
+    
+    ' ƒV[ƒg‚ğƒAƒNƒeƒBƒu‚É‚·‚é
+    ws.Activate
+End Sub
+
+

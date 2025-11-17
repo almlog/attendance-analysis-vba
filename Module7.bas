@@ -1,63 +1,58 @@
-﻿' ========================================
-' Module7
-' タイプ: 標準モジュール
-' 行数: 57
-' エクスポート日時: 2025-10-20 14:30:49
-' ========================================
+Attribute VB_Name = "Module7"
+Option Explicit
 
-Option Explicit
-
-' *************************************************************
-' モジュール：UI拡張機能
-' 目的：ユーザーインターフェース関連の拡張機能を提供する
-' Copyright (c) 2025 SI1 shunpei.suzuki
-' 作成日：2025年4月2日
-'
-' 改版履歴：
-' 2025/04/02 module2から分割作成
-' *************************************************************
-
-' 既存のメニューを拡張するためのメインメニュー処理の変更
-Public Sub メイン処理拡張()
-    ' 標準のCSVファイル読み込み処理を実行
-    Call CSVファイル読み込み
-    
-    ' 追加で勤怠入力漏れチェックを実行するかの確認
-    Dim response As Integer
-    response = MsgBox("休憩時間チェックに加えて、勤怠入力漏れチェックも実行しますか？", _
-                     vbQuestion + vbYesNo, "勤怠入力漏れチェック確認")
-    
-    If response = vbYes Then
-        Call 勤怠入力漏れチェック
-    End If
-End Sub
-
-' CSV読み込みシート作成時にボタンを追加する処理を拡張
-Public Sub CSV読み込みシート作成拡張()
-    ' 既存のCSV読み込みシート作成処理を実行
-    Call CSV読み込みシート作成
-    
-    ' 勤怠入力漏れチェック用のボタンを追加
-    Dim mainSheet As Worksheet
-    On Error Resume Next
-    Set mainSheet = Worksheets("CSV読み込みシート")
-    If mainSheet Is Nothing Then
-        MsgBox "CSV読み込みシートが見つかりません。", vbExclamation
-        Exit Sub
-    End If
-    
-    ' 勤怠入力漏れチェックボタンを配置
-    With mainSheet.Buttons.Add(528, 60, 150, 30)
-        .OnAction = "勤怠入力漏れチェック"
-        .Caption = "勤怠入力漏れチェック"
-    End With
-    
-    ' 全チェック実行ボタンを配置
-    With mainSheet.Buttons.Add(528, 100, 150, 30)
-        .OnAction = "すべてのチェック実行"
-        .Caption = "すべてのチェック実行"
-    End With
-End Sub
-
-
-
+' *************************************************************
+' ���W���[���FUI�g���@�\
+' �ړI�F���[�U�[�C���^�[�t�F�[�X�֘A�̊g���@�\��񋟂���
+' Copyright (c) 2025 SI1 shunpei.suzuki
+' �쐬���F2025�N4��2��
+'
+' ���ŗ����F
+' 2025/04/02 module2���番���쐬
+' *************************************************************
+
+' �����̃��j���[���g�����邽�߂̃��C�����j���[�����̕ύX
+Public Sub ���C�������g��()
+    ' �W����CSV�t�@�C���ǂݍ��ݏ��������s
+    Call CSV�t�@�C���ǂݍ���
+    
+    ' �ǉ��ŋΑӓ��͘R��`�F�b�N�����s���邩�̊m�F
+    Dim response As Integer
+    response = MsgBox("�x�e���ԃ`�F�b�N�ɉ����āA�Αӓ��͘R��`�F�b�N�����s���܂����H", _
+                     vbQuestion + vbYesNo, "�Αӓ��͘R��`�F�b�N�m�F")
+    
+    If response = vbYes Then
+        Call �Αӓ��͘R��`�F�b�N
+    End If
+End Sub
+
+' CSV�ǂݍ��݃V�[�g�쐬���Ƀ{�^����ǉ����鏈�����g��
+Public Sub CSV�ǂݍ��݃V�[�g�쐬�g��()
+    ' ������CSV�ǂݍ��݃V�[�g�쐬���������s
+    Call CSV�ǂݍ��݃V�[�g�쐬
+    
+    ' �Αӓ��͘R��`�F�b�N�p�̃{�^����ǉ�
+    Dim mainSheet As Worksheet
+    On Error Resume Next
+    Set mainSheet = Worksheets("CSV�ǂݍ��݃V�[�g")
+    If mainSheet Is Nothing Then
+        MsgBox "CSV�ǂݍ��݃V�[�g��������܂���B", vbExclamation
+        Exit Sub
+    End If
+    
+    ' �Αӓ��͘R��`�F�b�N�{�^����z�u
+    With mainSheet.Buttons.Add(528, 60, 150, 30)
+        .OnAction = "�Αӓ��͘R��`�F�b�N"
+        .Caption = "�Αӓ��͘R��`�F�b�N"
+    End With
+    
+    ' �S�`�F�b�N���s�{�^����z�u
+    With mainSheet.Buttons.Add(528, 100, 150, 30)
+        .OnAction = "���ׂẴ`�F�b�N���s"
+        .Caption = "���ׂẴ`�F�b�N���s"
+    End With
+End Sub
+
+
+
+
