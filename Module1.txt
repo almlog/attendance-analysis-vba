@@ -1,5 +1,3 @@
-Attribute VB_Name = "Module1"
-
 Option Explicit
 ' *************************************************************
 ' モジュール：休憩時間チェック
@@ -708,17 +706,70 @@ NextIteration:
     ' 概要シートをアクティブにする
     summarySheet.Activate
     
-    ' 残業一覧シートから部門別残業時間を集計
+' 残業一覧シートから部門別残業時間を集計
     Call 部門別残業集計
     
     ' ★★★ LINEWORKS通知ボタンを勤怠情報分析結果シートに追加 ★★★
     Call Add_LineWorks_Button_To_Summary
     
+    ' ★★★ 矛盾レコードを違反者シートに統合 ★★★
+    Dim contradictionCount As Long
+    contradictionCount = 矛盾レコードを違反者シートに統合()
+    
+' ★★★ 勤怠入力漏れ一覧から純粋な漏れ件数を取得（矛盾を除く） ★★★
+    Dim missingSheet As Worksheet
+    Dim pureMissingCount As Long
+    pureMissingCount = 0
+    
+    On Error Resume Next
+    Set missingSheet = ThisWorkbook.Worksheets("勤怠入力漏れ一覧")
+    On Error GoTo 0
+    
+    If Not missingSheet Is Nothing Then
+        ' J列から統計情報を取得
+        Dim totalMissingFromSheet As Long
+        Dim contradictionFromSheet As Long
+        
+        totalMissingFromSheet = missingSheet.Range("J2").Value  ' 総件数
+        contradictionFromSheet = missingSheet.Range("J7").Value  ' 矛盾件数
+        
+        ' 純粋な勤怠入力漏れ = 総件数 - 矛盾件数
+        pureMissingCount = totalMissingFromSheet - contradictionFromSheet
+        
+        Debug.Print "[DEBUG] 純粋な勤怠入力漏れ: " & pureMissingCount
+    End If
+    
+    ' ★★★ 純粋な休憩時間違反数（矛盾を除く） ★★★
+    Dim pureViolationCount As Long
+    pureViolationCount = violationCount  ' 元の休憩時間違反数（矛盾統合前）
+    
+    ' ★★★ 勤怠情報分析結果シートの統計を最終更新 ★★★
+    On Error Resume Next
+    Set summarySheet = ThisWorkbook.Worksheets("勤怠情報分析結果")
+    On Error GoTo 0
+    
+    If Not summarySheet Is Nothing Then
+        ' 総違反レコード数 = 休憩時間違反 + 矛盾 + 勤怠入力漏れ
+        Dim totalViolationCount As Long
+        totalViolationCount = pureViolationCount + contradictionCount + pureMissingCount
+        
+        ' 勤怠情報分析結果シートを更新
+        summarySheet.Cells(5, 2).Value = totalViolationCount
+        
+        ' 違反率を再計算
+        If processedCount > 0 Then
+            summarySheet.Cells(6, 2).Value = Format(totalViolationCount / processedCount, "0.0%")
+        End If
+        
+        Debug.Print "[INFO] 勤怠情報分析結果シートの統計を最終更新しました: 総違反=" & totalViolationCount
+    End If
+    
     MsgBox "休憩時間・残業時間チェックが完了しました。" & vbCrLf & _
            "総レコード数: " & totalCount & vbCrLf & _
            "処理対象レコード数: " & processedCount & vbCrLf & _
-           "違反レコード数: " & violationCount & vbCrLf & _
-           "違反率: " & IIf(processedCount > 0, Format(violationCount / processedCount, "0.0%"), "0%") & vbCrLf & _
+           "休憩時間違反: " & pureViolationCount & "件" & vbCrLf & _
+           "届出違反（半休矛盾）: " & contradictionCount & "件" & vbCrLf & _
+           "勤怠入力漏れ: " & pureMissingCount & "件" & vbCrLf & _
            "届出レコード数: " & deliveryCount & vbCrLf & _
            "残業発生レコード数: " & overtimeCount & vbCrLf & _
            "休日出勤レコード数: " & holidayWorkCount & vbCrLf & vbCrLf & _
@@ -2318,5 +2369,138 @@ NextRow:
     Debug.Print "稼働率集計が完了しました"
 End Sub
 
-
-
+' *************************************************************
+' 関数名: 矛盾レコードを違反者シートに統合
+' 目的: 勤怠入力漏れ一覧から矛盾レコードを読み取り、
+'       休憩時間チェック_違反者シートに追加する
+' 戻り値: 矛盾レコード数
+' 呼び出し元: 休憩時間チェックのメイン処理の最後
+' 作成日: 2025-11-17
+' *************************************************************
+Public Function 矛盾レコードを違反者シートに統合() As Long
+    On Error GoTo ErrorHandler
+    
+    ' 勤怠入力漏れ一覧シートを取得
+    Dim missingSheet As Worksheet
+    On Error Resume Next
+    Set missingSheet = ThisWorkbook.Worksheets("勤怠入力漏れ一覧")
+    On Error GoTo ErrorHandler
+    
+    If missingSheet Is Nothing Then
+        Debug.Print "[INFO] 勤怠入力漏れ一覧シートが見つかりません"
+        矛盾レコードを違反者シートに統合 = 0
+        Exit Function
+    End If
+    
+    ' 休憩時間チェック_違反者シートを取得
+    Dim violationSheet As Worksheet
+    On Error Resume Next
+    Set violationSheet = ThisWorkbook.Worksheets("休憩時間チェック_違反者")
+    On Error GoTo ErrorHandler
+    
+    If violationSheet Is Nothing Then
+        Debug.Print "[INFO] 休憩時間チェック_違反者シートが見つかりません"
+        矛盾レコードを違反者シートに統合 = 0
+        Exit Function
+    End If
+    
+    ' 矛盾レコードの色（オレンジ/青）
+    Const COLOR_CONTRADICTION As Long = 16750848  ' RGB(255, 200, 150)
+    
+    ' 勤怠入力漏れ一覧シートの最終行を取得
+    Dim lastRowMissing As Long
+    lastRowMissing = missingSheet.Cells(missingSheet.Rows.Count, 1).End(xlUp).Row
+    
+    If lastRowMissing <= 1 Then
+        Debug.Print "[INFO] 勤怠入力漏れ一覧に矛盾レコードがありません"
+        矛盾レコードを違反者シートに統合 = 0
+        Exit Function
+    End If
+    
+    ' 違反者シートの次の空行を取得
+    Dim nextRowViolation As Long
+    nextRowViolation = violationSheet.Cells(violationSheet.Rows.Count, 1).End(xlUp).Row + 1
+    
+    ' 「違反はありません」メッセージがある場合は削除
+    If violationSheet.Cells(2, 1).Value = "休憩時間違反はありません。" Then
+        violationSheet.Rows(2).Delete
+        nextRowViolation = 2
+    End If
+    
+    ' 矛盾レコード数のカウント
+    Dim contradictionCount As Long
+    contradictionCount = 0
+    
+    ' 勤怠入力漏れ一覧から矛盾レコード（オレンジ色）を探す
+    Dim i As Long
+    For i = 2 To lastRowMissing
+        ' A列の背景色をチェック
+        If missingSheet.Cells(i, 1).Interior.Color = COLOR_CONTRADICTION Then
+            ' 矛盾レコードを違反者シートにコピー
+            With violationSheet
+                .Cells(nextRowViolation, 1).Value = missingSheet.Cells(i, 1).Value  ' 社員番号
+                .Cells(nextRowViolation, 2).Value = missingSheet.Cells(i, 2).Value  ' 氏名
+                .Cells(nextRowViolation, 3).Value = ""                                ' 部門（空白）
+                .Cells(nextRowViolation, 4).Value = missingSheet.Cells(i, 3).Value  ' 日付
+                .Cells(nextRowViolation, 5).Value = missingSheet.Cells(i, 8).Value  ' 出勤時刻
+                .Cells(nextRowViolation, 6).Value = missingSheet.Cells(i, 9).Value  ' 退勤時刻
+                .Cells(nextRowViolation, 7).Value = ""                                ' 実働時間（空白）
+                .Cells(nextRowViolation, 8).Value = ""                                ' 休憩時間（空白）
+                .Cells(nextRowViolation, 9).Value = ""                                ' 必要休憩時間（空白）
+                .Cells(nextRowViolation, 10).Value = ""                               ' 休憩不足（空白）
+                .Cells(nextRowViolation, 11).Value = missingSheet.Cells(i, 7).Value ' コメント（矛盾内容）
+                
+                ' 時刻列の書式設定
+                .Cells(nextRowViolation, 5).NumberFormat = "h:mm"
+                .Cells(nextRowViolation, 6).NumberFormat = "h:mm"
+                
+                ' オレンジ色でハイライト（矛盾レコードであることを示す）
+                .Range(.Cells(nextRowViolation, 1), .Cells(nextRowViolation, 11)).Interior.Color = COLOR_CONTRADICTION
+                .Range(.Cells(nextRowViolation, 1), .Cells(nextRowViolation, 11)).Font.Bold = True
+            End With
+            
+            nextRowViolation = nextRowViolation + 1
+            contradictionCount = contradictionCount + 1
+        End If
+    Next i
+    
+    Debug.Print "[INFO] 矛盾レコード " & contradictionCount & " 件を違反者シートに統合しました"
+    
+    ' ★★★ 勤怠情報分析結果シートの統計情報を更新 ★★★
+    If contradictionCount > 0 Then
+        Dim summarySheet As Worksheet
+        On Error Resume Next
+        Set summarySheet = ThisWorkbook.Worksheets("勤怠情報分析結果")
+        On Error GoTo ErrorHandler
+        
+        If Not summarySheet Is Nothing Then
+            ' 既存の違反レコード数を取得
+            Dim currentViolationCount As Long
+            currentViolationCount = summarySheet.Cells(5, 2).Value
+            
+            ' 矛盾レコード数を加算
+            summarySheet.Cells(5, 2).Value = currentViolationCount + contradictionCount
+            
+            ' 違反率を再計算
+            Dim processedCount As Long
+            processedCount = summarySheet.Cells(3, 2).Value
+            
+            If processedCount > 0 Then
+                Dim totalViolationCount As Long
+                totalViolationCount = currentViolationCount + contradictionCount
+                summarySheet.Cells(6, 2).Value = Format(totalViolationCount / processedCount, "0.0%")
+            End If
+            
+            Debug.Print "[INFO] 勤怠情報分析結果シートの統計を更新しました"
+        End If
+    End If
+    
+    ' 矛盾レコード数を返す
+    矛盾レコードを違反者シートに統合 = contradictionCount
+    
+    Exit Function
+    
+ErrorHandler:
+    Debug.Print "[ERROR] 矛盾レコード統合エラー: " & Err.Description
+    矛盾レコードを違反者シートに統合 = 0
+End Function
