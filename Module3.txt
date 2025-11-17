@@ -1,0 +1,536 @@
+Attribute VB_Name = "Module3"
+' *************************************************************
+' モジュール：勤怠申請分析
+' 目的：勤怠申請CSVファイルを分析し、申請数をカウントする
+' Copyright (c) 2025 SI1 shunpei.suzuki
+' 作成日：2025年3月15日
+'
+' 改版履歴：
+' 2025/03/15 申請分析モジュールを追加_v1.7.5
+' 2025/03/19 有休申請数のカウント不具合を修正
+' 2025/03/21 除外社員機能・社員数カウント修正・パフォーマンス最適化_v2.0
+' *************************************************************
+
+Sub 申請詳細分析実行()
+    Dim filePath As Variant
+    Dim fs As Object, ts As Object
+    Dim line As String, headers As Variant, data As Variant
+    Dim empDict As Object ' 社員ごとの申請情報を格納するDictionary
+    Dim ws As Worksheet, outWs As Worksheet
+    Dim i As Long, j As Long, rowNum As Long, colNum As Long
+    Dim appDoc As String, empNum As String, empName As String, appCont As String, appState As String
+    Dim allAppTypes As Object ' 申請種類を格納するDictionary
+    Dim empNames As Variant
+    Dim cancelRecords As New Collection ' 取り消し申請を保存するコレクション
+
+    ' デバッグログ出力フラグ
+    Dim debugLog As Boolean
+    debugLog = True
+
+    ' 除外社員番号を取得
+    Dim excludeIDs As Variant
+    excludeIDs = 除外社員番号取得()
+    
+    ' 除外社員のマッピング辞書を作成（高速検索用）
+    Dim excludedEmpDict As Object
+    Set excludedEmpDict = CreateObject("Scripting.Dictionary")
+    
+    For j = LBound(excludeIDs) To UBound(excludeIDs)
+        If excludeIDs(j) <> "" Then
+            excludedEmpDict.Add excludeIDs(j), True
+        End If
+    Next j
+
+    ' ディクショナリを初期化
+    Set allAppTypes = CreateObject("Scripting.Dictionary")
+    Set empDict = CreateObject("Scripting.Dictionary")
+
+    ' 定数定義
+    Const ForReading = 1
+    Const TristateUseDefault = -2
+
+    ' ファイル選択ダイアログ
+    filePath = Application.GetOpenFilename("CSV ファイル,*.csv")
+    If filePath = False Then Exit Sub
+
+    ' ファイル読み込み
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Set ts = fs.OpenTextFile(filePath, ForReading, False, TristateUseDefault)
+
+    ' ヘッダー行読み込み
+    line = ts.ReadLine
+    headers = Split(line, ",")
+
+    ' データ行読み込み
+    Do While Not ts.AtEndOfStream
+        line = ts.ReadLine
+        data = Split(line, ",")
+
+        ' 必要なデータの取得
+        appDoc = ""
+        empNum = ""
+        empName = ""
+        appCont = ""
+        appState = ""
+
+        For i = 0 To UBound(headers)
+            If i <= UBound(data) Then ' データ配列の範囲チェック
+                Select Case Trim(headers(i))
+                    Case "申請書類": appDoc = Trim(data(i))
+                    Case "社員番号": empNum = Trim(data(i))
+                    Case "申請者": empName = Trim(data(i))
+                    Case "申請内容": appCont = Trim(data(i))
+                    Case "状態": appState = Trim(data(i))
+                End Select
+            End If
+        Next i
+
+        ' 除外社員番号のチェック - 高速化
+        Dim isExcluded As Boolean
+        isExcluded = (empNum <> "" And excludedEmpDict.Exists(empNum))
+        
+        ' 除外社員の場合はスキップ
+        If isExcluded Then
+            GoTo NextRecord
+        End If
+
+        ' 取消申請かどうかをチェック
+        Dim isCancelled As Boolean
+        isCancelled = False
+
+        If appState <> "" Then
+            ' 状態列に「取消」という文字列が含まれているかチェック
+            If InStr(1, appState, "取消", vbTextCompare) > 0 Then
+                isCancelled = True
+
+                ' 取り消し情報を保存
+                Dim cancelInfo As Object
+                Set cancelInfo = CreateObject("Scripting.Dictionary")
+                cancelInfo.Add "社員名", empName
+                cancelInfo.Add "申請種類", appDoc
+                cancelInfo.Add "申請内容", appCont
+
+                ' コレクションに追加
+                cancelRecords.Add cancelInfo
+
+                If debugLog Then
+                    Debug.Print "取消申請を検出: " & empName & ", " & appDoc & ", " & appCont & ", 状態: " & appState
+                End If
+            End If
+        End If
+
+        ' データが有効かつ取消でない場合のみ処理
+        If empName <> "" And appDoc <> "" And Not IsNumeric(empName) And Not isCancelled Then
+            ' 社員辞書に追加（まだ存在しない場合）
+            If Not empDict.Exists(empName) Then
+                empDict.Add empName, CreateObject("Scripting.Dictionary")
+            End If
+
+            ' 申請書類を申請種類としてカウント
+            If Not empDict(empName).Exists(appDoc) Then
+                empDict(empName).Add appDoc, 1
+            Else
+                empDict(empName)(appDoc) = empDict(empName)(appDoc) + 1
+            End If
+
+            ' 申請内容から休暇タイプを抽出して処理
+            If appCont <> "" Then
+                Call 解析申請内容(empDict(empName), empName, appDoc, appCont, debugLog)
+            End If
+        End If
+NextRecord:
+    Loop
+    ts.Close
+
+    ' 取り消し申請に対する調整を行う
+    Call 取り消し申請処理(empDict, cancelRecords, debugLog)
+
+    ' 休暇日数の計算
+    Call 休暇日数計算(empDict, debugLog)
+
+    ' 指定された順序に申請種類を並べる
+    Dim orderedAppTypes As Variant
+    orderedAppTypes = Array("有休申請", "欠勤申請", "電車遅延申請", "休憩時間修正申請", "振出／振休申請", "残業申請", "休出申請", "特休申請", "遅刻・早退申請", "子の看護休暇申請")
+
+    ' スクリーン更新などを停止
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+
+    ' 結果シート作成
+    Application.DisplayAlerts = False
+    On Error Resume Next
+    ThisWorkbook.Sheets("申請詳細分析一覧").Delete
+    On Error GoTo 0
+    Application.DisplayAlerts = True
+
+    Set outWs = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+    outWs.Name = "申請詳細分析一覧"
+
+    ' 辞書が空かチェック
+    If empDict.Count = 0 Then
+        outWs.Cells(1, 1).Value = "有効なデータがありませんでした。"
+        MsgBox "有効なデータが見つかりませんでした。", vbInformation
+        GoTo Finalize
+    End If
+
+    ' ヘッダー行の書き込み
+    Dim colIndex As Long
+    colIndex = 2
+
+    outWs.Cells(1, 1).Value = "社員名"
+
+    For i = 0 To UBound(orderedAppTypes)
+        outWs.Cells(1, colIndex).Value = orderedAppTypes(i)
+        colIndex = colIndex + 1
+    Next i
+
+    outWs.Cells(1, colIndex).Value = "午前有休回数"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "午後有休回数"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "有休日数"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "時間有休時間"
+    colIndex = colIndex + 1
+
+    outWs.Cells(1, colIndex).Value = "5日以上の休暇取得"
+
+    Dim totalColumns As Long
+    totalColumns = colIndex
+
+    With outWs.Range(outWs.Cells(1, 1), outWs.Cells(1, totalColumns))
+        .Font.Bold = True
+        .HorizontalAlignment = xlCenter
+        .Interior.Color = RGB(200, 200, 200)
+    End With
+
+    ' データ書き込み
+    empNames = empDict.keys
+    For i = 0 To UBound(empNames)
+        outWs.Cells(i + 2, 1).Value = empNames(i)
+        dataCol = 2
+        For j = 0 To UBound(orderedAppTypes)
+            If empDict(empNames(i)).Exists(orderedAppTypes(j)) Then
+                outWs.Cells(i + 2, dataCol).Value = empDict(empNames(i))(orderedAppTypes(j))
+            Else
+                outWs.Cells(i + 2, dataCol).Value = 0
+            End If
+            dataCol = dataCol + 1
+        Next j
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("午前有休回数"), empDict(empNames(i))("午前有休回数"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("午後有休回数"), empDict(empNames(i))("午後有休回数"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("有休日数"), empDict(empNames(i))("有休日数"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("時間有休時間"), empDict(empNames(i))("時間有休時間"), 0)
+        dataCol = dataCol + 1
+
+        outWs.Cells(i + 2, dataCol).Value = IIf(empDict(empNames(i)).Exists("5日以上の休暇取得"), empDict(empNames(i))("5日以上の休暇取得"), "×")
+    Next i
+
+    ' 表全体に罫線を追加
+    outWs.Range(outWs.Cells(1, 1), outWs.Cells(UBound(empNames) + 2, totalColumns)).Borders.LineStyle = xlContinuous
+
+    ' 書式設定
+    With outWs.Range(outWs.Cells(2, 2), outWs.Cells(UBound(empNames) + 2, totalColumns - 1))
+        .HorizontalAlignment = xlRight
+    End With
+    With outWs.Range(outWs.Cells(2, 1), outWs.Cells(UBound(empNames) + 2, 1))
+        .HorizontalAlignment = xlLeft
+        .Font.Bold = True
+    End With
+
+    ' 列幅の自動調整
+    outWs.Columns.AutoFit
+
+Finalize:
+    ' スクリーン更新などを再開
+    Application.ScreenUpdating = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
+
+    ' メッセージ表示
+    MsgBox "申請詳細分析が完了しました。", vbInformation
+End Sub
+
+' 申請内容を解析して休暇タイプごとにカウントする関数
+Private Sub 解析申請内容(empDic As Object, empName As String, appDoc As String, appCont As String, Optional debugLog As Boolean = False)
+    If appCont = "" Then Exit Sub
+
+    Dim multiContents As Variant
+    multiContents = Split(appCont, ";")
+
+    Dim oneContent As Variant
+    For Each oneContent In multiContents
+        oneContent = Trim(oneContent)
+
+        If oneContent <> "" Then
+            Dim contentParts As Variant
+            contentParts = Split(oneContent, " ")
+
+            If UBound(contentParts) >= 1 Then
+                Dim appDate As String
+                Dim appType As String
+                Dim appTimeStr As String
+
+                appDate = contentParts(0)
+
+                appType = ""
+                For i = 1 To UBound(contentParts)
+                    If i > 1 Then appType = appType & " "
+                    appType = appType & contentParts(i)
+                Next i
+                appType = Trim(appType)
+
+                If debugLog Then
+                    Debug.Print "解析: " & empName & ", 申請: " & appDoc & ", 内容: " & oneContent & ", 種別: " & appType
+                End If
+
+                If appType <> "" Then
+                    ' 午前有休、午後有休のカウント
+                    If appType = "午前有休" Then
+                        If Not empDic.Exists("午前有休回数") Then
+                            empDic.Add "午前有休回数", 1
+                        Else
+                            empDic("午前有休回数") = empDic("午前有休回数") + 1
+                        End If
+                        ' 休暇日数を計算するために日付情報を保存
+                        If Not empDic.Exists("有休_" & appDate & "_午前") Then
+                            empDic.Add "有休_" & appDate & "_午前", 1
+                        End If
+                    ElseIf appType = "午後有休" Then
+                        If Not empDic.Exists("午後有休回数") Then
+                            empDic.Add "午後有休回数", 1
+                        Else
+                            empDic("午後有休回数") = empDic("午後有休回数") + 1
+                        End If
+                        ' 休暇日数を計算するために日付情報を保存
+                        If Not empDic.Exists("有休_" & appDate & "_午後") Then
+                            empDic.Add "有休_" & appDate & "_午後", 1
+                        End If
+                    ElseIf InStr(appType, "有休時間") > 0 Then
+                        ' 時間有休の処理
+                        appTimeStr = ""
+                        Dim timeParts As Variant
+                        timeParts = Split(appType, " ")
+                        If UBound(timeParts) >= 1 Then
+                            Dim timeValue As Variant
+                            timeValue = Split(timeParts(UBound(timeParts)), ":")
+                            If UBound(timeValue) = 1 And IsNumeric(timeValue(0)) And IsNumeric(timeValue(1)) Then
+                                Dim hours As Double
+                                hours = CDbl(timeValue(0)) + CDbl(timeValue(1)) / 60
+                                If Not empDic.Exists("時間有休時間") Then
+                                    empDic.Add "時間有休時間", hours
+                                Else
+                                    empDic("時間有休時間") = empDic("時間有休時間") + hours
+                                End If
+                                ' 休暇日数を計算するために日付情報を保存 (時間有休は日数に換算しない)
+                                If Not empDic.Exists("有休_" & appDate & "_時間") Then
+                                    empDic.Add "有休_" & appDate & "_時間", hours
+                                End If
+                            End If
+                        End If
+                    ElseIf appType = "有休" Then
+                        ' 通常の有休申請
+                        If Not empDic.Exists("有休_" & appDate) Then
+                            empDic.Add "有休_" & appDate, 1
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    Next oneContent
+End Sub
+
+' 取り消し申請に対応する処理を行う関数
+Private Sub 取り消し申請処理(empDict As Object, cancelRecords As Collection, Optional debugLog As Boolean = False)
+    If cancelRecords.Count = 0 Then Exit Sub
+
+    If debugLog Then
+        Debug.Print "取り消し申請処理を開始します..."
+        Debug.Print "取り消し申請数: " & cancelRecords.Count
+    End If
+
+    Dim cancelInfo As Object, emp As Variant
+    Dim empName As String, appDoc As String, appCont As String
+    Dim contentParts As Variant, appDate As String, appType As String
+    Dim uniqueKey As String
+
+    For Each cancelInfo In cancelRecords
+        empName = cancelInfo("社員名")
+        appDoc = cancelInfo("申請種類")
+        appCont = cancelInfo("申請内容")
+
+        If debugLog Then
+            Debug.Print "取り消し対象: " & empName & ", " & appDoc & ", " & appCont
+        End If
+
+        If empDict.Exists(empName) Then
+            Dim multiContents As Variant
+            multiContents = Split(appCont, ";")
+
+            Dim oneContent As Variant
+            For Each oneContent In multiContents
+                oneContent = Trim(oneContent)
+
+                contentParts = Split(oneContent, " ")
+
+                If UBound(contentParts) >= 1 Then
+                    appDate = contentParts(0)
+
+                    appType = ""
+                    For i = 1 To UBound(contentParts)
+                        If i > 1 Then appType = appType & " "
+                        appType = appType & contentParts(i)
+                    Next i
+                    appType = Trim(appType)
+
+                    ' 取り消し対象のキーを生成
+                    Dim keysToRemove As New Collection
+                    Dim keyToDelete As Variant ' ループ変数を変更
+                    For Each keyToDelete In empDict(empName).keys
+                        If InStr(keyToDelete, "有休_" & appDate) > 0 And InStr(keyToDelete, appType) > 0 Then
+                            keysToRemove.Add keyToDelete
+                        End If
+                    Next keyToDelete ' Next ステートメントでループ変数を明示
+
+                    ' 見つかったキーを削除
+                    Dim itemToRemove As Variant ' ループ変数を変更
+                    For Each itemToRemove In keysToRemove
+                        If debugLog Then
+                            Debug.Print "取り消し処理: キー '" & itemToRemove & "' を削除"
+                        End If
+                    Next itemToRemove ' Next ステートメントでループ変数を明示
+
+                    ' 申請書類のカウントも減らす (完全一致で減らす)
+                    If empDict(empName).Exists(appDoc) Then
+                        If empDict(empName)(appDoc) > 0 Then
+                            empDict(empName)(appDoc) = empDict(empName)(appDoc) - 1
+                            If empDict(empName)(appDoc) = 0 Then
+                            End If
+                        End If
+                    End If
+                End If
+            Next oneContent
+        End If
+    Next cancelInfo ' Next ステートメントでループ変数を明示
+
+    If debugLog Then
+        Debug.Print "取り消し申請処理を完了しました"
+    End If
+End Sub
+' 休暇日数を計算する関数
+Private Sub 休暇日数計算(empDict As Object, Optional debugLog As Boolean = False)
+    Dim emp As Variant
+
+    For Each emp In empDict.keys
+        Dim holidayCount As Double
+        Dim morningHalfDays As Long
+        Dim afternoonHalfDays As Long
+        Dim hourlyLeaveTotal As Double
+
+        holidayCount = 0
+        morningHalfDays = 0
+        afternoonHalfDays = 0
+        hourlyLeaveTotal = 0
+
+        If debugLog Then
+            Debug.Print "===================="
+            Debug.Print "社員名: " & emp
+            Debug.Print "===================="
+        End If
+
+        Dim processedDates As Object
+        Set processedDates = CreateObject("Scripting.Dictionary")
+
+        Dim key As Variant
+        For Each key In empDict(emp).keys
+            Dim keyStr As String
+            keyStr = CStr(key)
+
+            If InStr(keyStr, "有休_") = 1 Then
+                Dim parts As Variant
+                parts = Split(keyStr, "_")
+
+                If UBound(parts) >= 1 Then
+                    Dim dateStr As String
+                    Dim typeStr As String
+
+                    dateStr = parts(1)
+                    If UBound(parts) >= 2 Then
+                        typeStr = parts(2)
+                    Else
+                        typeStr = ""
+                    End If
+
+                    If Not processedDates.Exists(dateStr) Then
+                        If typeStr = "" Then
+                            holidayCount = holidayCount + 1
+                            processedDates.Add dateStr, 1
+                            If debugLog Then Debug.Print "有休（終日）追加: " & dateStr
+                        ElseIf typeStr = "午前" Then
+                            morningHalfDays = morningHalfDays + 1
+                            processedDates.Add dateStr, 1
+                            holidayCount = holidayCount + 0.5
+                            If debugLog Then Debug.Print "午前有休追加: " & dateStr
+                        ElseIf typeStr = "午後" Then
+                            afternoonHalfDays = afternoonHalfDays + 1
+                            processedDates.Add dateStr, 1
+                            holidayCount = holidayCount + 0.5
+                            If debugLog Then Debug.Print "午後有休追加: " & dateStr
+                        End If
+                    End If
+                End If
+            ElseIf InStr(keyStr, "時間有休時間") > 0 Then
+                hourlyLeaveTotal = hourlyLeaveTotal + empDict(emp)(keyStr)
+                If debugLog Then Debug.Print "時間有休合計（加算）: " & empDict(emp)(keyStr)
+            End If
+        Next key
+
+        ' 集計結果を保存
+        If Not empDict(emp).Exists("有休日数") Then
+            empDict(emp).Add "有休日数", holidayCount
+        Else
+            empDict(emp)("有休日数") = holidayCount
+        End If
+
+        If Not empDict(emp).Exists("午前有休回数") Then
+            empDict(emp).Add "午前有休回数", morningHalfDays
+        Else
+            empDict(emp)("午前有休回数") = morningHalfDays
+        End If
+
+        If Not empDict(emp).Exists("午後有休回数") Then
+            empDict(emp).Add "午後有休回数", afternoonHalfDays
+        Else
+            empDict(emp)("午後有休回数") = afternoonHalfDays
+        End If
+
+        If Not empDict(emp).Exists("時間有休時間") Then
+            empDict(emp).Add "時間有休時間", hourlyLeaveTotal
+        Else
+            empDict(emp)("時間有休時間") = hourlyLeaveTotal
+        End If
+
+        If Not empDict(emp).Exists("5日以上の休暇取得") Then
+            empDict(emp).Add "5日以上の休暇取得", IIf(holidayCount >= 5, "〇", "×")
+        Else
+            empDict(emp)("5日以上の休暇取得") = IIf(holidayCount >= 5, "〇", "×")
+        End If
+    Next emp
+End Sub
+
+
+
+
+
+
